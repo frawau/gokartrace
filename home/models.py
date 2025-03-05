@@ -256,7 +256,6 @@ class team_member(models.Model):
             "member",
             "team__round",
         )  # Essentially one person can only be in one team.
-        unique_together = ("team", "member")
         verbose_name = _("Team Member")
         verbose_name_plural = _("Team Members")
 
