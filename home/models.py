@@ -170,6 +170,7 @@ class championship_team(models.Model):
 
     class Meta:
         unique_together = ("championship", "number")
+        unique_together = ("championship", "team")
         verbose_name = _("Championship Team")
         verbose_name_plural = _("Championship Teams")
 
@@ -180,7 +181,6 @@ class championship_team(models.Model):
 class round_team(models.Model):
     round = models.ForeignKey(Round, on_delete=models.CASCADE)
     team = models.ForeignKey(championship_team, on_delete=models.CASCADE)
-
 
     @property
     def members_time_spent(self):
@@ -219,6 +219,7 @@ class round_team(models.Model):
         return time_spent
 
     class Meta:
+        unique_together = ("round", "team")
         verbose_name = _("Participating Team")
         verbose_name_plural = _("Participating Teams")
 
@@ -232,7 +233,6 @@ class team_member(models.Model):
     driver = models.BooleanField(default=True)
     manager = models.BooleanField(default=False)
     weight = models.FloatField()
-
 
     def clean(self):
         super().clean()
@@ -252,6 +252,10 @@ class team_member(models.Model):
         super().save(*args, **kwargs)
 
     class Meta:
+        unique_together = (
+            "member",
+            "team__round__championship",
+        )  # Essentially one person can only be in one team.
         unique_together = ("team", "member")
         verbose_name = _("Team Member")
         verbose_name_plural = _("Team Members")
