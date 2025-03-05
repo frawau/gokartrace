@@ -173,24 +173,23 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 # __API_GENERATOR__
 DYNAMIC_API = {
-    #__RULES__
-    'Championship' : 'home.models.Championship',
-    'Person' : 'home.models.Person',
-    'Team' : 'home.models.Team',
-    'Round' : 'home.models.Round',
-    'round_pause' : 'home.models.round_pause',
-    'championship_team' : 'home.models.championship_team',
-    'round_team' : 'home.models.round_team',
-    'team_member' : 'home.models.team_member',
-    'Session' : 'home.models.Session',
-
-    #__RULES__END
+    # __RULES__
+    "Championship": "home.models.Championship",
+    "Person": "home.models.Person",
+    "Team": "home.models.Team",
+    "Round": "home.models.Round",
+    "round_pause": "home.models.round_pause",
+    "championship_team": "home.models.championship_team",
+    "round_team": "home.models.round_team",
+    "team_member": "home.models.team_member",
+    "Session": "home.models.Session",
+    # __RULES__END
 }
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.TokenAuthentication',
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework.authentication.TokenAuthentication",
     ],
 }
 
