@@ -27,12 +27,12 @@ class UserProfile(models.Model):
 
 def mugshot_path(instance, filename):
     # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
-    return f"person/mug_{instance.surname}_{instance.country}_{round(dt.datetime.now().timestamp())}"
+    return f"staticfiles/person/mug_{instance.surname}_{instance.country}_{round(dt.datetime.now().timestamp())}"
 
 
 def logo_path(instance, filename):
     # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
-    return f"logos/{instance.name}_{round(dt.datetime.now().timestamp())}"
+    return f"staticfiles/logos/{instance.name}_{round(dt.datetime.now().timestamp())}"
 
 
 class Person(models.Model):
