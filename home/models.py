@@ -261,10 +261,6 @@ class team_member(models.Model):
         super().save(*args, **kwargs)
 
     class Meta:
-        unique_together = (
-            "member",
-            "team__round",
-        )  # Essentially one person can only be in one team.
         unique_together = ("team", "member")
         verbose_name = _("Team Member")
         verbose_name_plural = _("Team Members")
