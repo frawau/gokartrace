@@ -254,7 +254,7 @@ class team_member(models.Model):
     class Meta:
         unique_together = (
             "member",
-            "team__round__championship",
+            "team__round",
         )  # Essentially one person can only be in one team.
         unique_together = ("team", "member")
         verbose_name = _("Team Member")
