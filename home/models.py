@@ -96,9 +96,6 @@ class Round(models.Model):
     ended = models.DateTimeField(null=True, blank=True)
     paused = models.BooleanField(default=False)
 
-    class Meta:
-        unique_together = ("championship", "name")
-
     @property
     def ongoing(self):
         if self.started is None:
@@ -143,6 +140,7 @@ class Round(models.Model):
         return sessions
 
     class Meta:
+        unique_together = ("championship", "name")
         verbose_name = _("Round")
         verbose_name_plural = _("Rounds")
 
@@ -172,8 +170,6 @@ class championship_team(models.Model):
 
     class Meta:
         unique_together = ("championship", "number")
-
-    class Meta:
         verbose_name = _("Championship Team")
         verbose_name_plural = _("Championship Teams")
 
@@ -185,9 +181,6 @@ class round_team(models.Model):
     round = models.ForeignKey(Round, on_delete=models.CASCADE)
     team = models.ForeignKey(championship_team, on_delete=models.CASCADE)
 
-    class Meta:
-        verbose_name = _("Participating Team")
-        verbose_name_plural = _("Participating Teams")
 
     @property
     def members_time_spent(self):
@@ -225,6 +218,10 @@ class round_team(models.Model):
 
         return time_spent
 
+    class Meta:
+        verbose_name = _("Participating Team")
+        verbose_name_plural = _("Participating Teams")
+
     def __str__(self):
         return f"{self.team} in {self.round}"
 
@@ -236,8 +233,6 @@ class team_member(models.Model):
     manager = models.BooleanField(default=False)
     weight = models.FloatField()
 
-    class Meta:
-        unique_together = ("team", "member")
 
     def clean(self):
         super().clean()
@@ -257,6 +252,7 @@ class team_member(models.Model):
         super().save(*args, **kwargs)
 
     class Meta:
+        unique_together = ("team", "member")
         verbose_name = _("Team Member")
         verbose_name_plural = _("Team Members")
 
