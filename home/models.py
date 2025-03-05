@@ -246,6 +246,15 @@ class team_member(models.Model):
             )
             if count > 0:
                 raise ValidationError("Only one manager allowed per round and team.")
+        # Custom validation for unique member per round
+        existing_member_teams = team_member.objects.filter(
+            member=self.member,
+            team__round=self.team.round
+        ).exclude(pk=self.pk) #exclude the current object.
+
+        if existing_member_teams.exists():
+            raise ValidationError("A person can only be a member of one team per round.")
+
 
     def save(self, *args, **kwargs):
         self.clean()
@@ -256,6 +265,7 @@ class team_member(models.Model):
             "member",
             "team__round",
         )  # Essentially one person can only be in one team.
+        unique_together = ("team", "member")
         verbose_name = _("Team Member")
         verbose_name_plural = _("Team Members")
 
