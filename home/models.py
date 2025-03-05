@@ -27,12 +27,12 @@ class UserProfile(models.Model):
 
 def mugshot_path(instance, filename):
     # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
-    return f"person/mug_{instance.surname}_{instance.country}_{round(dt.datetime.now().timestamp())}"
+    return f"staticfiles/person/mug_{instance.surname}_{instance.country}_{round(dt.datetime.now().timestamp())}"
 
 
 def logo_path(instance, filename):
     # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
-    return f"logos/{instance.name}_{round(dt.datetime.now().timestamp())}"
+    return f"staticfiles/logos/{instance.name}_{round(dt.datetime.now().timestamp())}"
 
 
 class Person(models.Model):
@@ -49,12 +49,12 @@ class Person(models.Model):
     mugshot = models.ImageField(upload_to=mugshot_path)
     email = models.EmailField(null=True, default=None)
 
-    def __str__(self):
-        return f"{self.nickname} ({self.firstname} {self.surname})"
-
     class Meta:
         verbose_name = _("Person")
         verbose_name_plural = _("People")
+
+    def __str__(self):
+        return f"{self.nickname} ({self.firstname} {self.surname})"
 
 
 class Team(models.Model):
@@ -64,6 +64,9 @@ class Team(models.Model):
     class Meta:
         verbose_name = _("Team")
         verbose_name_plural = _("Teams")
+
+    def __str__(self):
+        return f"Team {self.name}"
 
 
 class Championship(models.Model):
@@ -79,6 +82,9 @@ class Championship(models.Model):
     class Meta:
         verbose_name = _("Championship")
         verbose_name_plural = _("Championships")
+
+    def __str__(self):
+        return f"{self.name}"
 
 
 class Round(models.Model):
@@ -105,9 +111,43 @@ class Round(models.Model):
     def time_paused(self):
         pass
 
+    @property
+    def teams(self):
+        """
+        Returns a list of Team objects participating in this Round.
+        """
+        teams = Team.objects.filter(
+            championship_team__round_team__round=self
+        ).distinct()
+        return list(teams)
+
+    @property
+    def current_session_info(self):
+        """
+        Returns a dictionary of active sessions for each team, with participants.
+        """
+        sessions = {}
+        for team in self.teams:
+            try:
+                active_session = self.session_set.filter(
+                    participants__team__team=team,
+                    start__isnull=False,
+                    end__isnull=True,
+                ).latest("start")
+                sessions[team.pk] = {
+                    "participants": list(active_session.participants.all()),
+                    "start_time": active_session.start,
+                }
+            except self.session_set.model.DoesNotExist:
+                sessions[team.pk] = None
+        return sessions
+
     class Meta:
         verbose_name = _("Round")
         verbose_name_plural = _("Rounds")
+
+    def __str__(self):
+        return f"{self.name} of {self.championship.name}"
 
 
 class round_pause(models.Model):
@@ -118,6 +158,9 @@ class round_pause(models.Model):
     class Meta:
         verbose_name = _("Pause")
         verbose_name_plural = _("Pauses")
+
+    def __str__(self):
+        return f"{self.round.name} pause"
 
 
 class championship_team(models.Model):
@@ -134,6 +177,9 @@ class championship_team(models.Model):
         verbose_name = _("Championship Team")
         verbose_name_plural = _("Championship Teams")
 
+    def __str__(self):
+        return f"{self.team.name} in {self.championship.name}."
+
 
 class round_team(models.Model):
     round = models.ForeignKey(Round, on_delete=models.CASCADE)
@@ -142,6 +188,45 @@ class round_team(models.Model):
     class Meta:
         verbose_name = _("Participating Team")
         verbose_name_plural = _("Participating Teams")
+
+    @property
+    def members_time_spent(self):
+        """
+        Returns a dictionary of members and their total time spent in sessions for this round,
+        excluding paused time.
+        """
+        time_spent = {}
+        for member in self.team_member_set.all():
+            sessions = member.session_set.filter(
+                round=self.round, start__isnull=False, end__isnull=False
+            )
+            total_time = dt.timedelta(0)  # Initialize total time
+
+            for session in sessions:
+                session_time = session.end - session.start
+                paused_time = dt.timedelta(0)
+
+                # Calculate paused time within the session duration
+                pauses = self.round.round_pause_set.filter(
+                    start__lte=session.end,
+                    end__gte=session.start,
+                )
+
+                for pause in pauses:
+                    pause_start = max(pause.start, session.start)
+                    pause_end = min(
+                        pause.end or datetime.now(timezone.utc), session.end
+                    )  # if pause.end is null, use now.
+                    paused_time += pause_end - pause_start
+
+                total_time += session_time - paused_time
+
+            time_spent[member.pk] = total_time
+
+        return time_spent
+
+    def __str__(self):
+        return f"{self.team} in {self.round}"
 
 
 class team_member(models.Model):
@@ -175,6 +260,9 @@ class team_member(models.Model):
         verbose_name = _("Team Member")
         verbose_name_plural = _("Team Members")
 
+    def __str__(self):
+        return f"{self.member.nickname} for {self.team.team} in {self.team.round}"
+
 
 class Session(models.Model):
     round = models.ForeignKey(Round, on_delete=models.CASCADE)
@@ -186,3 +274,6 @@ class Session(models.Model):
     class Meta:
         verbose_name = _("Session")
         verbose_name_plural = _("Sessions")
+
+    def __str__(self):
+        return f"{self.driver.nickname} in {self.round}"
