@@ -239,7 +239,7 @@ class team_member(models.Model):
         if self.manager:
             count = (
                 team_member.objects.filter(
-                    round=self.round, team=self.team, manager=True
+                    team=self.team, manager=True
                 )
                 .exclude(pk=self.pk)
                 .count()
