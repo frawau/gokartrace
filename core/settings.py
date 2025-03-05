@@ -24,10 +24,10 @@ if not SECRET_KEY:
 
 DEBUG = os.environ.get("DEBUG", True)
 
-APP_DOMAIN = os.getenv("APP_DOMAIN", "localhost")
+APP_DOMAIN = os.getenv("APP_DOMAIN", "wautier.eu")
 
 # HOSTs List
-ALLOWED_HOSTS = ["127.0.0.1", "localhost", APP_DOMAIN, ".deploypro.dev"]
+ALLOWED_HOSTS = ["127.0.0.1", "192.168.77.8", "localhost", APP_DOMAIN, ".deploypro.dev"]
 
 # Add here your deployment HOSTS
 CSRF_TRUSTED_ORIGINS = [
@@ -146,9 +146,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.1/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "en-gb"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Asia/Bangkok"
 
 USE_I18N = True
 

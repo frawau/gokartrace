@@ -1,0 +1,18 @@
+<h5 class="card-title">{{ round_team.team.team.name }}</h5>
+<ul>
+    {% for member in round_team.team_member_set.all %}
+        <li>
+            {{ member.member.nickname }} ({{ member.get_driver_display }}) -
+            Time Spent:
+            {% if round_team.members_time_spent|get_item:member.pk %}
+                {{ round_team.members_time_spent|get_item:member.pk }}
+            {% else %}
+                0 seconds
+            {% endif %}
+
+            {% if round_team.team.team.pk in current_sessions and current_sessions|get_item:round_team.team.team.pk and member in current_sessions|get_item:round_team.team.team.pk.participants %}
+                - Ongoing Time: <span class="timer" data-start-time="{{ current_sessions|get_item:round_team.team.team.pk.start_time.timestamp }}"></span>
+            {% endif %}
+        </li>
+    {% endfor %}
+</ul>
