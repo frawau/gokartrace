@@ -5,6 +5,7 @@ Copyright (c) 2019 - present AppSeed.us
 
 from django.contrib import admin
 from django.urls import path, include
+from debug_toolbar.toolbar import debug_toolbar_urls
 
 try:
     from rest_framework.authtoken.views import obtain_auth_token
@@ -16,7 +17,7 @@ urlpatterns = [
     path("", include("home.urls")),
     path("", include("theme_material_kit.urls")),
     path("login/jwt/", view=obtain_auth_token),
-]
+] + debug_toolbar_urls()
 
 
 # Lazy-load on routing is needed

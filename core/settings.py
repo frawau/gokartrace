@@ -58,10 +58,12 @@ INSTALLED_APPS = [
     "django_dyn_api",
     "rest_framework",
     "rest_framework.authtoken",
+    "debug_toolbar",
 ]
 
 
 MIDDLEWARE = [
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -94,7 +96,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "core.wsgi.application"
 
-
+# For the debug tool bar
+INTERNAL_IPS = [
+    "127.0.0.1",
+    "192.168.77.8",
+    "192.168.77.1",
+]
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
