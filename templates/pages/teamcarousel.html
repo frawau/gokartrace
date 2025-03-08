@@ -4,7 +4,7 @@
         <div class="section">
             <h2>Round: {{ round.name }}</h2>
 
-            <div id="teamCarousel" class="carousel slide" data-ride="carousel" data-interval="7000" >
+            <div id="teamCarousel" class="carousel slide" data-ride="carousel" >
                 <div class="carousel-inner">
                     {% for team in round.teams %}
                         <div class="carousel-item {% if forloop.first %}active{% endif %}" data-team-id="{{ team.pk }}">
@@ -23,6 +23,11 @@
 {% block extra_js %}
 <script>
     $(document).ready(function() {
+        // Set the interval for auto-sliding (7 seconds)
+        $('#teamCarousel').carousel({
+            interval: 7000
+        });
+
         // Function to refresh the team card on slide change
         function refreshTeamCard(e) {
             var teamId = $(e.relatedTarget).data('team-id');
