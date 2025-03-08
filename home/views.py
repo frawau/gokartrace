@@ -43,7 +43,7 @@ def team_carousel(request):
         Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
     ).first()
 
-    return render(request, "/pages/teamcarousel.html", {"round": round})
+    return render(request, "pages/teamcarousel.html", {"round": round})
 
 
 def get_team_card(request):
