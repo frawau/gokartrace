@@ -1,12 +1,14 @@
 from django.db import models
 from django_countries.fields import CountryField
 from django.core.validators import MinValueValidator, MaxValueValidator
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ObjectDoesNotExist, MultipleObjectsReturned
 from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
 
 import datetime as dt
+import logging
 
+_log = logging.getLogger(__name__)
 # Create your models here.
 
 
@@ -128,7 +130,7 @@ class Round(models.Model):
         for team in self.teams:
             try:
                 active_session = self.session_set.filter(
-                    participants__team__team=team,
+                    driver__team__team=team,
                     start__isnull=False,
                     end__isnull=True,
                 ).latest("start")
@@ -255,6 +257,64 @@ class team_member(models.Model):
 
         if existing_member_teams.exists():
             raise ValidationError("A person can only be a member of one team per round.")
+
+    @property
+    def time_spent(self):
+        sessions = member.session_set.filter(
+            driver=self, start__isnull=False, end__isnull=False
+        )
+        total_time = dt.timedelta(0)
+        for session in sessions:
+            session_time = session.end - session.start
+            paused_time = dt.timedelta(0)
+
+            # Calculate paused time within the session duration
+            pauses = self.round.round_pause_set.filter(
+                start__lte=session.end,
+                end__gte=session.start,
+            )
+
+            for pause in pauses:
+                pause_start = max(pause.start, session.start)
+                pause_end = min(
+                    pause.end or datetime.now(timezone.utc), session.end
+                )  # if pause.end is null, use now.
+                paused_time += pause_end - pause_start
+
+            total_time += session_time - paused_time
+
+    @property
+    def current_session(self):
+        try:
+            sessions = member.session_set.get(
+                driver=self, start__isnull=False, end__isnull=True
+            )
+            total_time = dt.timedelta(0)
+            now = dt.datetime.now()
+            for session in sessions:
+                session_time = now - session.start
+                paused_time = dt.timedelta(0)
+
+                # Calculate paused time within the session duration
+                pauses = self.round.round_pause_set.filter(
+                    start__lte=session.end,
+                    end__gte=session.start,
+                )
+
+                for pause in pauses:
+                    pause_start = max(pause.start, session.start)
+                    pause_end = pause.end or now # if pause.end is null, use now.
+                    paused_time += pause_end - pause_start
+
+                total_time += session_time - paused_time
+                return total_time
+        except ObjectDoesNotExist:
+            # Handle the case where no session is found
+            return dt.timedelta(0)
+
+        except MultipleObjectsReturned:
+            _log.critical("There should be only one active session per team/driver")
+            return dt.timedelta(0)
 
 
     def save(self, *args, **kwargs):

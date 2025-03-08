@@ -30,7 +30,7 @@
 
             $.ajax({
                 url: '/get_team_card/',
-                data: {team_id: teamId, round_id: {{ round.pk }}},
+                data: {team_id: teamId},
                 success: function(data) {
                     cardBody.html(data.html);
                     startTimers();

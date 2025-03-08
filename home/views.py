@@ -48,16 +48,11 @@ def team_carousel(request):
 
 def get_team_card(request):
     team_id = request.GET.get("team_id")
-    round_id = request.GET.get("round_id")
     round_team_instance = get_object_or_404(
-        round_team, team__pk=team_id, round__pk=round_id
+        round_team, pk=team_id
     )
-    round_instance = get_object_or_404(Round, pk=round_id)
-
     context = {
         "round_team": round_team_instance,
-        "current_sessions": round_instance.current_session_info,
-        "now": dt.datetime.now(),
     }
     html = render(request, "layout/teamcard.html", context).content.decode("utf-8")
     return JsonResponse({"html": html})
