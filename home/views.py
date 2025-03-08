@@ -48,9 +48,7 @@ def team_carousel(request):
 
 def get_team_card(request):
     team_id = request.GET.get("team_id")
-    round_team_instance = get_object_or_404(
-        round_team, pk=team_id
-    )
+    round_team_instance = get_object_or_404(round_team, pk=team_id)
     context = {
         "round_team": round_team_instance,
     }

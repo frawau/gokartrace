@@ -1,7 +1,11 @@
 from django.db import models
 from django_countries.fields import CountryField
 from django.core.validators import MinValueValidator, MaxValueValidator
-from django.core.exceptions import ValidationError, ObjectDoesNotExist, MultipleObjectsReturned
+from django.core.exceptions import (
+    ValidationError,
+    ObjectDoesNotExist,
+    MultipleObjectsReturned,
+)
 from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
 
@@ -95,9 +99,16 @@ class Round(models.Model):
     championship = models.ForeignKey(Championship, on_delete=models.CASCADE)
     start = models.DateTimeField()
     duration = models.DurationField()
+    ready = models.BooleanField(default=False)
     started = models.DateTimeField(null=True, blank=True)
     ended = models.DateTimeField(null=True, blank=True)
     paused = models.BooleanField(default=False)
+    change_lanes = models.IntegerField(
+        default=2, validators=[MinValueValidator(1), MaxValueValidator(4)]
+    )
+    _max_drive = models.DurationField(null=True, blank=True)
+    pitlane_open_after = models.DurationField(default=timedelta(minutes=10))
+    pitlane_close_before = models.DurationField(default=timedelta(minutes=10))
 
     @property
     def ongoing(self):
@@ -110,6 +121,27 @@ class Round(models.Model):
     @property
     def time_paused(self):
         pass
+
+    @property
+    def time_elapsed(self):
+        # Calculate paused time within the session duration
+        now = dt.datetime.now()
+        totalpause = dt.timedelta()
+        for pause in self.round.round_pause_set.all():
+            if pause.end is None:
+                now = pause.start
+            else:
+                totalpause += pause.end - pause.start
+        return now - self.started - totalpause
+
+    @property
+    def pit_lane_open(self):
+        elapsed = self.time_elapsed
+        if elapsed < self.pitlane_open_after:
+            return False
+        if elapsed > self.duration - self.pitlane_close_before:
+            return False
+        return True
 
     @property
     def teams(self):
@@ -141,6 +173,164 @@ class Round(models.Model):
             except self.session_set.model.DoesNotExist:
                 sessions[team.pk] = None
         return sessions
+
+    def start_race(self):
+        now = dt.datetime.now()
+        sessions = self.session_set.filter(
+            register__isnull=False, start__isnull=True, end__isnull=True
+        )
+        for session in sessions:
+            session.start = now
+            session.save()
+        self.started = now
+        self.save()
+
+    def false_start(self):
+        sessions = self.session_set.filter(
+            register__isnull=False, start=self.started, end__isnull=True
+        )
+        for session in sessions:
+            session.start = None
+            session.save()
+        self.started = None
+        self.save()
+
+    def false_restart(self):
+        """
+        Resets the 'end' attribute of the latest round_pause only if there are no open round_pauses.
+        """
+        if self.round_pause_set.filter(end__isnull=True).exists():
+            # There is an open round_pause, so don't reset
+            return
+
+        latest_pause = self.round_pause_set.order_by("-start").first()
+
+        if latest_pause:
+            latest_pause.end = None
+            latest_pause.save()
+
+    def pre_race_check(self):
+        """
+        Checks that each team has exactly one driver with a registered but unstarted session,
+        and that all drivers have a non-zero weight.
+        """
+        errors = []
+
+        for round_team_instance in self.round_team_set.all():
+            drivers = round_team_instance.team_member_set.filter(driver=True)
+
+            registered_drivers = []
+            for driver in drivers:
+                sessions = driver.session_set.filter(
+                    register__isnull=False,
+                    start__isnull=True,
+                    end__isnull=True,
+                )
+
+                if sessions.exists():
+                    registered_drivers.append(driver)
+
+            if len(registered_drivers) != 1:
+                errors.append(
+                    f"Team {round_team_instance.team.team.name} has {len(registered_drivers)} registered to start. Expected 1."
+                )
+
+            for driver in drivers:
+                if driver.weight == 0:
+                    errors.append(
+                        f"Driver {driver.member.nickname} in team {round_team_instance.team.team.name} has a weight of 0."
+                    )
+
+        if errors:
+            raise ValidationError(errors)
+        else:
+            self.ready = True
+            self.save()
+
+    def post_race_check(self):
+        """
+        Checks that each team has exactly one driver with a registered but unstarted session,
+        and that all drivers have a non-zero weight.
+        """
+        errors = []
+        # TODO Check the driving time, that all drivers did dive,...
+
+    def change_queue(self):
+        sessions = self.session_set.filter(
+            register__isnull=False, start__isnull=True, end__isnull=True
+        ).order_by("registered")
+        return sessions
+
+    def next_driver_change(self):
+        sessions = self.session_set.filter(
+            register__isnull=False, start__isnull=True, end__isnull=True
+        ).order_by("egistered")
+        return sessions[:2]
+
+    def driver_register(self, driver):
+        """
+        Creates a Session for the given driver and sets the registered time to now.
+        """
+        if self.started and not self.pit_lane_open:
+            raise ValidationError("The pit lane is closed.")
+
+        if not driver.driver:
+            raise ValidationError(f"{driver.nickname} is not a driver.")
+
+        now = dt.datetime.now()
+
+        session = Session.objects.create(
+            driver=driver,
+            round=self,
+            register=now,
+        )
+        return session
+
+    def driver_endsession(self, driver):
+        """
+        Ends the given driver's session and starts the next driver's session on the same team.
+        """
+        now = dt.datetime.now()
+
+        # 1. End the current driver's session
+        try:
+            current_session = driver.session_set.get(
+                round=self,
+                start__isnull=False,
+                end__isnull=True,
+            )
+            current_session.end = now
+            current_session.save()
+        except ObjectDoesNotExist:
+            raise ValidationError(f"Driver {driver.nickname} has no current session.")
+        except MultipleObjectsReturned:
+            raise ValidationError(f"Driver {driver} has multiple current sessions.")
+
+        # 2. Find and start the next driver's session
+        try:
+            round_team = driver.round_team.get()
+            next_session = (
+                round_team.session_set.filter(
+                    driver__driver=True,
+                    round=self,
+                    start__isnull=True,
+                    end__isnull=True,
+                    register__isnull=False,
+                )
+                .order_by("register")
+                .first()
+            )
+
+            if next_session:
+                next_session.start = now
+                next_session.save()
+
+        except ObjectDoesNotExist:
+            # Driver is not associated with a round_team
+            print(f"Driver {driver} is not associated with a round_team.")
+        except MultipleObjectsReturned:
+            # Driver is associated with multiple round_teams (unexpected)
+            print(f"Driver {driver} is associated with multiple round_teams.")
 
     class Meta:
         unique_together = ("championship", "name")
@@ -185,42 +375,6 @@ class round_team(models.Model):
     round = models.ForeignKey(Round, on_delete=models.CASCADE)
     team = models.ForeignKey(championship_team, on_delete=models.CASCADE)
 
-    @property
-    def members_time_spent(self):
-        """
-        Returns a dictionary of members and their total time spent in sessions for this round,
-        excluding paused time.
-        """
-        time_spent = {}
-        for member in self.team_member_set.all():
-            sessions = member.session_set.filter(
-                round=self.round, start__isnull=False, end__isnull=False
-            )
-            total_time = dt.timedelta(0)  # Initialize total time
-
-            for session in sessions:
-                session_time = session.end - session.start
-                paused_time = dt.timedelta(0)
-
-                # Calculate paused time within the session duration
-                pauses = self.round.round_pause_set.filter(
-                    start__lte=session.end,
-                    end__gte=session.start,
-                )
-
-                for pause in pauses:
-                    pause_start = max(pause.start, session.start)
-                    pause_end = min(
-                        pause.end or datetime.now(timezone.utc), session.end
-                    )  # if pause.end is null, use now.
-                    paused_time += pause_end - pause_start
-
-                total_time += session_time - paused_time
-
-            time_spent[member.pk] = total_time
-
-        return time_spent
-
     class Meta:
         unique_together = ("round", "team")
         verbose_name = _("Participating Team")
@@ -235,15 +389,13 @@ class team_member(models.Model):
     member = models.ForeignKey(Person, on_delete=models.CASCADE)
     driver = models.BooleanField(default=True)
     manager = models.BooleanField(default=False)
-    weight = models.FloatField()
+    weight = models.FloatField(default=0)
 
     def clean(self):
         super().clean()
         if self.manager:
             count = (
-                team_member.objects.filter(
-                    team=self.team, manager=True
-                )
+                team_member.objects.filter(team=self.team, manager=True)
                 .exclude(pk=self.pk)
                 .count()
             )
@@ -251,12 +403,15 @@ class team_member(models.Model):
                 raise ValidationError("Only one manager allowed per round and team.")
         # Custom validation for unique member per round
         existing_member_teams = team_member.objects.filter(
-            member=self.member,
-            team__round=self.team.round
-        ).exclude(pk=self.pk) #exclude the current object.
+            member=self.member, team__round=self.team.round
+        ).exclude(
+            pk=self.pk
+        )  # exclude the current object.
 
         if existing_member_teams.exists():
-            raise ValidationError("A person can only be a member of one team per round.")
+            raise ValidationError(
+                "A person can only be a member of one team per round."
+            )
 
     @property
     def time_spent(self):
@@ -277,7 +432,7 @@ class team_member(models.Model):
             for pause in pauses:
                 pause_start = max(pause.start, session.start)
                 pause_end = min(
-                    pause.end or datetime.now(timezone.utc), session.end
+                    pause.end or dt.datetime.now(), session.end
                 )  # if pause.end is null, use now.
                 paused_time += pause_end - pause_start
 
@@ -303,19 +458,18 @@ class team_member(models.Model):
 
                 for pause in pauses:
                     pause_start = max(pause.start, session.start)
-                    pause_end = pause.end or now # if pause.end is null, use now.
+                    pause_end = pause.end or now  # if pause.end is null, use now.
                     paused_time += pause_end - pause_start
 
                 total_time += session_time - paused_time
                 return total_time
         except ObjectDoesNotExist:
             # Handle the case where no session is found
-            return dt.timedelta(0)
+            return None
 
         except MultipleObjectsReturned:
             _log.critical("There should be only one active session per team/driver")
-            return dt.timedelta(0)
-
+            return "Contact Race Management!"
 
     def save(self, *args, **kwargs):
         self.clean()
@@ -343,3 +497,9 @@ class Session(models.Model):
 
     def __str__(self):
         return f"{self.driver.nickname} in {self.round}"
+
+
+class ChangeLane(models.Model):
+    round = models.ForeignKey(Round, on_delete=models.CASCADE)
+    lane = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(4)])
+    driver = models.ForeignKey(team_member, on_delete=models.CASCADE)
