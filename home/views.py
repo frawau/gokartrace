@@ -37,6 +37,8 @@ def index(request):
 
 
 def team_carousel(request):
+    end_date = dt.date.today()
+    start_date = end_date - dt.timedelta(days=1)
     round = Round.objects.filter(
         Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
     ).first()
