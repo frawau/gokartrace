@@ -260,7 +260,7 @@ class team_member(models.Model):
 
     @property
     def time_spent(self):
-        sessions = session_set.filter(
+        sessions = self.session_set.filter(
             driver=self, start__isnull=False, end__isnull=False
         )
         total_time = dt.timedelta(0)
@@ -286,7 +286,7 @@ class team_member(models.Model):
     @property
     def current_session(self):
         try:
-            sessions = session_set.get(
+            sessions = self.session_set.get(
                 driver=self, start__isnull=False, end__isnull=True
             )
             total_time = dt.timedelta(0)
