@@ -25,7 +25,11 @@
     $(document).ready(function() {
         // Set the interval for auto-sliding (7 seconds)
         $('#teamCarousel').carousel({
-            interval: 7000
+            interval: 7000,
+            pause:null
+        });
+
+        $('#teamCarousel').carousel('cycle');
         });
 
         // Function to refresh the team card on slide change
