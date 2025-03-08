@@ -22,15 +22,20 @@
 
 {% block extra_js %}
 <script>
-    $(document).ready(
-    function() {
-        $('#teamCarousel').on('slid.bs.carousel', function (e) {
+    $(document).ready(function() {
+        // Set the interval for auto-sliding (7 seconds)
+        $('#teamCarousel').carousel({
+            interval: 7000
+        });
+
+        // Function to refresh the team card on slide change
+        function refreshTeamCard(e) {
             var teamId = $(e.relatedTarget).data('team-id');
             var cardBody = $(e.relatedTarget).find('.card-body');
 
             $.ajax({
                 url: '/get_team_card/',
-                data: {team_id: teamId},
+                data: { team_id: teamId },
                 success: function(data) {
                     cardBody.html(data.html);
                     startTimers();
@@ -39,29 +44,35 @@
                     cardBody.html('<p>Error loading team info.</p>');
                 }
             });
-        }).trigger('slid.bs.carousel'); // Load the first card on page load
+        }
+
+        // Attach the refresh function to the 'slid.bs.carousel' event
+        $('#teamCarousel').on('slid.bs.carousel', refreshTeamCard);
+
+        // Load the first card on page load
+        $('#teamCarousel').trigger('slid.bs.carousel');
+
+        function startTimers() {
+            $('.timer').each(function() {
+                var startTime = $(this).data('start-time');
+                var timerElement = $(this);
+
+                if (startTime) {
+                    setInterval(function() {
+                        var now = new Date().getTime() / 1000;
+                        var diff = now - startTime;
+                        timerElement.text(formatTime(diff));
+                    }, 1000);
+                }
+            });
+        }
+
+        function formatTime(seconds) {
+            var hours = Math.floor(seconds / 3600);
+            var minutes = Math.floor((seconds % 3600) / 60);
+            var secs = Math.floor(seconds % 60);
+            return hours + ":" + (minutes < 10 ? "0" : "") + minutes + ":" + (secs < 10 ? "0" : "") + secs;
+        }
     });
-
-    function startTimers() {
-        $('.timer').each(function() {
-            var startTime = $(this).data('start-time');
-            var timerElement = $(this);
-
-            if (startTime) {
-                setInterval(function() {
-                    var now = new Date().getTime() / 1000;
-                    var diff = now - startTime;
-                    timerElement.text(formatTime(diff));
-                }, 1000);
-            }
-        });
-    }
-
-    function formatTime(seconds) {
-        var hours = Math.floor(seconds / 3600);
-        var minutes = Math.floor((seconds % 3600) / 60);
-        var secs = Math.floor(seconds % 60);
-        return hours + ":" + (minutes < 10 ? "0" : "") + minutes + ":" + (secs < 10 ? "0" : "") + secs;
-    }
 </script>
 {% endblock extra_js %}
