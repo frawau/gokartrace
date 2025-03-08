@@ -9,5 +9,5 @@ from . import views
 
 urlpatterns = [
     path("", views.index, name="Everybody"),
-    path("teamcarousel", views.team_carousel, name="Participating Teams"),
+    path("teamcarousel/", views.team_carousel, name="Participating Teams"),
 ]
