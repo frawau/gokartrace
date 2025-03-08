@@ -107,8 +107,8 @@ class Round(models.Model):
         default=2, validators=[MinValueValidator(1), MaxValueValidator(4)]
     )
     _max_drive = models.DurationField(null=True, blank=True)
-    pitlane_open_after = models.DurationField(default=timedelta(minutes=10))
-    pitlane_close_before = models.DurationField(default=timedelta(minutes=10))
+    pitlane_open_after = models.DurationField(default=dt.timedelta(minutes=10))
+    pitlane_close_before = models.DurationField(default=dt.timedelta(minutes=10))
 
     @property
     def ongoing(self):
