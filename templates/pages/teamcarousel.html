@@ -33,17 +33,27 @@
             var teamId = $(e.relatedTarget).data('team-id');
             var cardBody = $(e.relatedTarget).find('.card-body');
 
-            $.ajax({
-                url: '/get_team_card/',
-                data: { team_id: teamId },
-                success: function(data) {
-                    cardBody.html(data.html);
-                    startTimers();
-                },
-                error: function() {
-                    cardBody.html('<p>Error loading team info.</p>');
-                }
-            });
+            //Check if teamId is undefined, if so, get it from the active element.
+            if(teamId === undefined){
+                teamId = $('.carousel-item.active').data('team-id');
+                cardBody = $('.carousel-item.active').find('.card-body');
+            }
+
+            if (teamId !== undefined) {
+                $.ajax({
+                    url: '/get_team_card/',
+                    data: { team_id: teamId },
+                    success: function(data) {
+                        cardBody.html(data.html);
+                        startTimers();
+                    },
+                    error: function() {
+                        cardBody.html('<p>Error loading team info.</p>');
+                    }
+                });
+            } else {
+                console.error("teamId is undefined.");
+            }
         }
 
         // Attach the refresh function to the 'slid.bs.carousel' event
