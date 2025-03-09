@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework.authtoken",
     "debug_toolbar",
+    "channels",
 ]
 
 
@@ -201,7 +202,18 @@ REST_FRAMEWORK = {
 }
 
 # __API_GENERATOR__END
+# Web sockets
 
+ASGI_APPLICATION = "core.asgi.application" # Replace your_project
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    },
+}
 # __CELERY__
 
 # __OAUTH_GITHUB__

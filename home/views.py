@@ -7,7 +7,8 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 
 from django.db.models import Q
-from .models import Championship, Team, Person, Round, championship_team, round_team
+from .models import Championship, Team, Person, Round, championship_team, round_team, ChangeLane
+from .serializers import ChangeLaneSerializer
 
 # Create your views here.
 
@@ -54,3 +55,7 @@ def get_team_card(request):
     }
     html = render(request, "layout/teamcard.html", context).content.decode("utf-8")
     return JsonResponse({"html": html})
+
+class ChangeLaneDetail(generics.RetrieveAPIView):
+    queryset = ChangeLane.objects.all()
+    serializer_class = ChangeLaneSerializer
