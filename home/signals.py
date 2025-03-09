@@ -15,10 +15,13 @@ def changelane_updated(sender, instance, **kwargs):
     serializer = ChangeLaneSerializer(instance)
     changelane_data = serializer.data
 
-    async_to_sync(channel_layer.group_send)(
-        f'changelane_{instance.id}',  # Group name based on ChangeLane ID
-        {
-            'type': 'send.changelane.update',
-            'changelane': changelane_data,
-        },
-    )
+    try:
+        async_to_sync(channel_layer.group_send)(
+            f'changelane_{instance.id}',  # Group name based on ChangeLane ID
+            {
+                'type': 'send.changelane.update',
+                'changelane': changelane_data,
+            },
+        )
+    except:
+        pass
