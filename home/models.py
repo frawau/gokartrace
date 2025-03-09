@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q, UniqueConstraint
 from django_countries.fields import CountryField
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import (
@@ -95,6 +96,7 @@ class Championship(models.Model):
 
 
 class Round(models.Model):
+
     name = models.CharField(max_length=32)
     championship = models.ForeignKey(Championship, on_delete=models.CASCADE)
     start = models.DateTimeField()
@@ -185,6 +187,19 @@ class Round(models.Model):
         self.started = now
         self.save()
 
+    def end_race(self):
+        now = dt.datetime.now()
+        sessions = self.session_set.filter(
+            register__isnull=False, start__isnull=True, end__isnull=True
+        )
+        for session in sessions:
+            session.end = now
+            session.save()
+        self.ended = now
+        self.save()
+        ChangeLane.object.all().delete()
+        return self.post_race_check()
+
     def false_start(self):
         sessions = self.session_set.filter(
             register__isnull=False, start=self.started, end__isnull=True
@@ -246,6 +261,12 @@ class Round(models.Model):
         else:
             self.ready = True
             self.save()
+            for i in range(self.change_lanes):
+                lane = ChangeLane.objects.create(
+                    driver=None,
+                    round=self,
+                    number=i + 1,
+                )
 
     def post_race_check(self):
         """
@@ -262,10 +283,16 @@ class Round(models.Model):
         return sessions
 
     def next_driver_change(self):
-        sessions = self.session_set.filter(
-            register__isnull=False, start__isnull=True, end__isnull=True
-        ).order_by("egistered")
-        return sessions[:2]
+        if not self.pit_lane_open:
+            return None
+        session = (
+            self.session_set.filter(
+                register__isnull=False, start__isnull=True, end__isnull=True
+            )
+            .order_by("registered")
+            .first()
+        )
+        return session
 
     def driver_register(self, driver):
         """
@@ -284,6 +311,15 @@ class Round(models.Model):
             round=self,
             register=now,
         )
+
+        alane = (
+            ChangeLane.objects.filter(round=self, driver__isnull=True)
+            .order_by("lane")
+            .first()
+        )
+        if alane:
+            alane.driver = driver
+            alane.save()
         return session
 
     def driver_endsession(self, driver):
@@ -502,4 +538,23 @@ class Session(models.Model):
 class ChangeLane(models.Model):
     round = models.ForeignKey(Round, on_delete=models.CASCADE)
     lane = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(4)])
-    driver = models.ForeignKey(team_member, on_delete=models.CASCADE)
+    driver = models.ForeignKey(team_member, null=True, blank=True)
+    open = models.BooleanField(default=False)
+
+    def next_driver(self):
+        sess = self.round.next_driver_change()
+        if sess:
+            self.driver = sess.driver
+        else:
+            self.driver = None
+        self.save()
+
+    class Meta:
+        unique_together = ("round", "lane")
+        constraints = [
+            UniqueConstraint(
+                fields=["driver"],
+                condition=Q(driver__isnull=False),
+                name="unique_driver_when_not_null",
+            )
+        ]
