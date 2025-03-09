@@ -538,7 +538,9 @@ class Session(models.Model):
 class ChangeLane(models.Model):
     round = models.ForeignKey(Round, on_delete=models.CASCADE)
     lane = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(4)])
-    driver = models.ForeignKey(team_member, null=True, blank=True)
+    driver = models.ForeignKey(
+        team_member, null=True, blank=True, on_delete=models.SET_NULL
+    )
     open = models.BooleanField(default=False)
 
     def next_driver(self):
