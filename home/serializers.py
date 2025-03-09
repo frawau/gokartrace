@@ -7,4 +7,4 @@ class ChangeLaneSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChangeLane
         depth = 2
-        fields = ['id', 'open', 'driver'] #add other fields as needed.
+        fields = ["id", 'number', 'open', 'driver'] #add other fields as needed.
