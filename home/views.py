@@ -9,7 +9,7 @@ from rest_framework import generics
 from django.db.models import Q
 from .models import Championship, Team, Person, Round, championship_team, round_team, ChangeLane
 from .serializers import ChangeLaneSerializer
-
+from rest_framework.decorators import api_view
 # Create your views here.
 
 
@@ -60,3 +60,12 @@ class ChangeLaneDetail(generics.RetrieveAPIView):
     queryset = ChangeLane.objects.all()
     serializer_class = ChangeLaneSerializer
     lookup_field = 'number'
+
+@api_view(['GET'])
+def test_changelane(request):
+    try:
+        changelane = ChangeLane.objects.get(number=1)  # Replace 1 with a valid number
+        serializer = ChangeLaneSerializer(changelane)
+        return Response(serializer.data)
+    except ChangeLane.DoesNotExist:
+        return Response({'error': 'ChangeLane not found'}, status=404)
