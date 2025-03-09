@@ -1,9 +1,9 @@
 # serializers.py
 from rest_framework import serializers
-from .models import ChangeLane
+from .models import ChangeLane, team_member
 
 class ChangeLaneSerializer(serializers.ModelSerializer):
-    driver = serializers.PrimaryKeyRelatedField(queryset=YourDriverModel.objects.all(), allow_null=True) #replace YourDriverModel
+    driver = serializers.PrimaryKeyRelatedField(queryset=team_member.objects.all(), allow_null=True)
     class Meta:
         model = ChangeLane
         depth = 2
