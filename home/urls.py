@@ -11,5 +11,5 @@ urlpatterns = [
     path("", views.index, name="Everybody"),
     path("teamcarousel/", views.team_carousel, name="Participating Teams"),
     path("get_team_card/", views.get_team_card, name="Team Card"),
-\    path('changelanes/<int:pk>/', views.ChangeLaneDetail.as_view()),
+    path('changelanes/<int:pk>/', views.ChangeLaneDetail.as_view()),
 ]
