@@ -59,12 +59,12 @@ def get_team_card(request):
 class ChangeLaneDetail(generics.RetrieveAPIView):
     queryset = ChangeLane.objects.all()
     serializer_class = ChangeLaneSerializer
-    lookup_field = 'number'
+    lookup_field = 'lane'
 
 @api_view(['GET'])
 def test_changelane(request):
     try:
-        changelane = ChangeLane.objects.get(number=1)  # Replace 1 with a valid number
+        changelane = ChangeLane.objects.get(lane=1)  # Replace 1 with a valid lane number
         serializer = ChangeLaneSerializer(changelane)
         return Response(serializer.data)
     except ChangeLane.DoesNotExist:

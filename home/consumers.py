@@ -8,7 +8,7 @@ class ChangeLaneConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         changelane_number = self.scope['url_route']['kwargs']['changelane_number']
         try:
-            changelane = await self.get_changelane(changelane_number)
+            changelane = await self.get_changelane(changelane_lane)
             self.changelane_group_name = f'changelane_{changelane.id}' #Use ID for channel group
         except ChangeLane.DoesNotExist:
             await self.close()
@@ -30,5 +30,5 @@ class ChangeLaneConsumer(AsyncWebsocketConsumer):
         changelane = event['changelane']
         await self.send(text_data=json.dumps(changelane))
 
-    async def get_changelane(self, number):
-        return await ChangeLane.objects.aget(number=number)
+    async def get_changelane(self, lane):
+        return await ChangeLane.objects.aget(lane=lane)

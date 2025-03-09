@@ -265,7 +265,7 @@ class Round(models.Model):
                 lane = ChangeLane.objects.create(
                     driver=None,
                     round=self,
-                    number=i + 1,
+                    lane=i + 1,
                 )
 
     def post_race_check(self):
