@@ -59,3 +59,4 @@ def get_team_card(request):
 class ChangeLaneDetail(generics.RetrieveAPIView):
     queryset = ChangeLane.objects.all()
     serializer_class = ChangeLaneSerializer
+    lookup_field = 'number'
