@@ -398,8 +398,7 @@ class championship_team(models.Model):
     )
 
     class Meta:
-        unique_together = ("championship", "number")
-        unique_together = ("championship", "team")
+        unique_together = (("championship", "number"), ("championship", "team"))
         verbose_name = _("Championship Team")
         verbose_name_plural = _("Championship Teams")
 
