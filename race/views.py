@@ -57,12 +57,12 @@ def get_team_card(request):
     html = render(request, "layout/teamcard.html", context).content.decode("utf-8")
     return JsonResponse({"html": html})
 
-def changelane_info(request, lane_id):
-    change_lane = get_object_or_404(ChangeLane, id=lane_id)
+def changelane_info(request, lane_number):
+    change_lane = get_object_or_404(ChangeLane, id=lane_number)
     return render(request, 'layout/changelane_info.html', {'change_lane': change_lane})
 
-def update_change_lane(request, lane_id):
-    change_lane = get_object_or_404(ChangeLane, id=lane_id)
+def update_change_lane(request, lane_number):
+    change_lane = get_object_or_404(ChangeLane, id=lane_number)
     # Simulate an update (replace with your actual update logic)
     if change_lane.open == True:
         change_lane.open = False
