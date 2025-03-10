@@ -53,13 +53,14 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "channels",
+    "daphne",
     "home",
     "theme_material_kit",
     "django_dyn_api",
     "rest_framework",
     "rest_framework.authtoken",
     "debug_toolbar",
-    "channels",
 ]
 
 
@@ -192,6 +193,7 @@ DYNAMIC_API = {
     "round_team": "home.models.round_team",
     "team_member": "home.models.team_member",
     "Session": "home.models.Session",
+    "ChangeLane": "home.models.ChangeLane",
     # __RULES__END
 }
 
