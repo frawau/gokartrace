@@ -5,7 +5,7 @@ from django.template.loader import render_to_string
 
 class ChangeLaneConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.lane_number = self.scope['url_route']['kwargs']['lane_number']
+        self.lane_number = self.scope['url_route']['kwargs']['pitlane_number']
         self.lane_group_name = f'lane_{self.lane_number}'
 
         await self.channel_layer.group_add(
