@@ -12,4 +12,5 @@ urlpatterns = [
     path("teamcarousel/", views.team_carousel, name="Participating Teams"),
     path("get_team_card/", views.get_team_card, name="Team Card"),
     path('ws/pitlane/<int:lane_number>/', views.changelane_info, name = 'change_lane_ws'),
+    path('pitlane/', views.changelane_info, name='changelane_info'),
 ]
