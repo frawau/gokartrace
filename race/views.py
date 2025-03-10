@@ -57,16 +57,20 @@ def get_team_card(request):
     html = render(request, "layout/teamcard.html", context).content.decode("utf-8")
     return JsonResponse({"html": html})
 
-class ChangeLaneDetail(generics.RetrieveAPIView):
-    queryset = ChangeLane.objects.all()
-    serializer_class = ChangeLaneSerializer
-    lookup_field = 'lane'
+def changelane_info(request, lane_id):
+    change_lane = get_object_or_404(ChangeLane, id=lane_id)
+    return render(request, 'race/changelane_info.html', {'change_lane': change_lane})
 
-@api_view(['GET'])
-def test_changelane(request):
-    try:
-        changelane = ChangeLane.objects.get(lane=1)  # Replace 1 with a valid lane number
-        serializer = ChangeLaneSerializer(changelane)
-        return Response(serializer.data)
-    except ChangeLane.DoesNotExist:
-        return Response({'error': 'ChangeLane not found'}, status=404)
+def update_change_lane(request, lane_id):
+    change_lane = get_object_or_404(ChangeLane, id=lane_id)
+    # Simulate an update (replace with your actual update logic)
+    if change_lane.open == True:
+        change_lane.open = False
+    else:
+        change_lane.open = True
+        change_lane.next_driver() #This is the function that updates the driver.
+    change_lane.save()
+    return render(request, 'race/changelane_info.html', {'change_lane': change_lane})
+
+
+

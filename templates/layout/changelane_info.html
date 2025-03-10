@@ -1,0 +1,35 @@
+{% extends 'sabase.html' %}
+
+{% block content %}
+<div id="lane-{{ change_lane.id }}" class="card mb-3">
+    <div class="card-body">
+        <h5 class="card-title">Lane {{ change_lane.lane }}</h5>
+        {% if change_lane.open %}
+            <p class="card-text">
+                <strong>Driver:</strong>
+                {% if change_lane.driver %}
+                    {{ change_lane.driver.member.nickname }} ({{ change_lane.driver.team.team.team.name }})
+                {% else %}
+                    None
+                {% endif %}
+            </p>
+        {% else %}
+            <p class="card-text">
+                <span class="badge bg-danger text-warning">Closed</span>
+            </p>
+        {% endif %}
+        <button class="btn btn-primary" hx-get="{% url 'update_change_lane' change_lane.id %}" hx-target="#lane-{{ change_lane.id }}" hx-swap="outerHTML">
+            Update Lane
+        </button>
+    </div>
+</div>
+<script>
+    const laneNumber = {{ change_lane.lane }}; //Use change_lane.lane
+    const socket = new WebSocket(`ws://${window.location.host}/ws/lane/${laneNumber}/`);
+
+    socket.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        document.getElementById(`lane-{{change_lane.id}}`).outerHTML = data.lane_html;
+    };
+</script>
+{% endblock %}

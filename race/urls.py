@@ -13,4 +13,5 @@ urlpatterns = [
     path("get_team_card/", views.get_team_card, name="Team Card"),
     path('changelanes/<int:lane>/', views.ChangeLaneDetail.as_view()),
     path("testlane/", views.test_changelane, name="Pit Lane"),
+    path('ws/changelane/<int:lane_number>/', views.changelane_info, name = 'change_lane_ws')
 ]
