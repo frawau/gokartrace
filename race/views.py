@@ -59,7 +59,7 @@ def get_team_card(request):
 
 def changelane_info(request, lane_id):
     change_lane = get_object_or_404(ChangeLane, id=lane_id)
-    return render(request, 'race/changelane_info.html', {'change_lane': change_lane})
+    return render(request, 'layout/changelane_info.html', {'change_lane': change_lane})
 
 def update_change_lane(request, lane_id):
     change_lane = get_object_or_404(ChangeLane, id=lane_id)

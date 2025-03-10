@@ -8,7 +8,7 @@ from django.template.loader import render_to_string
 @receiver(post_save, sender=ChangeLane)
 def change_lane_updated(sender, instance, **kwargs):
     channel_layer = get_channel_layer()
-    lane_html = render_to_string('race/changelane_info.html', {'change_lane': instance})
+    lane_html = render_to_string('layout/changelane_info.html', {'change_lane': instance})
     async_to_sync(channel_layer.group_send)(
         f'lane_{instance.lane}', #Use instance.lane
         {
