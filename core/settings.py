@@ -54,7 +54,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "channels",
     "daphne",
-    "home",
+    "race",
     "django.contrib.staticfiles",
     "theme_material_kit",
     "django_dyn_api",
@@ -184,16 +184,16 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 # __API_GENERATOR__
 DYNAMIC_API = {
     # __RULES__
-    "Championship": "home.models.Championship",
-    "Person": "home.models.Person",
-    "Team": "home.models.Team",
-    "Round": "home.models.Round",
-    "round_pause": "home.models.round_pause",
-    "championship_team": "home.models.championship_team",
-    "round_team": "home.models.round_team",
-    "team_member": "home.models.team_member",
-    "Session": "home.models.Session",
-    "ChangeLane": "home.models.ChangeLane",
+    "Championship": "race.models.Championship",
+    "Person": "race.models.Person",
+    "Team": "race.models.Team",
+    "Round": "race.models.Round",
+    "round_pause": "race.models.round_pause",
+    "championship_team": "race.models.championship_team",
+    "round_team": "race.models.round_team",
+    "team_member": "race.models.team_member",
+    "Session": "race.models.Session",
+    "ChangeLane": "race.models.ChangeLane",
     # __RULES__END
 }
 

@@ -6,9 +6,9 @@ Copyright (c) 2019 - present AppSeed.us
 from django.apps import AppConfig
 
 
-class HomeConfig(AppConfig):
+class RaceConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "home"
+    name = "race"
 
     def ready(self):
-        import home.signals
+        import race.signals
