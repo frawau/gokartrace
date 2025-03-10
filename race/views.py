@@ -70,7 +70,7 @@ def update_change_lane(request, lane_id):
         change_lane.open = True
         change_lane.next_driver() #This is the function that updates the driver.
     change_lane.save()
-    return render(request, 'race/changelane_info.html', {'change_lane': change_lane})
+    return render(request, 'layout/changelane_info.html', {'change_lane': change_lane})
 
 
 

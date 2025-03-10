@@ -18,14 +18,11 @@
                 <span class="badge bg-danger text-warning">Closed</span>
             </p>
         {% endif %}
-        <button class="btn btn-primary" hx-get="{% url 'update_change_lane' change_lane.id %}" hx-target="#lane-{{ change_lane.id }}" hx-swap="outerHTML">
-            Update Lane
-        </button>
     </div>
 </div>
 <script>
     const laneNumber = {{ change_lane.lane }}; //Use change_lane.lane
-    const socket = new WebSocket(`ws://${window.location.host}/ws/lane/${laneNumber}/`);
+    const socket = new WebSocket(`ws://${window.location.host}/ws/pitlanes/${laneNumber}/`);
 
     socket.onmessage = function(event) {
         const data = JSON.parse(event.data);
