@@ -2,7 +2,7 @@ import random
 import datetime
 from django_countries import countries
 from faker import Faker
-from home.models import Person
+from race.models import Person
 from django.core.files.base import ContentFile
 from io import BytesIO
 from PIL import Image

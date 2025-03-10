@@ -1,7 +1,7 @@
-# home/management/commands/generate_teams.py
+# race/management/commands/generate_teams.py
 from django.core.management.base import BaseCommand
 from faker import Faker
-from home.models import Team
+from race.models import Team
 from django.core.files.base import ContentFile
 from io import BytesIO
 from PIL import Image
