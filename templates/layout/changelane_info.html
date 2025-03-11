@@ -5,12 +5,12 @@
     <div id="lane-{{ change_lane.id }}" class="row w-100 m-0" style="flex-grow: 1;">
         {% if change_lane.open %}
             <div class="col-1 d-flex align-items-center justify-content-center"
-                 style="font-size: 5rem; font-weight: bold; height: 100%;">
+                 style="font-size: 5rem; font-weight: bold; height: 100%; background-color: #f0fff0;">
                 {% if change_lane.driver %}
                     {{ change_lane.driver.team.team.number }}
                 {% endif %}
             </div>
-            <div class="col-11 p-5" style="font-size: 2rem; height: 100%;">
+            <div class="col-11 p-5 d-flex align-items-center justify-content-center flex-column" style="font-size: 2rem; height: 100%; background-color: #f0fff0;">
                 {% if change_lane.driver %}
                     <h1 class="text-primary" style="font-size: 3rem;">{{ change_lane.driver.team.team.team.name }}</h1>
                     <h2 class="text-dark">{{ change_lane.driver.member.nickname }}</h2>
@@ -26,7 +26,7 @@
                 {% endif %}
             </div>
         {% else %}
-            <div class="col-12 d-flex align-items-center justify-content-center h-100">
+            <div class="col-12 d-flex align-items-center justify-content-center h-100" style="background-color: red;">
                 <h1 class="text-warning" style="font-size: 12rem; font-weight: bold;">Closed</h1>
             </div>
         {% endif %}
