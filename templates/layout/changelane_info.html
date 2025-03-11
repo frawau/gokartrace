@@ -1,32 +1,46 @@
 {% extends 'layout/sabase.html' %}
 
 {% block content %}
-<div id="lane-{{ change_lane.id }}" class="card mb-3">
-    <div class="card-body">
-        <h5 class="card-title">Lane {{ change_lane.lane }}</h5>
+<div class="container-fluid p-0" style="height: 100vh;">
+    <div id="lane-{{ change_lane.id }}" class="row h-100 m-0"
+         {% if change_lane.open %}style="background-color: #f0fff0;"{% else %}style="background-color: red;"{% endif %}>
         {% if change_lane.open %}
-            <p class="card-text">
-                <strong>Driver:</strong>
+            <div class="col-2 d-flex align-items-center justify-content-center"
+                 style="font-size: 5rem; font-weight: bold;">
                 {% if change_lane.driver %}
-                    {{ change_lane.driver.member.nickname }} ({{ change_lane.driver.team.team.team.name }})
-                {% else %}
-                    Open
+                    {{ change_lane.driver.team.team.number }}
                 {% endif %}
-            </p>
+            </div>
+            <div class="col-10 p-5">
+                {% if change_lane.driver %}
+                    <h1 class="text-primary">{{ change_lane.driver.team.team.team.name }}</h1>
+                    <h2 class="text-dark">{{ change_lane.driver.member.nickname }}</h2>
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="{{ change_lane.driver.member.mugshot.url }}" alt="Driver Snapshot"
+                             class="rounded-circle mr-3" style="width: 150px; height: 150px; object-fit: cover;">
+                        <span class="h4">Weight: {{ change_lane.driver.weight }} kg</span>
+                    </div>
+                {% else %}
+                    <div class="d-flex align-items-center justify-content-center h-100">
+                        <h1 class="text-dark">Open</h1>
+                    </div>
+                {% endif %}
+            </div>
         {% else %}
-            <p class="card-text">
-                <span class="badge bg-danger text-warning">Closed</span>
-            </p>
+            <div class="col-12 d-flex align-items-center justify-content-center h-100">
+                <h1 class="text-warning" style="font-size: 8rem; font-weight: bold;">Closed</h1>
+            </div>
         {% endif %}
     </div>
 </div>
+
 <script>
-    const laneNumber = {{ change_lane.lane }}; //Use change_lane.lane
+    const laneNumber = {{ change_lane.lane }};
     const socket = new WebSocket(`ws://${window.location.host}/ws/pitlanes/${laneNumber}/`);
 
-    socket.onmessage = function(event) {
+    socket.onmessage = function (event) {
         const data = JSON.parse(event.data);
-        document.getElementById(`lane-{{change_lane.id}}`).outerHTML = data.lane_html;
+        document.getElementById(`lane-{{ change_lane.id }}`).outerHTML = data.lane_html;
     };
 </script>
 {% endblock %}
