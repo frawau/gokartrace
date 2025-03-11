@@ -7,9 +7,16 @@
     <title></title>
     <link rel="stylesheet" href="{% static 'css/material-kit.min.css' %}">
     <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
+    <div>
         {% block content %}{% endblock %}
     </div>
     <script src="{% static 'js/core/popper.min.js' %}"></script>
