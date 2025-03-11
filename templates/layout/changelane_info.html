@@ -1,17 +1,16 @@
 {% extends 'layout/sabase.html' %}
 
 {% block content %}
-<div style="height: 100vh; width: 100vw; display: flex; align-items: center; justify-content: center; margin: 0; padding: 0;">
-    <div id="lane-{{ change_lane.id }}" class="row w-100 m-0"
-         {% if change_lane.open %}style="background-color: #f0fff0;"{% else %}style="background-color: red;"{% endif %}>
+<div style="height: 100vh; width: 100vw; display: flex; align-items: stretch; justify-content: center; margin: 0; padding: 0;">
+    <div id="lane-{{ change_lane.id }}" class="row w-100 m-0" style="flex-grow: 1;">
         {% if change_lane.open %}
             <div class="col-1 d-flex align-items-center justify-content-center"
-                 style="font-size: 5rem; font-weight: bold;">
+                 style="font-size: 5rem; font-weight: bold; height: 100%;">
                 {% if change_lane.driver %}
                     {{ change_lane.driver.team.team.number }}
                 {% endif %}
             </div>
-            <div class="col-11 p-5">
+            <div class="col-11 p-5" style="font-size: 2rem; height: 100%;">
                 {% if change_lane.driver %}
                     <h1 class="text-primary" style="font-size: 3rem;">{{ change_lane.driver.team.team.team.name }}</h1>
                     <h2 class="text-dark">{{ change_lane.driver.member.nickname }}</h2>
