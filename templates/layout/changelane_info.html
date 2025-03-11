@@ -1,7 +1,7 @@
 {% extends 'layout/sabase.html' %}
 
 {% block content %}
-<div class="container-fluid p-0" style="height: 100vh; display: flex; align-items: center; justify-content: center;">
+<div style="height: 100vh; width: 100vw; display: flex; align-items: center; justify-content: center; margin: 0; padding: 0;">
     <div id="lane-{{ change_lane.id }}" class="row w-100 m-0"
          {% if change_lane.open %}style="background-color: #f0fff0;"{% else %}style="background-color: red;"{% endif %}>
         {% if change_lane.open %}
