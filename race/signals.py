@@ -18,6 +18,17 @@ def change_lane_updated(sender, instance, created, **kwargs):
             }
         )
 
+        change_lanes = ChangeLane.objects.filter(open=True).exclude(driver__isnull=True)
+        driverc_html = render_to_string('layout/changedriver_info.html', {'change_lanes': change_lanes})
+
+        async_to_sync(channel_layer.group_send)(
+            'driverchange',
+            {
+                'type': 'driverchange.update',
+                'page_html': page_html,
+            }
+        )
+
 @receiver(post_delete, sender=ChangeLane)
 def change_lane_deleted(sender, instance, **kwargs):
     #Add logic here if you want to send a websocket message when a lane is deleted.

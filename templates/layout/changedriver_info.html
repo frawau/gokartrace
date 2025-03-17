@@ -1,0 +1,28 @@
+{% extends 'layout/sabase.html' %}
+
+{% block content %}
+<div class="container-fluid" style="height: 100vh; width: 100vw; display: flex; align-items: center; justify-content: center; margin: 0; padding: 0; background-color: white;">
+    {% if not change_lanes %}
+        <h1 class="text-dark" style="font-size: 18rem;">&nbsp;</h1>
+    {% else %}
+        <div class="d-flex justify-content-center align-items-center">
+            {% for change_lane in change_lanes %}
+                {% if change_lane.driver %}
+                    <span class="text-danger mx-3" style="font-size: 18rem;">
+                        {{ change_lane.driver.team.team.number }}
+                    </span>
+                {% endif %}
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+
+<script>
+    const socket = new WebSocket(`ws://${window.location.host}/ws/driverchange/`);
+
+    socket.onmessage = function (event) {
+        const data = JSON.parse(event.data);
+        document.querySelector('body').innerHTML = data.driverc_html;
+    };
+</script>
+{% endblock %}

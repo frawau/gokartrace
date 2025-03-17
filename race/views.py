@@ -63,14 +63,15 @@ def changelane_info(request, lane_number):
 
 def update_change_lane(request, lane_number):
     change_lane = get_object_or_404(ChangeLane, id=lane_number)
-    # Simulate an update (replace with your actual update logic)
     if change_lane.open == True:
-        change_lane.open = False
-    else:
         change_lane.open = True
         change_lane.next_driver() #This is the function that updates the driver.
     change_lane.save()
     return render(request, 'layout/changelane_info.html', {'change_lane': change_lane})
 
+
+def driverchange_info(request, lane_number):
+    change_lanes = ChangeLane.objects.filter(open=True).exclude(driver__isnull=True)
+    return render(request, 'layout/driverchange_info.html', {'change_lanes': change_lanes})
 
 
