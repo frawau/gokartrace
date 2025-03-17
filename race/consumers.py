@@ -42,7 +42,7 @@ class ChangeDriverConsumer(AsyncWebsocketConsumer):
             self.channel_name
         )
 
-    async def chabgedriver_update(self, event):
+    async def changedriver_update(self, event):
         driverc_html = event['driverc_html']
         await self.send(text_data=json.dumps({'driverc_html': driverc_html}))
 
