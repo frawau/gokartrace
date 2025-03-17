@@ -22,9 +22,9 @@ def change_lane_updated(sender, instance, created, **kwargs):
         driverc_html = render_to_string('layout/changedriver_info.html', {'change_lanes': change_lanes})
 
         async_to_sync(channel_layer.group_send)(
-            'driverchange',
+            'changedriver',
             {
-                'type': 'driverchange.update',
+                'type': 'changedriver.update',
                 'page_html': page_html,
             }
         )

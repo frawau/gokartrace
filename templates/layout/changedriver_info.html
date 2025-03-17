@@ -18,7 +18,7 @@
 </div>
 
 <script>
-    const socket = new WebSocket(`ws://${window.location.host}/ws/driverchange/`);
+    const socket = new WebSocket(`ws://${window.location.host}/ws/changedriver/`);
 
     socket.onmessage = function (event) {
         const data = JSON.parse(event.data);

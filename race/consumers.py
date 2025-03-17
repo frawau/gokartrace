@@ -28,7 +28,7 @@ class ChangeLaneConsumer(AsyncWebsocketConsumer):
 
 class ChangeDriverConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.driverc_group_name = 'driverchange'
+        self.driverc_group_name = 'changedriver'
 
         await self.channel_layer.group_add(
             self.driverc_group_name,
