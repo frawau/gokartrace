@@ -70,7 +70,7 @@ def update_change_lane(request, lane_number):
     return render(request, 'layout/changelane_info.html', {'change_lane': change_lane})
 
 
-def driverchange_info(request, lane_number):
+def driverchange_info(request):
     change_lanes = ChangeLane.objects.filter(open=True).exclude(driver__isnull=True)
     return render(request, 'layout/driverchange_info.html', {'change_lanes': change_lanes})
 
