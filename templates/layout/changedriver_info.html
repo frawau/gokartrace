@@ -9,11 +9,13 @@
     {% else %}
         {% for change_lane in change_lanes %}
             <div style="flex: 1; display: flex; align-items: center; justify-content: center; border-right: 1px solid #ddd;">
+                <span class="text-danger" style="font-size: 24rem;">
                 {% if change_lane.driver %}
-                    <span class="text-danger" style="font-size: 18rem;">
-                        {{ change_lane.driver.team.team.number }}
-                    </span>
+                    {{ change_lane.driver.team.team.number }}
+                {% else %}
+                    &nbsp;
                 {% endif %}
+                </span>
             </div>
         {% endfor %}
     {% endif %}
