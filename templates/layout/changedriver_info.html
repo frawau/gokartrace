@@ -26,5 +26,12 @@
         const data = JSON.parse(event.data);
         document.querySelector('body').innerHTML = data.driverc_html;
     };
+
+    socket.onclose = function(event) {
+        if (!event.wasClean) {
+            reloadTimer = setTimeout(() => {
+                location.reload();
+            }, 3000); // Reload after 3 seconds
+    };
 </script>
 {% endblock %}
