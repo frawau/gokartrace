@@ -9,7 +9,7 @@
 
     socket.onmessage = function (event) {
         const data = JSON.parse(event.data);
-        document.querySelector('changedinfo').outerHTML = data.driverc_html;
+        document.getElementById('changedinfo').outerHTML = data.driverc_html;
     };
 
     socket.onclose = function(event) {
