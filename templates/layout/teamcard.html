@@ -1,15 +1,23 @@
 <h5 class="card-title">{{ round_team.team.team.name }}</h5>
-<table>
-    <tr>
-        <th>Member</th><th>Past Sessions</th><th>Current Session</th>
-    <tr>
-    {% for member in round_team.team_member_set.all %}
-        {% if member.driver %}
+<div class="table-responsive">
+    <table class="table w-100" style="font-size: 1.2rem;">
+        <thead>
             <tr>
-                <td>{{ member.member.nickname }}</td>
-                <td>{{ member.time_spent | default_if_none:""  }}</td>
-                <td>{{ member.current_session | default_if_none:""  }}</td>
+                <th class="col">Member</th>
+                <th class="col">Past Sessions</th>
+                <th class="col">Current Session</th>
             </tr>
-        {% endif %}
-    {% endfor %}
-</table>
+        </thead>
+        <tbody>
+            {% for member in round_team.team_member_set.all %}
+                {% if member.driver %}
+                    <tr>
+                        <td>{{ member.member.nickname }}</td>
+                        <td>{{ member.time_spent | default_if_none:"" }}</td>
+                        <td>{{ member.current_session | default_if_none:"" }}</td>
+                    </tr>
+                {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
