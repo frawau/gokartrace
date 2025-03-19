@@ -8,7 +8,7 @@
                 <div class="carousel-inner">
                     {% for team in round.round_team_set.all %}
                         <div class="carousel-item {% if forloop.first %}active{% endif %}" data-team-id="{{ team.pk }}">
-                            <div class="card">
+                            <div class="card" style="background-color: transparent;" >
                                 <div class="card-body">
                                     <p>Loading...</p>
                                 </div>
