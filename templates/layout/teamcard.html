@@ -1,20 +1,20 @@
-<h5 class="card-title">{{ round_team.team.team.name }}</h5>
+<h5 class="card-title" style="font-size: 4rem;">{{ round_team.team.team.name }}</h5>
 <div class="table-responsive">
-    <table class="table w-100" style="font-size: 3rem; border-collapse: collapse;">
+    <table class="table w-100" style="font-size: 3rem; border-collapse: collapse; background-color: transparent;">
         <thead>
             <tr>
-                <th class="col" style="border: 3px solid #ddd; padding: 12px; text-align: center;">Member</th>
-                <th class="col" style="border: 3px solid #ddd; padding: 12px; text-align: center;">Past Sessions</th>
-                <th class="col" style="border: 3px solid #ddd; padding: 12px; text-align: center;">Current Session</th>
+                <th class="col" style="border: 3px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">Member</th>
+                <th class="col" style="border: 3px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">Past Sessions</th>
+                <th class="col" style="border: 3px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">Current Session</th>
             </tr>
         </thead>
         <tbody>
             {% for member in round_team.team_member_set.all %}
                 {% if member.driver %}
                     <tr>
-                        <td style="border: 3px solid #ddd; padding: 12px; text-align: center;">{{ member.member.nickname }}</td>
-                        <td style="border: 3px solid #ddd; padding: 12px; text-align: center;">{{ member.time_spent | default_if_none:"" }}</td>
-                        <td style="border: 3px solid #ddd; padding: 12px; text-align: center;">{{ member.current_session | default_if_none:"" }}</td>
+                        <td style="border: 3px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">{{ member.member.nickname }}</td>
+                        <td style="border: 3px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">{{ member.time_spent | default_if_none:"" }}</td>
+                        <td style="border: 3px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">{{ member.current_session | default_if_none:"" }}</td>
                     </tr>
                 {% endif %}
             {% endfor %}
