@@ -1,20 +1,19 @@
 {% extends "layout/fscontent.html" %}
 {% block extra_style %}
-<style>
-/* Media query for smaller screens */
-@media (max-width: 768px) {
-    .card-title {
-        font-size: 2.5rem !important; /* Reduce team name size */
+    @media (max-width: 768px) {
+        table thead tr th:nth-child(3),
+        table tbody tr td:nth-child(3) {
+            display: none; /* Hide column 3 on smaller screens */
+        }
+        table tbody tr td:nth-child(2) {
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Center content horizontally */
+        }
+        table tbody tr td:nth-child(2)::after{
+            content: attr(data-current-session);
+        }
     }
-    table {
-        font-size: 2rem !important; /* Reduce table font size */
-    }
-    th, td {
-        padding: 8px !important; /* Reduce cell padding */
-        border: 6px solid #ddd !important; /*Reduce border size*/
-    }
-}
-</style>
 {% endblock extra_style %}
 {% block main_content %}
         <div class="section container">
@@ -103,6 +102,15 @@
             var secs = Math.floor(seconds % 60);
             return hours + ":" + (minutes < 10 ? "0" : "") + minutes + ":" + (secs < 10 ? "0" : "") + secs;
         }
+    });
+    document.addEventListener('DOMContentLoaded', () => {
+        const cells = document.querySelectorAll('table tbody tr td:nth-child(3)');
+        cells.forEach(cell => {
+            const previousCell = cell.previousElementSibling;
+            if(previousCell){
+                previousCell.setAttribute('data-current-session', cell.textContent);
+            }
+        });
     });
 </script>
 {% endblock extra_js %}
