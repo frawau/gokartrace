@@ -1,23 +1,27 @@
-<h5 class="card-title" style="font-size: 4rem;">{{ round_team.team.number }}: {{ round_team.team.team.name }}</h5>
-<div class="table-responsive">
-    <table class="table w-100" style="font-size: 3rem; border-collapse: collapse; background-color: transparent;">
-        <thead>
-            <tr>
-                <th class="col" style="border: 20px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">Driver</th>
-                <th class="col" style="border: 30px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">Total Time</th>
-                <th class="col" style="border: 20px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">Current Session</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for member in round_team.team_member_set.all %}
-                {% if member.driver %}
+<div class="card" style="background-color: transparent;">
+    <div class="card-body">
+        <h5 class="card-title" style="font-size: 4rem;">{{ round_team.team.number }} -- {{ round_team.team.team.name }}</h5>
+        <div class="table-responsive">
+            <table class="table w-100" style="font-size: 3rem; border-collapse: collapse; background-color: transparent;">
+                <thead>
                     <tr>
-                        <td style="border: 20px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">{{ member.member.nickname }}</td>
-                        <td style="border: 20px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">{{ member.time_spent | default_if_none:"00:00:00" }}</td>
-                        <td style="border: 20px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">{{ member.current_session | default_if_none:"" }}</td>
+                        <th class="col" style="border: 10px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">Drivers</th>
+                        <th class="col" style="border: 10px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">Past Sessions</th>
+                        <th class="col" style="border: 10px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">Current Session</th>
                     </tr>
-                {% endif %}
-            {% endfor %}
-        </tbody>
-    </table>
+                </thead>
+                <tbody>
+                    {% for member in round_team.team_member_set.all %}
+                        {% if member.driver %}
+                            <tr>
+                                <td style="border: 10px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">{{ member.member.nickname }}</td>
+                                <td style="border: 10px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">{{ member.time_spent | default_if_none:"00:00:00" }}</td>
+                                <td style="border: 10px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">{{ member.current_session | default_if_none:"" }}</td>
+                            </tr>
+                        {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
