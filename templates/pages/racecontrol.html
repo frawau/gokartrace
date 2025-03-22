@@ -27,7 +27,7 @@
         <div class="col-md-1">
         </div>
         <div class="col-md-3">
-            <select class="form-select" id="teamSelect" style="font-size: 1.2rem;>
+            <select class="form-select" id="teamSelect" style="font-size: 1.2rem;">
                 {% for team in round.round_team_set.all %}
                     <option value="{{ team.id }}">{{ team.team.number }} {{ team.team.team.name }}</option>
                 {% endfor %}
