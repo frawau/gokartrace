@@ -7,10 +7,11 @@
     <style>
     {% block extra_style %}{% endblock extra_style %}
     .footer-logo {
-        max-height: 6400px; /* Increased logo size */
-        width: auto;
+        width: 100%; /* Fill the container width */
+        height: auto; /* Maintain aspect ratio */
+        max-height: 250px; /* Keep a maximum height */
         display: block;
-        margin: 0 auto; /* Center logos horizontally */
+        object-fit: contain; /* Prevent distortion */
         }
     </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
