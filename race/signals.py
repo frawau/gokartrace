@@ -36,12 +36,12 @@ def change_lane_deleted(sender, instance, **kwargs):
 
 @receiver(post_save, sender=round_pause)
 def handle_pause_change(sender, instance, **kwargs):
-    round_obj = instance.round
-    is_paused = round_obj.round_pause_set.filter(end__isnull=True).exists()
+    round = instance.round
+    is_paused = round.round_pause_set.filter(end__isnull=True).exists()
 
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
-        f'round_{round_obj.id}',
+        f'roundpause_{round.id}',
         {
             'type': 'round_update',
             'is_paused': is_paused,

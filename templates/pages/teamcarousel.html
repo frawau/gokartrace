@@ -142,7 +142,7 @@
 
         // Setup WebSocket to listen for pause events
         const roundSocket = new WebSocket(
-            'ws://' + window.location.host + '/ws/round/{{ round.id }}/'
+            'ws://' + window.location.host + '/ws/roundpause/{{ round.id }}/'
         );
 
         roundSocket.onmessage = function(e) {

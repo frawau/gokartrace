@@ -47,7 +47,7 @@ class ChangeDriverConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({'driverc_html': driverc_html}))
 
 
-class RoundConsumer(AsyncWebsocketConsumer):
+class RoundPauseConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.round_id = self.scope['url_route']['kwargs']['round_id']
         self.round_group_name = f'round_{self.round_id}'
