@@ -55,9 +55,9 @@ def get_team_card(request):
     is_paused = round.round_pause_set.filter(end__isnull=True).exists()
     if round.started:
         elapsed = round.time_elapsed.total_seconds()
-        remaining = max(0, round.duration.total_seconds() - elapsed)
+        remaining = int(max(0, round.duration.total_seconds() - elapsed))
     else:
-        remaining = round.duration.total_seconds()
+        remaining = int(round.duration.total_seconds())
         is_paused = True
 
     context = {
