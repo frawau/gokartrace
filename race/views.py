@@ -9,7 +9,7 @@ from rest_framework import generics
 from django.contrib.auth.decorators import login_required, user_passes_test
 from rest_framework.response import Response
 from django.db.models import Q
-from .models import Championship, Team, Person, Round, championship_team, round_team, ChangeLane, Group
+from .models import Championship, Team, Person, Round, championship_team, round_team, ChangeLane
 from .serializers import ChangeLaneSerializer
 from rest_framework.decorators import api_view
 # Create your views here.
