@@ -126,7 +126,9 @@ class Round(models.Model):
 
     @property
     def is_paused(self):
-        return self.round_pause_set.filter(end__isnull=True).exists()
+        if self.started:
+            return self.round_pause_set.filter(end__isnull=True).exists()
+        return True
 
     @property
     def time_elapsed(self):
