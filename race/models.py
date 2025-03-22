@@ -125,6 +125,10 @@ class Round(models.Model):
         pass
 
     @property
+    def is_paused(self):
+        return self.round_pause_set.filter(end__isnull=True).exists()
+
+    @property
     def time_elapsed(self):
         # Calculate paused time within the session duration
         now = dt.datetime.now()
