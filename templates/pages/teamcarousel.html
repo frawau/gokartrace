@@ -109,9 +109,15 @@
         function updateCountdown() {
             const countdownEl = $('#roundCountdown');
             const displayEl = $('#countdownDisplay');
-            let remainingTime = countdownEl.data('remaining') * 1000; // ms
-            const isPaused = countdownEl.data('is-paused');
+            const remainingSeconds = parseInt(countdownEl.attr('data-remaining'), 10);
+            const isPaused = countdownEl.attr('data-is-paused') === 'true';
+            // Check if we have a valid number
+            if (isNaN(remainingSeconds)) {
+                displayEl.text('--:--:--');
+                return;
 
+            }
+            let remainingTime = remainingSeconds * 1000; // Convert to ms
             if (!isPaused) {
                 // Only count down if not paused
                 const now = new Date().getTime();
