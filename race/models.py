@@ -131,6 +131,8 @@ class Round(models.Model):
     @property
     def time_elapsed(self):
         # Calculate paused time within the session duration
+        if not self.started:
+            return dt.timedelta()
         now = dt.datetime.now()
         totalpause = dt.timedelta()
         for pause in self.round_pause_set.all():
