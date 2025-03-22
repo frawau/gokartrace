@@ -99,4 +99,4 @@ def racecontrol(request):
     round = Round.objects.filter(
         Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
     ).first()
-    return render(request, '/oages/racecontrol.html', {'round': round})
+    return render(request, '/pages/racecontrol.html', {'round': round})
