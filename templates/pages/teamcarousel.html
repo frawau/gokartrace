@@ -152,8 +152,13 @@
             if (data.type === 'round_update') {
                 // Update pause status
                 $('#roundCountdown').data('is-paused', data.is_paused);
-                // Reload pauses data
-                location.reload(); // Or use AJAX to refresh just the necessary data
+                // Update remaining time if provided
+                if (data.remaining_seconds !== undefined) {
+                    $('#roundCountdown').attr('data-remaining', data.remaining_seconds);
+                    }
+
+                // Reset page load time so countdown calculations are correct
+                window.pageLoadTime = new Date().getTime();
             }
         };
     });
