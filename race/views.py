@@ -100,3 +100,44 @@ def racecontrol(request):
         Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
     ).first()
     return render(request, 'pages/racecontrol.html', {'round': round})
+
+@login_required
+@user_passes_test(is_race_director)
+def preracecheck(request):
+    # Your logic here; return JsonResponse({"result": True/False})
+    return JsonResponse({"result": True})
+
+@login_required
+@user_passes_test(is_race_director)
+def race_start(request):
+    # Your start race logic
+    return HttpResponse("OK")
+
+@login_required
+@user_passes_test(is_race_director)
+def falsestart(request):
+    # Your false start logic
+    return HttpResponse("OK")
+
+@login_required
+@user_passes_test(is_race_director)
+def racepaused(request):
+    # Your pause logic
+    return HttpResponse("OK")
+
+@login_required
+@user_passes_test(is_race_director)
+def racerestart(request):
+    # Your restart logic
+    return HttpResponse("OK")
+
+@login_required
+@user_passes_test(is_race_director)
+def falserestart(request):
+    # Your false restart logic
+    return HttpResponse("OK")
+
+@login_required
+@user_passes_test(is_race_director)
+def endofrace(request):
+    return HttpResponse("OK")
