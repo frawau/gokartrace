@@ -6,9 +6,10 @@ import datetime as dt
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from rest_framework import generics
+from django.contrib.auth.decorators import login_required, user_passes_test
 from rest_framework.response import Response
 from django.db.models import Q
-from .models import Championship, Team, Person, Round, championship_team, round_team, ChangeLane
+from .models import Championship, Team, Person, Round, championship_team, round_team, ChangeLane, Group
 from .serializers import ChangeLaneSerializer
 from rest_framework.decorators import api_view
 # Create your views here.
@@ -87,3 +88,14 @@ def changedriver_info(request):
     return render(request, 'layout/changedriver_info.html', {'change_lanes': change_lanes})
 
 
+def is_race_director(user):
+    return user.is_authenticated and user.groups.filter(name='Race Director').exists()
+
+@login_required
+@user_passes_test(is_race_director)
+def racecontrol(request):
+    # Your view logic here
+    round = Round.objects.filter(
+        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
+    ).first()
+    return render(request, 'racecontrol.html', {'round': round})

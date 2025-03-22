@@ -1,0 +1,106 @@
+{% extends 'sabase.html' %}
+{% load duration_filters %}
+
+{% block content %}
+<div class="container" style="height: 100%;">
+    <div class="row">
+        <div class="col-12 text-center">
+            <h2 class="countdown-timer" id="roundCountdown" data-remaining="{{ round|duration_difference_seconds|default:"0" }}" data-is-paused="{{ round|round_is_paused }}">Time remaining: <span id="countdownDisplay">--:--:--</span></h2>
+        </div>
+    </div>
+    <div class="row" style="height: 60%;">
+        <div class="col-md-8" style="height: 100%;">
+            <div class="card" style="height: 100%;">
+                <div class="card-body d-flex align-items-center justify-content-center">
+                    <button class="btn btn-primary">Button</button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4" style="height: 100%;">
+            <div id="card1" class="card mb-2">Card 1</div>
+            <div id="card2" class="card mb-2">Card 2</div>
+            <div id="card3" class="card mb-2">Card 3</div>
+            <div id="card4" class="card">Message</div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <select class="form-select" id="teamSelect">
+                {% for team in round.round_team_set.all %}
+                    <option value="{{ team.id }}">{{ team.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-6">
+            <button class="btn btn-success" id="stopGoButton">Stop&Go</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function updateCountdown() {
+        const countdownEl = $('#roundCountdown');
+        const displayEl = $('#countdownDisplay');
+        const remainingSeconds = parseInt(countdownEl.attr('data-remaining'), 10);
+        const isPaused = countdownEl.attr('data-is-paused') === 'true';
+
+        if (isNaN(remainingSeconds)) {
+            displayEl.text('--:--:--');
+            return;
+        }
+
+        let remainingTime = remainingSeconds * 1000;
+        if (!isPaused) {
+            const now = new Date().getTime();
+            const elapsedSincePageLoad = now - pageLoadTime;
+            remainingTime = Math.max(0, remainingTime - elapsedSincePageLoad);
+        }
+
+        const hours = Math.floor(remainingTime / (1000 * 60 * 60));
+        const minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((remainingTime % (1000 * 60)) / 1000);
+
+        displayEl.text(
+            hours.toString().padStart(2, '0') + ':' +
+            minutes.toString().padStart(2, '0') + ':' +
+            seconds.toString().padStart(2, '0')
+        );
+    }
+
+    const pageLoadTime = new Date().getTime();
+    setInterval(updateCountdown, 1000);
+    updateCountdown();
+
+    const roundSocket = new WebSocket(
+        'ws://' + window.location.host + '/ws/roundpause/{{ round.id }}/'
+    );
+
+    roundSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        if (data.type === 'round_update') {
+            $('#roundCountdown').data('is-paused', data.is_paused);
+            if (data.remaining_seconds !== undefined) {
+                $('#roundCountdown').attr('data-remaining', data.remaining_seconds);
+            }
+            window.pageLoadTime = new Date().getTime();
+        }
+    };
+
+    $('#stopGoButton').click(function() {
+        const teamId = $('#teamSelect').val();
+        const button = $(this);
+        const card = button.closest('.row');
+
+        if (button.text() === 'Stop&Go') {
+            $.post('/serve_team/', { team_id: teamId }, function() {
+                card.css('background-color', 'red');
+                button.text('Served');
+            });
+        } else {
+            card.css('background-color', 'transparent');
+            button.text('Stop&Go');
+            $('#teamSelect').val($('#teamSelect option:first').val());
+        }
+    });
+</script>
+{% endblock %}
