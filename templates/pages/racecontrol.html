@@ -17,8 +17,8 @@
             </div>
         </div>
         <div class="col-md-4 d-flex flex-column" style="height: 100%;">
-            {% for lane in round.ChangeLane_set.all %}
-                <div id="lane-{{ lane.number }}" class="card mb-2" style="flex-grow: 1; background-color: transparent;">Lane {{ lane.number }}</div>
+            {% for lane in round.changelane_set.all %}
+                <div id="lane-{{ lane.lane }}" class="card mb-2" style="flex-grow: 1; background-color: transparent;">Lane {{ lane.lane }}</div>
             {% endfor %}
             <div id="changequeue" class="card mb-2" style="flex-grow: 1; background-color: transparent;">Queue</div>
         </div>
@@ -27,7 +27,7 @@
         <div class="col-md-5">
             <select class="form-select" id="teamSelect">
                 {% for team in round.round_team_set.all %}
-                    <option value="{{ team.id }}">{{ team.number }}</option>
+                    <option value="{{ team.id }}">{{ team.team.number }} {{ team.team.team.name }}</option>
                 {% endfor %}
             </select>
         </div>
