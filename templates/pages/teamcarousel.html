@@ -27,7 +27,12 @@
 {% endblock extra_style %}
 {% block main_content %}
         <div class="section container">
-            <h2>Round: {{ round.name }}</h2>
+        <h2>Round: {{ round.name }}</h2><div class="countdown-timer" id="roundCountdown"
+                                                data-started="{{ round.started|date:'U' }}"
+                                                data-duration="{{ round.duration.total_seconds }}"
+                                                data-is-paused="{% if round.round_pause_set.filter(end__isnull=True).exists %}true{% else %}false{% endif %}">
+                                                Time remaining: <span id="countdownDisplay">--:--:--</span>
+                                                </div>
 
             <div id="teamCarousel" class="carousel slide" data-ride="carousel" >
                 <div class="carousel-inner">
@@ -111,7 +116,76 @@
             var minutes = Math.floor((seconds % 3600) / 60);
             var secs = Math.floor(seconds % 60);
             return hours + ":" + (minutes < 10 ? "0" : "") + minutes + ":" + (secs < 10 ? "0" : "") + secs;
+        };
+
+        // Countdown functionality
+        function updateCountdown() {
+            const countdownEl = $('#roundCountdown');
+            const displayEl = $('#countdownDisplay');
+
+            if (!countdownEl.data('started')) {
+                displayEl.text('Not started');
+                return;
+            }
+
+            const startTime = countdownEl.data('started') * 1000; // Convert to milliseconds
+            const duration = countdownEl.data('duration') * 1000; // Convert to milliseconds
+            const now = new Date().getTime();
+
+            // Calculate time elapsed accounting for pauses
+            let elapsedTime = now - startTime;
+            let pauseTime = 0;
+
+            // This would be populated with pause data from your model
+            const pauses = {{ pauses|safe|default:"[]" }};
+
+            pauses.forEach(pause => {
+                const pauseStart = new Date(pause.start).getTime();
+                const pauseEnd = pause.end ? new Date(pause.end).getTime() : now;
+                pauseTime += (pauseEnd - pauseStart);
+            });
+
+            // Subtract pause time from elapsed time
+            elapsedTime -= pauseTime;
+
+            // Calculate remaining time
+            let remainingTime = duration - elapsedTime;
+
+            if (remainingTime <= 0) {
+                displayEl.text('00:00:00');
+                return;
+            }
+
+            // Format remaining time
+            const hours = Math.floor(remainingTime / (1000 * 60 * 60));
+            const minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((remainingTime % (1000 * 60)) / 1000);
+
+            displayEl.text(
+                hours.toString().padStart(2, '0') + ':' +
+                minutes.toString().padStart(2, '0') + ':' +
+                seconds.toString().padStart(2, '0')
+            );
         }
+
+        // Update countdown every second
+        setInterval(updateCountdown, 1000);
+        updateCountdown(); // Initial update
+
+        // Setup WebSocket to listen for pause events
+        const roundSocket = new WebSocket(
+            'ws://' + window.location.host + '/ws/round/{{ round.id }}/'
+        );
+
+        roundSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            if (data.type === 'round_update') {
+                // Update pause status
+                $('#roundCountdown').data('is-paused', data.is_paused);
+                // Reload pauses data
+                location.reload(); // Or use AJAX to refresh just the necessary data
+            }
+        };
     });
     document.addEventListener('DOMContentLoaded', () => {
         const cells = document.querySelectorAll('table tbody tr td:nth-child(3)');

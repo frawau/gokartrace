@@ -2,7 +2,7 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
-from .models import ChangeLane
+from .models import ChangeLane, round_pause
 from django.template.loader import render_to_string
 
 @receiver(post_save, sender=ChangeLane)
@@ -33,3 +33,17 @@ def change_lane_updated(sender, instance, created, **kwargs):
 def change_lane_deleted(sender, instance, **kwargs):
     #Add logic here if you want to send a websocket message when a lane is deleted.
     pass
+
+@receiver(post_save, sender=round_pause)
+def handle_pause_change(sender, instance, **kwargs):
+    round_obj = instance.round
+    is_paused = round_obj.round_pause_set.filter(end__isnull=True).exists()
+
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        f'round_{round_obj.id}',
+        {
+            'type': 'round_update',
+            'is_paused': is_paused,
+        }
+    )

@@ -51,8 +51,13 @@ def team_carousel(request):
 def get_team_card(request):
     team_id = request.GET.get("team_id")
     round_team_instance = get_object_or_404(round_team, pk=team_id)
+    round = round_team_instance.round
     context = {
         "round_team": round_team_instance,
+        'round': round,
+        'started': round.started.timestamp() if round_obj.started else None,
+        'duration_seconds': round.duration.total_seconds(),
+        'pauses': list(round.round_pause_set.values('start', 'end')),
     }
     html = render(request, "layout/teamcard.html", context).content.decode("utf-8")
     return JsonResponse({"html": html})
