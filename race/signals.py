@@ -38,6 +38,7 @@ def change_lane_deleted(sender, instance, **kwargs):
 def handle_pause_change(sender, instance, **kwargs):
     round = instance.round
     is_paused = round.round_pause_set.filter(end__isnull=True).exists()
+    remaining = (round.duration - round.time_elapsed).total_seconds()
 
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
@@ -45,5 +46,6 @@ def handle_pause_change(sender, instance, **kwargs):
         {
             'type': 'round_update',
             'is_paused': is_paused,
+            'remaining_seconds': remaining,
         }
     )

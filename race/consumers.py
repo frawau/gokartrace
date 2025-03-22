@@ -68,4 +68,5 @@ class RoundPauseConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             'type': 'round_update',
             'is_paused': event['is_paused'],
+            'remaining_seconds': event['remaining_seconds'],
         }))
