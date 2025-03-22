@@ -26,14 +26,14 @@
     <div class="row" style="height: 20%;">
         <div class="col-md-1">
         </div>
-        <div class="col-md-2">
+        <div class="col-md-3">
             <select class="form-select" id="teamSelect" style="font-size: 1.2rem;>
                 {% for team in round.round_team_set.all %}
                     <option value="{{ team.id }}">{{ team.team.number }} {{ team.team.team.name }}</option>
                 {% endfor %}
             </select>
         </div>
-        <div class="col-md-2">
+        <div class="col-md-1">
             <button class="btn btn-success" id="stopGoButton">Stop&Go</button>
         </div>
         <div id="changequeue" class="col-md-7 card" style="background-color: transparent;">Message</div>
