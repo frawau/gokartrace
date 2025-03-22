@@ -41,53 +41,55 @@
 
 {% block extra_js %}
 <script>
-    function updateCountdown() {
-        const countdownEl = $('#roundCountdown');
-        const displayEl = $('#countdownDisplay');
-        const remainingSeconds = parseInt(countdownEl.attr('data-remaining'), 10);
-        const isPaused = countdownEl.attr('data-is-paused') === 'true';
+    $(document).ready(function() {
+        function updateCountdown() {
+            const countdownEl = $('#roundCountdown');
+            const displayEl = $('#countdownDisplay');
+            const remainingSeconds = parseInt(countdownEl.attr('data-remaining'), 10);
+            const isPaused = countdownEl.attr('data-is-paused') === 'true';
 
-        if (isNaN(remainingSeconds)) {
-            displayEl.text('--:--:--');
-            return;
-        }
-
-        let remainingTime = remainingSeconds * 1000;
-        if (!isPaused) {
-            const now = new Date().getTime();
-            const elapsedSincePageLoad = now - pageLoadTime;
-            remainingTime = Math.max(0, remainingTime - elapsedSincePageLoad);
-        }
-
-        const hours = Math.floor(remainingTime / (1000 * 60 * 60));
-        const minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((remainingTime % (1000 * 60)) / 1000);
-
-        displayEl.text(
-            hours.toString().padStart(2, '0') + ':' +
-            minutes.toString().padStart(2, '0') + ':' +
-            seconds.toString().padStart(2, '0')
-        );
-    }
-
-    const pageLoadTime = new Date().getTime();
-    setInterval(updateCountdown, 1000);
-    updateCountdown();
-
-    const roundSocket = new WebSocket(
-        'ws://' + window.location.host + '/ws/roundpause/{{ round.id }}/'
-    );
-
-    roundSocket.onmessage = function(e) {
-        const data = JSON.parse(e.data);
-        if (data.type === 'round_update') {
-            $('#roundCountdown').data('is-paused', data.is_paused);
-            if (data.remaining_seconds !== undefined) {
-                $('#roundCountdown').attr('data-remaining', data.remaining_seconds);
+            if (isNaN(remainingSeconds)) {
+                displayEl.text('--:--:--');
+                return;
             }
-            window.pageLoadTime = new Date().getTime();
+
+            let remainingTime = remainingSeconds * 1000;
+            if (!isPaused) {
+                const now = new Date().getTime();
+                const elapsedSincePageLoad = now - pageLoadTime;
+                remainingTime = Math.max(0, remainingTime - elapsedSincePageLoad);
+            }
+
+            const hours = Math.floor(remainingTime / (1000 * 60 * 60));
+            const minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((remainingTime % (1000 * 60)) / 1000);
+
+            displayEl.text(
+                hours.toString().padStart(2, '0') + ':' +
+                minutes.toString().padStart(2, '0') + ':' +
+                seconds.toString().padStart(2, '0')
+            );
         }
-    };
+
+        const pageLoadTime = new Date().getTime();
+        setInterval(updateCountdown, 1000);
+        updateCountdown();
+
+        const roundSocket = new WebSocket(
+            'ws://' + window.location.host + '/ws/roundpause/{{ round.id }}/'
+        );
+
+        roundSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            if (data.type === 'round_update') {
+                $('#roundCountdown').data('is-paused', data.is_paused);
+                if (data.remaining_seconds !== undefined) {
+                    $('#roundCountdown').attr('data-remaining', data.remaining_seconds);
+                }
+                window.pageLoadTime = new Date().getTime();
+            }
+        };
+    }
 
     $('#raceButton').click(function() {
         const button = $(this);
