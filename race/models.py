@@ -133,7 +133,7 @@ class Round(models.Model):
         # Calculate paused time within the session duration
         now = dt.datetime.now()
         totalpause = dt.timedelta()
-        for pause in self.round.round_pause_set.all():
+        for pause in self.round_pause_set.all():
             if pause.end is None:
                 now = pause.start
             else:
