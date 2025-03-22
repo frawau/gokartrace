@@ -12,7 +12,7 @@
         <div class="col-md-8" style="height: 100%;">
             <div class="card" style="height: 100%; background-color: transparent;">
                 <div class="card-body d-flex align-items-center justify-content-center">
-                    <button class="btn btn-warning btn-lg" id="raceButton" style="width: 80%; height: 80%; font-size: 2rem; color: black;">Pre Race Check</button>
+                    <button class="btn btn-warning btn-lg" id="raceButton" style="width: 80%; height: 80%; font-size: 4rem; color: black;">Pre Race Check</button>
                 </div>
             </div>
         </div>
@@ -25,7 +25,7 @@
     </div>
     <div class="row" style="height: 20%;">
         <div class="col-md-3">
-            <select class="form-select" id="teamSelect">
+            <select class="form-select" id="teamSelect" style="font-size: 1.2rem;>
                 {% for team in round.round_team_set.all %}
                     <option value="{{ team.id }}">{{ team.team.number }} {{ team.team.team.name }}</option>
                 {% endfor %}
@@ -92,46 +92,44 @@
         };
     }
 
-
     $('#raceButton').click(function() {
         const button = $(this);
-        const remainingSeconds = parseInt($('#roundCountdown').attr('data-remaining'), 10);
 
         if (button.text() === 'Pre Race Check') {
             $.get('/preracecheck/', function(response) {
                 if (response.result) {
-                    button.removeClass('btn-warning').addClass('btn-success').text('Start');
+                    button.removeClass('btn-warning').addClass('btn-success').text('Start').css('color', 'white');
                 }
             });
         } else if (button.text() === 'Start') {
             $.post('/race/start/', function() {
-                button.removeClass('btn-success').addClass('btn-danger').text('False Start');
+                button.removeClass('btn-success').addClass('btn-danger').text('False Start').css('color', 'white');
                 setTimeout(function() {
                     if (button.text() === 'False Start') {
-                        button.removeClass('btn-danger').addClass('btn-warning').text('Pause');
+                        button.removeClass('btn-danger').addClass('btn-warning').text('Pause').css('color', 'black');
                     }
                 }, 15000);
             });
         } else if (button.text() === 'False Start') {
             $.post('/falsestart/', function() {
-                button.removeClass('btn-danger').addClass('btn-success').text('Start');
+                button.removeClass('btn-danger').addClass('btn-success').text('Start').css('color', 'white');
             });
         } else if (button.text() === 'Pause') {
             $.post('/racepaused/', function() {
-                button.removeClass('btn-warning').addClass('btn-success').text('Restart');
+                button.removeClass('btn-warning').addClass('btn-success').text('Restart').css('color', 'white');
             });
         } else if (button.text() === 'Restart') {
             $.post('/racerestart/', function() {
-                button.removeClass('btn-success').addClass('btn-danger').text('False Restart');
+                button.removeClass('btn-success').addClass('btn-danger').text('False Restart').css('color', 'white');
                 setTimeout(function() {
                     if (button.text() === 'False Restart') {
-                        button.removeClass('btn-danger').addClass('btn-warning').text('Pause');
+                        button.removeClass('btn-danger').addClass('btn-success').text('Restart').css('color', 'white');
                     }
                 }, 15000);
             });
         } else if (button.text() === 'False Restart') {
             $.post('/falserestart/', function() {
-                button.removeClass('btn-danger').addClass('btn-success').text('Restart');
+                button.removeClass('btn-danger').addClass('btn-success').text('Restart').css('color', 'white');
             });
         } else if (button.text() === 'End Race') {
           $.post('/endofrace/', function() {
@@ -139,9 +137,11 @@
           });
         }
 
+        const remainingSeconds = parseInt($('#roundCountdown').attr('data-remaining'), 10);
         if (remainingSeconds < 120) {
-          button.removeClass('btn-warning').removeClass('btn-success').addClass('btn-danger').text('End Race');
+          button.removeClass('btn-warning').removeClass('btn-success').addClass('btn-danger').text('End Race').css('color', 'white');
         }
+    });
 
     });
 
