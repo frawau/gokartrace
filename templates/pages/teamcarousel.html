@@ -27,11 +27,7 @@
 {% endblock extra_style %}
 {% block main_content %}
         <div class="section container">
-        <h2>Round: {{ round.name }}</h2><div class="countdown-timer" id="roundCountdown"
-                                                data-remaining="{{ remaining_seconds }}"
-                                                data-is-paused="{{ is_paused|yesno:'true,false' }}">
-                                                Time remaining: <span id="countdownDisplay">--:--:--</span>
-                                                </div>
+        <h1 class="countdown-timer" id="roundCountdown" data-remaining="{{ remaining_seconds }}" data-is-paused="{{ is_paused|yesno:'true,false' }}">>Round: {{ round.name }} &nbsp;&nbsp;Time remaining: <span id="countdownDisplay">--:--:--</span></h1>
 
             <div id="teamCarousel" class="carousel slide" data-ride="carousel" >
                 <div class="carousel-inner">
