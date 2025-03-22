@@ -11,5 +11,5 @@ def duration_difference_seconds(round):
 @register.filter
 def round_is_paused(round):
     if round:
-        return round.is_paused
-    return True
+        return "true" if round.is_paused else "false"
+    return "true"
