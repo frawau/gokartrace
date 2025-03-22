@@ -16,24 +16,25 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4" style="height: 100%;">
-            <div id="card1" class="card" style="height: 25%; background-color: transparent;">Card 1</div>
-            <div id="card2" class="card" style="height: 25%; background-color: transparent;">Card 2</div>
-            <div id="card3" class="card" style="height: 25%; background-color: transparent;">Card 3</div>
-            <div id="card4" class="card" style="height: 25%; background-color: transparent;">Message</div>
+        <div class="col-md-4 d-flex flex-column" style="height: 100%;">
+            {% for lane in round.ChangeLane_set.all %}
+                <div id="lane-{{ lane.number }}" class="card mb-2" style="flex-grow: 1; background-color: transparent;">Lane {{ lane.number }}</div>
+            {% endfor %}
+            <div id="changequeue" class="card mb-2" style="flex-grow: 1; background-color: transparent;">Queue</div>
         </div>
     </div>
     <div class="row" style="height: 20%;">
-        <div class="col-md-6">
+        <div class="col-md-5">
             <select class="form-select" id="teamSelect">
                 {% for team in round.round_team_set.all %}
-                    <option value="{{ team.id }}">{{ team.team.name }}</option>
+                    <option value="{{ team.id }}">{{ team.number }}</option>
                 {% endfor %}
             </select>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-2">
             <button class="btn btn-success" id="stopGoButton">Stop&Go</button>
         </div>
+        <div id="changequeue" class="col-md-5 card" style="background-color: transparent;">Message</div>
     </div>
 </div>
 
