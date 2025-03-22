@@ -28,9 +28,8 @@
 {% block main_content %}
         <div class="section container">
         <h2>Round: {{ round.name }}</h2><div class="countdown-timer" id="roundCountdown"
-                                                data-started="{{ round.started|date:'U' }}"
-                                                data-duration="{{ round.duration.total_seconds }}"
-                                                data-is-paused="{% if round.round_pause_set.filter(end__isnull=True).exists %}true{% else %}false{% endif %}">
+                                                data-remaining="{{ remaining_seconds }}"
+                                                data-is-paused="{{ is_paused|yesno:'true,false' }}">
                                                 Time remaining: <span id="countdownDisplay">--:--:--</span>
                                                 </div>
 
@@ -111,52 +110,20 @@
             });
         }
 
-        function formatTime(seconds) {
-            var hours = Math.floor(seconds / 3600);
-            var minutes = Math.floor((seconds % 3600) / 60);
-            var secs = Math.floor(seconds % 60);
-            return hours + ":" + (minutes < 10 ? "0" : "") + minutes + ":" + (secs < 10 ? "0" : "") + secs;
-        };
-
-        // Countdown functionality
         function updateCountdown() {
             const countdownEl = $('#roundCountdown');
             const displayEl = $('#countdownDisplay');
+            let remainingTime = countdownEl.data('remaining') * 1000; // ms
+            const isPaused = countdownEl.data('is-paused');
 
-            if (!countdownEl.data('started')) {
-                displayEl.text('Not started');
-                return;
-            }
+            if (!isPaused) {
+                // Only count down if not paused
+                const now = new Date().getTime();
+                const elapsedSincePageLoad = now - pageLoadTime;
+                remainingTime = Math.max(0, remainingTime - elapsedSincePageLoad);
+                }
 
-            const startTime = countdownEl.data('started') * 1000; // Convert to milliseconds
-            const duration = countdownEl.data('duration') * 1000; // Convert to milliseconds
-            const now = new Date().getTime();
-
-            // Calculate time elapsed accounting for pauses
-            let elapsedTime = now - startTime;
-            let pauseTime = 0;
-
-            // This would be populated with pause data from your model
-            const pauses = {{ pauses|safe|default:"[]" }};
-
-            pauses.forEach(pause => {
-                const pauseStart = new Date(pause.start).getTime();
-                const pauseEnd = pause.end ? new Date(pause.end).getTime() : now;
-                pauseTime += (pauseEnd - pauseStart);
-            });
-
-            // Subtract pause time from elapsed time
-            elapsedTime -= pauseTime;
-
-            // Calculate remaining time
-            let remainingTime = duration - elapsedTime;
-
-            if (remainingTime <= 0) {
-                displayEl.text('00:00:00');
-                return;
-            }
-
-            // Format remaining time
+            // Format time
             const hours = Math.floor(remainingTime / (1000 * 60 * 60));
             const minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((remainingTime % (1000 * 60)) / 1000);
@@ -165,12 +132,13 @@
                 hours.toString().padStart(2, '0') + ':' +
                 minutes.toString().padStart(2, '0') + ':' +
                 seconds.toString().padStart(2, '0')
-            );
-        }
+                );
+            }
 
-        // Update countdown every second
+        // Store page load time to calculate elapsed time
+        const /*pageLoadTime*/ = new Date().getTime();
         setInterval(updateCountdown, 1000);
-        updateCountdown(); // Initial update
+        updateCountdown();
 
         // Setup WebSocket to listen for pause events
         const roundSocket = new WebSocket(

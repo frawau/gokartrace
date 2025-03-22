@@ -52,12 +52,19 @@ def get_team_card(request):
     team_id = request.GET.get("team_id")
     round_team_instance = get_object_or_404(round_team, pk=team_id)
     round = round_team_instance.round
+    is_paused = round.round_pause_set.filter(end__isnull=True).exists()
+    if round.started:
+        elapsed = round.time_elapsed.total_seconds()
+        remaining = max(0, round.duration.total_seconds() - elapsed)
+    else:
+        remaining = round.duration.total_seconds()
+        is_paused = True
+
     context = {
         "round_team": round_team_instance,
         'round': round,
-        'started': round.started.timestamp() if round_obj.started else None,
-        'duration_seconds': round.duration.total_seconds(),
-        'pauses': list(round.round_pause_set.values('start', 'end')),
+        'is_paused': is_paused,
+        'remaining_seconds': remaining,
     }
     html = render(request, "layout/teamcard.html", context).content.decode("utf-8")
     return JsonResponse({"html": html})
