@@ -14,19 +14,31 @@
         object-fit: contain; /* Prevent distortion */
         max-width: none !important;
         }
+    .racep-container {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh; /* Make the container take up at least the full viewport height */
+        }
+
+    .racep-content {
+        flex: 1; /* Allow the content to grow and take up available space */
+        }
     </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 
 <body class="{% block body %}{% endblock body %}">
 
-    {% block content %}
-        {% include "layout/content.html" %}
-    {% endblock content %}
-
-    {% block footer %}
-        {% include "includes/footer.html" %}
-    {% endblock footer %}
+    <div class="racep-container">
+        <div class="racep-content">
+            {% block content %}
+                {% include "layout/content.html" %}
+            {% endblock content %}
+        </div>
+        {% block footer %}
+            {% include "includes/footer.html" %}
+        {% endblock footer %}
+    </div>
 
     {% include "includes/scripts.html" %}
     {% block extra_js %}{% endblock extra_js %}
