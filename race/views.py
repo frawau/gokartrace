@@ -136,7 +136,7 @@ def preracecheck(request):
     ).first()
     res = round.pre_race_check()
     if res:
-        return JsonResponse({"result": False, "eeror": res})
+        return JsonResponse({"result": False, "error": res})
 
     return JsonResponse({"result": True})
 
@@ -174,3 +174,11 @@ def falserestart(request):
 @user_passes_test(is_race_director)
 def endofrace(request):
     return HttpResponse("OK")
+
+
+def error_404(request, exception):
+    print(hh)
+    return render(request, 'myapp/error_404.html', status=404)
+
+def error_500(request):
+    return render(request, 'myapp/error_505.html', status=500)
