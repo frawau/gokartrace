@@ -28,3 +28,5 @@ try:
     urlpatterns.append(path("login/jwt/", view=obtain_auth_token))
 except:
     pass
+
+handler404 = 'race.views.error_404'
