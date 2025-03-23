@@ -8,6 +8,8 @@ from django.urls import path, include
 from debug_toolbar.toolbar import debug_toolbar_urls
 from race.routing import websocket_urlpatterns
 from channels.routing import URLRouter
+from django.conf.urls import handler404
+
 try:
     from rest_framework.authtoken.views import obtain_auth_token
 except:
@@ -29,3 +31,4 @@ try:
 except:
     pass
 
+handler404 = 'race.views.error_404'
