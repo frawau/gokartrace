@@ -220,3 +220,6 @@ CHANNEL_LAYERS = {
 # __CELERY__
 
 # __OAUTH_GITHUB__
+DEBUG_TOOLBAR_CONFIG = {
+    'SHOW_TOOLBAR_CALLBACK': lambda r: False,  # disables it
+}
