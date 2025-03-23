@@ -18,7 +18,7 @@
         </div>
         <div class="col-md-4 d-flex flex-column" style="height: 100%;">
             {% for lane in round.changelane_set.all %}
-                <div id="lane-{{ lane.lane }}" class="card mb-2" style="flex-grow: 1; background-color: transparent;">Lane {{ lane.lane }}</div>
+                <div id="lane-{{ lane.id }}" class="card mb-2" style="flex-grow: 1; background-color: transparent;">Lane {{ lane.lane }}</div>
             {% endfor %}
             <div id="changequeue" class="card mb-2" style="flex-grow: 1; background-color: transparent;">Queue</div>
         </div>
@@ -98,7 +98,7 @@
         const button = $(this);
 
         if (button.text() === 'Pre Race Check') {
-            $.get('/preracecheck/', function(response) {
+            $.post('/preracecheck/', function(response) {
                 if (response.result) {
                     button.removeClass('btn-warning').addClass('btn-success').text('Start').css('color', 'white');
                 }
@@ -163,5 +163,23 @@
             $('#teamSelect').val($('#teamSelect option:first').val());
         }
     });
+
+    {% for lane in round.changelane_set.all %}
+        const laneNumber{{ change_lane.id }} = {{ change_lane.lane }};
+        const socketcl{{ change_lane.id }} = new WebSocket(`ws://${window.location.host}/ws/pitlanes/${laneNumber{{ change_lane.id }}}/`);
+
+        socketcl{{ change_lane.id }}.onmessage = function (event) {
+            const data = JSON.parse(event.data);
+            document.getElementById(`lane-{{ change_lane.id }}`).outerHTML = data.lane_html;
+        };
+
+        socketcl{{ change_lane.id }}.onclose = function(event) {
+            if (!event.wasClean) {
+                reloadTimer = setTimeout(() => {
+                    location.reload();
+                }, 3000); // Reload after 3 seconds
+            }
+        };
+    {% endfor %}
 </script>
 {% endblock extra_js %}

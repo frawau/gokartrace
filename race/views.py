@@ -71,13 +71,22 @@ def get_team_card(request):
     return JsonResponse({"html": html})
 
 def changelane_info(request, lane_number):
-    change_lane = get_object_or_404(ChangeLane, id=lane_number)
+    end_date = dt.date.today()
+    start_date = end_date - dt.timedelta(days=1)
+    round = Round.objects.filter(
+        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
+    ).first()
+    change_lane = get_object_or_404(ChangeLane,round=round, lane=lane_number)
     return render(request, 'layout/changelane_info.html', {'change_lane': change_lane})
 
 def update_change_lane(request, lane_number):
-    change_lane = get_object_or_404(ChangeLane, id=lane_number)
+    end_date = dt.date.today()
+    start_date = end_date - dt.timedelta(days=1)
+    round = Round.objects.filter(
+        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
+    ).first()
+    change_lane = get_object_or_404(ChangeLane,round=round, lane=lane_number)
     if change_lane.open == True:
-        change_lane.open = True
         change_lane.next_driver() #This is the function that updates the driver.
     change_lane.save()
     return render(request, 'layout/changelane_info.html', {'change_lane': change_lane})
