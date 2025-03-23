@@ -23,7 +23,7 @@ if not SECRET_KEY:
     SECRET_KEY = "TODO_SET_SECRET_KEY"
 
 DEBUG = os.environ.get("DEBUG", True)
-
+HANDLER404 = 'race.views.error_404'
 APP_DOMAIN = os.getenv("APP_DOMAIN", "wautier.eu")
 
 # HOSTs List
