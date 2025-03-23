@@ -17,7 +17,7 @@
             </div>
         </div>
         <div class="col-md-4 d-flex flex-column" style="height: 100%;">
-            {% for lane in round.changelane_set.all %}
+            {% for lane in lanes %}
                 <div id="lane-{{ lane.id }}" class="card mb-2" style="flex-grow: 1; background-color: transparent;">Lane {{ lane.lane }}</div>
             {% endfor %}
             <div id="changequeue" class="card mb-2" style="flex-grow: 1; background-color: transparent;">Queue</div>
@@ -92,7 +92,7 @@
                 window.pageLoadTime = new Date().getTime();
             }
         };
-        {% for lane in round.changelane_set.all %}
+        {% for lane in lanes %}
         const laneNumber{{ lane.id }} = {{ lane.lane }};
         const socketcl{{ lane.id }} = new WebSocket(`ws://${window.location.host}/ws/pitlanes/${laneNumber{{ lane.id }}}/`);
 
@@ -111,10 +111,10 @@
             }
         };
         {% endfor %}
-        {% for lane in round.changelane_set.all %}
+        {% for lane in lanes %}
         function loadLane{{ lane.id }}() {
-            $.get('/pitlanedetail/{{ lane.id }}/', function(data) {
-                $('#lane-{{ lane.id }}').outerHTML=data;
+            $.get('/pitlanedetail/{{ lane.lane }}/', function(data) {
+                document.getElementById(`lane-{{ lane.id }}`).outerHTML = data;
             });
         }
         loadLane{{ lane.id }}(); // Load on page load

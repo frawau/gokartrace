@@ -103,7 +103,12 @@ def update_change_lane(request, lane_number):
 
 
 def changedriver_info(request):
-    change_lanes = ChangeLane.objects.filter(open=True).order_by('lane')
+    end_date = dt.date.today()
+    start_date = end_date - dt.timedelta(days=1)
+    round = Round.objects.filter(
+        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
+    ).first()
+    change_lanes = ChangeLane.objects.filter(round=round, open=True).order_by('lane')
     return render(request, 'layout/changedriver_info.html', {'change_lanes': change_lanes})
 
 
@@ -118,7 +123,8 @@ def racecontrol(request):
     round = Round.objects.filter(
         Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
     ).first()
-    return render(request, 'pages/racecontrol.html', {'round': round})
+    lanes = round.changelane_set.all().order_by('lane')
+    return render(request, 'pages/racecontrol.html', {'round': round, "lanes": lanes})
 
 @login_required
 @user_passes_test(is_race_director)
