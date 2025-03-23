@@ -178,7 +178,7 @@ def endofrace(request):
 
 def error_404(request, exception):
     print(hh)
-    return render(request, 'myapp/error_404.html', status=404)
+    return render(request, 'pages/error_404.html', status=404)
 
 def error_500(request):
-    return render(request, 'myapp/error_505.html', status=500)
+    return render(request, 'pages/error_505.html', status=500)
