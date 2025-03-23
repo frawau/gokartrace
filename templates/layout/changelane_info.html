@@ -11,7 +11,9 @@
 
     socket.onmessage = function (event) {
         const data = JSON.parse(event.data);
-        document.getElementById(`lane-{{ change_lane.id }}`).outerHTML = data.lane_html;
+        if (data.type === 'lane.update') {
+            document.getElementById(`lane-{{ change_lane.id }}`).outerHTML = data.lane_html;
+        }
     };
 
     socket.onclose = function(event) {

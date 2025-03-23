@@ -86,7 +86,7 @@ def changelane_detail(request, lane_number):
         Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
     ).first()
     change_lane = get_object_or_404(ChangeLane,round=round, lane=lane_number)
-    return render(request, 'layout/changelane_detail.html', {'change_lane': change_lane})
+    return render(request, 'layout/changelane_small_detail.html', {'change_lane': change_lane})
 
 
 def update_change_lane(request, lane_number):

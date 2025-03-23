@@ -98,7 +98,9 @@
 
         socketcl{{ lane.id }}.onmessage = function (event) {
             const data = JSON.parse(event.data);
-            document.getElementById(`lane-{{ lane.id }}`).outerHTML = data.lane_html;
+            if (data.type === 'rclane.update') {
+                document.getElementById(`lane-{{ lane.id }}`).outerHTML = data.lane_html;
+            }
         };
 
         socketcl{{ lane.id }}.onclose = function(event) {
