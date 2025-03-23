@@ -127,6 +127,8 @@
     function addMessage(message) {
         const contentDiv = document.getElementById('racemsg-content');
         const messageElement = document.createElement('p');
+        messageElement.style.marginBottom = '-5px'; // Reduced vertical separation
+        messageElement.classList.add('text-warning', 'mb-1');
         messageElement.textContent = message;
         contentDiv.appendChild(messageElement);
 
