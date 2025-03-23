@@ -14,6 +14,7 @@ urlpatterns = [
     path("get_team_card/", views.get_team_card, name="Team Card"),
     # path('ws/pitlane/<int:lane_number>/', views.changelane_info, name = 'change_lane_ws'),
     path('pitlane/<int:lane_number>/', views.changelane_info, name='Change Lane'),
+    path('pitlanedetail/<int:lane_number>/', views.changelane_detail, name='Change Lane Info'),
     path('changedriver/', views.changedriver_info, name='Call for Driver Change'),\
     path('preracecheck/', views.preracecheck, name='preracecheck'),
     path('race/start/', views.race_start, name='race_start'),

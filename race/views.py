@@ -79,6 +79,16 @@ def changelane_info(request, lane_number):
     change_lane = get_object_or_404(ChangeLane,round=round, lane=lane_number)
     return render(request, 'layout/changelane_info.html', {'change_lane': change_lane})
 
+def changelane_detail(request, lane_number):
+    end_date = dt.date.today()
+    start_date = end_date - dt.timedelta(days=1)
+    round = Round.objects.filter(
+        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
+    ).first()
+    change_lane = get_object_or_404(ChangeLane,round=round, lane=lane_number)
+    return render(request, 'layout/changelane_detail.html', {'change_lane': change_lane})
+
+
 def update_change_lane(request, lane_number):
     end_date = dt.date.today()
     start_date = end_date - dt.timedelta(days=1)
