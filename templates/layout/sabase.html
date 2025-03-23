@@ -12,7 +12,7 @@
             height: 100%;
             margin: 0;
             padding: 0;
-            background-image: url("{% static 'img/racing_tile.png' %}");
+            background-image: url("{% static 'img/racebackground.png' %}");
             background-repeat: repeat;
             background-size: auto; /* Adjust as needed */
             background-attachment: fixed; /* Optional: to make the background fixed */
@@ -23,8 +23,7 @@
     <div>
         {% block content %}{% endblock %}
     </div>
-    <script src="{% static 'js/core/popper.min.js' %}"></script>
-    <script src="{% static 'js/core/bootstrap.min.js' %}"></script>
-    <script src="{% static 'js/material-kit.min.js' %}"></script>
+    {% include "includes/scripts.html" %}
+    {% block extra_js %}{% endblock extra_js %}
 </body>
 </html>
