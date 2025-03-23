@@ -24,3 +24,5 @@ urlpatterns = [
     path('falserestart/', views.falserestart, name='falserestart'),
     path('endofrace/', views.endofrace, name='endofrace'),
 ]
+
+handler404 = 'race.views.error_404'

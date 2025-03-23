@@ -29,4 +29,3 @@ try:
 except:
     pass
 
-handler404 = 'race.views.error_404'
