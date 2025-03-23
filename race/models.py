@@ -567,3 +567,6 @@ class ChangeLane(models.Model):
                 name="unique_driver_when_not_null",
             )
         ]
+
+    def __str__(self):
+        return f"{self.round.name} Lane {self.lane}"
