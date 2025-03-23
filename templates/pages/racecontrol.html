@@ -72,7 +72,7 @@
                 minutes.toString().padStart(2, '0') + ':' +
                 seconds.toString().padStart(2, '0')
             );
-        }
+        };
 
         const pageLoadTime = new Date().getTime();
         setInterval(updateCountdown, 1000);
@@ -92,7 +92,24 @@
                 window.pageLoadTime = new Date().getTime();
             }
         };
-    }
+        {% for lane in round.changelane_set.all %}
+        const laneNumber{{ lane.id }} = {{ lane.lane }};
+        const socketcl{{ lane.id }} = new WebSocket(`ws://${window.location.host}/ws/pitlanes/${laneNumber{{ lane.id }}}/`);
+
+        socketcl{{ lane.id }}.onmessage = function (event) {
+            const data = JSON.parse(event.data);
+            document.getElementById(`lane-{{ lane.id }}`).outerHTML = data.lane_html;
+        };
+
+        socketcl{{ lane.id }}.onclose = function(event) {
+            if (!event.wasClean) {
+                reloadTimer = setTimeout(() => {
+                    location.reload();
+                }, 3000); // Reload after 3 seconds
+            }
+        };
+        {% endfor %}
+    });
 
     $('#raceButton').click(function() {
         const button = $(this);
@@ -145,8 +162,6 @@
         }
     });
 
-    });
-
     $('#stopGoButton').click(function() {
         const teamId = $('#teamSelect').val();
         const button = $(this);
@@ -164,22 +179,5 @@
         }
     });
 
-    {% for lane in round.changelane_set.all %}
-        const laneNumber{{ change_lane.id }} = {{ change_lane.lane }};
-        const socketcl{{ change_lane.id }} = new WebSocket(`ws://${window.location.host}/ws/pitlanes/${laneNumber{{ change_lane.id }}}/`);
-
-        socketcl{{ change_lane.id }}.onmessage = function (event) {
-            const data = JSON.parse(event.data);
-            document.getElementById(`lane-{{ change_lane.id }}`).outerHTML = data.lane_html;
-        };
-
-        socketcl{{ change_lane.id }}.onclose = function(event) {
-            if (!event.wasClean) {
-                reloadTimer = setTimeout(() => {
-                    location.reload();
-                }, 3000); // Reload after 3 seconds
-            }
-        };
-    {% endfor %}
 </script>
 {% endblock extra_js %}
