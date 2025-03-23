@@ -36,7 +36,10 @@
         <div class="col-md-1">
             <button class="btn btn-success" id="stopGoButton">Stop&Go</button>
         </div>
-        <div id="racemsg" class="col-md-7 card" style="background-color: transparent;">Message</div>
+        <div id="racemsg" class="col-md-7 card" style="background-color: transparent; max-height: 400px; overflow-y: auto;">
+            <div id="racemsg-content">
+            </div>
+        </div>
     </div>
 </div>
 
@@ -121,6 +124,21 @@
         {% endfor %}
     });
 
+    function addMessage(message) {
+        const contentDiv = document.getElementById('racemsg-content');
+        const messageElement = document.createElement('p');
+        messageElement.textContent = message;
+        contentDiv.appendChild(messageElement);
+
+        // Limit to 100 paragraphs
+        if (contentDiv.children.length > 100) {
+            contentDiv.removeChild(contentDiv.firstChild);
+            }
+
+        // Scroll to bottom
+        contentDiv.scrollTop = contentDiv.scrollHeight;
+    }
+
     $('#raceButton').click(function() {
         const button = $(this);
         $.ajaxSetup({
@@ -146,6 +164,10 @@
             $.post('/preracecheck/', function(response) {
                 if (response.result) {
                     button.removeClass('btn-warning').addClass('btn-success').text('Start').css('color', 'white');
+                } else {
+                    for (const item of response.error) {
+                        addMessage(item);
+                    }
                 }
             });
         } else if (button.text() === 'Start') {
