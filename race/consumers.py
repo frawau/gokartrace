@@ -22,11 +22,11 @@ class ChangeLaneConsumer(AsyncWebsocketConsumer):
 
     async def lane_update(self, event):
         lane_html = event['lane_html']
-        await self.send(text_data=json.dumps({'lane_html': lane_html}))
+        await self.send(text_data=json.dumps({"type": "lane.update",'lane_html': lane_html}))
 
     async def rclane_update(self, event):
         lane_html = event['lane_html']
-        await self.send(text_data=json.dumps({'lane_html': lane_html}))
+        await self.send(text_data=json.dumps({"type": "rclane.update",'lane_html': lane_html}))
 
 
 class ChangeDriverConsumer(AsyncWebsocketConsumer):
