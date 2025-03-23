@@ -129,7 +129,15 @@ def racecontrol(request):
 @login_required
 @user_passes_test(is_race_director)
 def preracecheck(request):
-    # Your logic here; return JsonResponse({"result": True/False})
+    end_date = dt.date.today()
+    start_date = end_date - dt.timedelta(days=1)
+    round = Round.objects.filter(
+        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
+    ).first()
+    res = round.pre_race_check()
+    if res:
+        return JsonResponse({"result": False, "eeror": res})
+
     return JsonResponse({"result": True})
 
 @login_required

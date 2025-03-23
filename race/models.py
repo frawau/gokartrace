@@ -265,7 +265,7 @@ class Round(models.Model):
                     )
 
         if errors:
-            raise ValidationError(errors)
+            return errors
         else:
             self.ready = True
             self.save()
@@ -275,6 +275,7 @@ class Round(models.Model):
                     round=self,
                     lane=i + 1,
                 )
+            return None
 
     def post_race_check(self):
         """
