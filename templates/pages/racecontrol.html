@@ -111,7 +111,7 @@
         {% endfor %}
         {% for lane in round.changelane_set.all %}
         function loadLane{{ lane.id }}() {
-            $.get('/pitlane_detail/{{ lane.id }}/', function(data) {
+            $.get('/pitlanedetail/{{ lane.id }}/', function(data) {
                 $('#lane-{{ lane.id }}').outerHTML=data;
             });
         }
