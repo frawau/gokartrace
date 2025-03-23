@@ -253,16 +253,15 @@ class Round(models.Model):
                 if sessions.exists():
                     registered_drivers.append(driver)
 
-            if len(registered_drivers) != 1:
-                errors.append(
-                    f"Team {round_team_instance.team.team.name} has {len(registered_drivers)} registered to start. Expected 1."
-                )
-
-            for driver in drivers:
                 if driver.weight == 0:
                     errors.append(
                         f"Driver {driver.member.nickname} in team {round_team_instance.team.team.name} has a weight of 0."
                     )
+
+            if len(registered_drivers) != 1:
+                errors.append(
+                    f"Team {round_team_instance.team.team.name} has {len(registered_drivers)} registered to start. Expected 1."
+                )
 
         if errors:
             return errors
