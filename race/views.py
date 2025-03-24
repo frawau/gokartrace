@@ -105,12 +105,14 @@ def update_change_lane(request, lane_number):
 def changedriver_info(request):
     end_date = dt.date.today()
     start_date = end_date - dt.timedelta(days=1)
-    round = Round.objects.filter(
-        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
-    ).first()
-    change_lanes = ChangeLane.objects.filter(round=round, open=True).order_by('lane')
-    return render(request, 'layout/changedriver_info.html', {'change_lanes': change_lanes})
-
+    try:
+        round = Round.objects.filter(
+            Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
+        ).first()
+        change_lanes = ChangeLane.objects.filter(round=round, open=True).order_by('lane')
+        return render(request, 'layout/changedriver_info.html', {'change_lanes': change_lanes})
+    except:
+        return render(request, 'pages/norace.html')
 
 def is_race_director(user):
     return user.is_authenticated and user.groups.filter(name='Race Director').exists()
@@ -120,11 +122,14 @@ def is_race_director(user):
 def racecontrol(request):
     end_date = dt.date.today()
     start_date = end_date - dt.timedelta(days=1)
-    round = Round.objects.filter(
-        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
-    ).first()
-    lanes = round.changelane_set.all().order_by('lane')
-    return render(request, 'pages/racecontrol.html', {'round': round, "lanes": lanes})
+    try:
+        round = Round.objects.filter(
+            Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
+        ).first()
+        lanes = round.changelane_set.all().order_by('lane')
+        return render(request, 'pages/racecontrol.html', {'round': round, "lanes": lanes})
+    except:
+        return render(request, 'pages/norace.html')
 
 @login_required
 @user_passes_test(is_race_director)
