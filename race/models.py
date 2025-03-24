@@ -423,6 +423,14 @@ class round_team(models.Model):
         verbose_name = _("Participating Team")
         verbose_name_plural = _("Participating Teams")
 
+    @property
+    def name(self):
+        return self.team.team.name
+
+    @property
+    def number(self):
+        return self.team.team.number
+
     def __str__(self):
         return f"{self.team} in {self.round}"
 
