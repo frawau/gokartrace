@@ -429,7 +429,7 @@ class round_team(models.Model):
 
     @property
     def number(self):
-        return self.team.team.number
+        return self.team.number
 
     def __str__(self):
         return f"{self.team} in {self.round}"

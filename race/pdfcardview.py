@@ -10,11 +10,14 @@ from django.views import View
 from django.conf import settings
 from pathlib import Path
 from io import BytesIO
+from pathlib import Path
 
 import pycountry
 from reportlab.lib.utils import ImageReader  # For embedding images
+from .models import Round, Person, team_member
 
-from .models import Round, Person
+FLAGDIR = Path("/home/pi/gokartrace/static/flags")
+
 
 class GenerateCardPDF(View):
     def get(self, request, pk):
@@ -24,9 +27,10 @@ class GenerateCardPDF(View):
             Q(start__date__range=[start_date, end_date]) & Q(started__isnull=True)
         ).first()
         person = get_object_or_404(Person, pk=pk)
-        filename = f'card_{person.nickname}.pdf'
-        response = HttpResponse(content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        filename = f"card_{person.nickname}.pdf"
+        tm = team_member.objects.get(member=person, team__round=round)
+        response = HttpResponse(content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
         p = canvas.Canvas(response, pagesize=A5)
         width, height = A5
@@ -49,27 +53,29 @@ class GenerateCardPDF(View):
                 print("Warning: Pillow/PIL not found, cannot fit images.")
                 return 0, 0, None
 
-        def draw_namecard(canvas, person_obj):
+        def draw_namecard(canvas, teammember):
             card_width = 91 * mm
             card_height = 55 * mm
             canvas.rect(0, 0, card_width, card_height)
-
+            person = teammember.member
             canvas.setFont("Helvetica-Bold", 22)
-            nickname = person_obj.nickname if person_obj.nickname else "N/A"
+            nickname = person.nickname if person.nickname else "Silly"
             text_width = canvas.stringWidth(nickname, "Helvetica-Bold", 22)
             x_nickname = (card_width - text_width) / 2
             canvas.drawString(x_nickname, card_height - 20 * mm, nickname)
 
             canvas.setFont("Helvetica", 14)
-            full_name = f"{person_obj.firstname} {person_obj.surname}"
+            full_name = f"{person.firstname} {person.surname}"
             text_width = canvas.stringWidth(full_name, "Helvetica", 14)
             x_fullname = (card_width - text_width) / 2
             canvas.drawString(x_fullname, card_height - 28 * mm, full_name)
 
-            if person_obj.mugshot:
+            if person.mugshot:
                 try:
-                    img_data = person_obj.mugshot.read()
-                    img_width, img_height, img = contentFit(img_data, 33.5 * mm, 43.5 * mm)
+                    img_data = person.mugshot.read()
+                    img_width, img_height, img = contentFit(
+                        img_data, 33.5 * mm, 43.5 * mm
+                    )
                     if img:
                         x_img = 2 * mm
                         y_img = 3 * mm
@@ -77,42 +83,40 @@ class GenerateCardPDF(View):
                 except Exception as e:
                     print(f"Error loading mugshot: {e}")
 
-            qr_data = f"Name: {person_obj.nickname} ({full_name})\nID: {person_obj.pk}"
+            qr_data = f"Name: {person.nickname} ({full_name})\nID: {teammember.pk}"
             qr_code = QrCodeWidget(qr_data)
             qr_code.barHeight = 10 * mm
             qr_code.barWidth = 10 * mm
             qr_code.drawOn(canvas, card_width - 25 * mm, 5 * mm)
 
             canvas.setFont("Helvetica-Bold", 8)
-            id_text = f"{person_obj.pk:04d}"
+            id_text = f"{person.pk:04d}"
             text_width_id = canvas.stringWidth(id_text, "Helvetica-Bold", 8)
-            x_id = card_width - 25 * mm - (qr_code.barWidth * 5) - 2 * mm - text_width_id
+            x_id = (
+                card_width - 25 * mm - (qr_code.barWidth * 5) - 2 * mm - text_width_id
+            )
             canvas.drawString(x_id, 10 * mm, id_text)
 
             canvas.setFont("Helvetica", 10)
             nationality_name = "N/A"
             try:
-                country = pycountry.countries.get(alpha2=person_obj.country.code)
+                country = pycountry.countries.get(alpha2=person.country.code)
                 if country:
                     nationality_name = country.name
-                    # --- Try to get a flag image (this part depends on how you access flags) ---
-                    # pycountry doesn't directly provide flag images. You might need to:
-                    # 1. Have a local directory of flag images and map country codes.
-                    # 2. Use a service that provides flag images based on country codes.
-                    # 3. Generate a simple flag shape using ReportLab (more complex).
+                    flagf = FLAGDIR / "{country.alpha2.lower()}.png"
+                    if not flagf.exists():
+                        flagf = FLAGDIR / "un.png"
 
-                    # Example using a local flag image (assuming you have a folder 'flags' with images)
-                    # flag_filename = f"flags/{country.alpha2.lower()}.png"
-                    # try:
-                    #     with open(flag_filename, 'rb') as f:
-                    #         flag_image_data = f.read()
-                    #         flag_width = 15 * mm
-                    #         flag_height = 10 * mm
-                    #         img_width, img_height, flag_img = contentFit(flag_image_data, flag_width, flag_height)
-                    #         if flag_img:
-                    #             canvas.drawImage(flag_img, 5 * mm, 15 * mm, img_width, img_height)
-                    # except IOError:
-                    #     print(f"Flag image not found for {country.name}")
+                        flag_image_data = flagf.read_bytes()
+                        flag_width = 15 * mm
+                        flag_height = 10 * mm
+                        img_width, img_height, flag_img = contentFit(
+                            flag_image_data, flag_width, flag_height
+                        )
+                        if flag_img:
+                            canvas.drawImage(
+                                flag_img, 5 * mm, 15 * mm, img_width, img_height
+                            )
 
             except AttributeError:
                 pass  # Handle cases where country code might be invalid or not set
@@ -121,29 +125,30 @@ class GenerateCardPDF(View):
             x_nat = 20 * mm
             canvas.drawString(x_nat, 15 * mm, nationality_name)
 
-        def draw_doublenamecard(canvas, person_obj):
+        def draw_doublenamecard(canvas, teammember):
             card_width = 91 * mm
             card_height = 130 * mm
             canvas.rect(0, 0, card_width, card_height)  # Optional: Draw border
 
+            person = teammember.member
             # Nickname
             canvas.setFont("Helvetica-Bold", 22)
-            nickname = person_obj.nickname if person_obj.nickname else "N/A"
+            nickname = person.nickname if person.nickname else "N/A"
             text_width = canvas.stringWidth(nickname, "Helvetica-Bold", 22)
             x_nickname = (card_width - text_width) / 2
             canvas.drawString(x_nickname, card_height - 20 * mm, nickname)
 
             # Full Name
             canvas.setFont("Helvetica", 16)
-            full_name = f"{person_obj.firstname} {person_obj.surname}"
+            full_name = f"{person.firstname} {person.surname}"
             text_width = canvas.stringWidth(full_name, "Helvetica", 16)
             x_fullname = (card_width - text_width) / 2
             canvas.drawString(x_fullname, card_height - 30 * mm, full_name)
 
             # --- Mugshot ---
-            if person_obj.mugshot:
+            if person.mugshot:
                 try:
-                    img_data = person_obj.mugshot.read()
+                    img_data = person.mugshot.read()
                     img_width, img_height, img = contentFit(img_data, 35 * mm, 35 * mm)
                     if img:
                         x_img = (card_width - img_width) / 2
@@ -153,7 +158,7 @@ class GenerateCardPDF(View):
                     print(f"Error loading mugshot: {e}")
 
             # --- QR Code ---
-            qr_data = f"Name: {person_obj.nickname} ({full_name})\nID: {person_obj.pk}"
+            qr_data = f"Name: {person.nickname} ({full_name})\nID: {teammember.pk}"
             qr_code = QrCodeWidget(qr_data)
             qr_code.barHeight = 12 * mm
             qr_code.barWidth = 12 * mm
@@ -161,41 +166,46 @@ class GenerateCardPDF(View):
 
             # --- ID Number ---
             canvas.setFont("Helvetica-Bold", 8)
-            id_text = f"{person_obj.pk:04d}"
+            id_text = f"{person.pk:04d}"
             text_width_id = canvas.stringWidth(id_text, "Helvetica-Bold", 8)
-            x_id = card_width - 30 * mm - (qr_code.barWidth * 5) - 2 * mm - text_width_id
+            x_id = (
+                card_width - 30 * mm - (qr_code.barWidth * 5) - 2 * mm - text_width_id
+            )
             canvas.drawString(x_id, 15 * mm, id_text)
 
             # --- Nationality (Country) ---
             canvas.setFont("Helvetica", 12)
             nationality_name = "N/A"
             try:
-                country = pycountry.countries.get(alpha2=person_obj.country.code)
+                country = pycountry.countries.get(alpha2=person.country.code)
                 if country:
                     nationality_name = country.name
-                    # --- Try to get a flag image (same considerations as above) ---
-                    # flag_filename = f"flags/{country.alpha2.lower()}.png"
-                    # try:
-                    #     with open(flag_filename, 'rb') as f:
-                    #         flag_image_data = f.read()
-                    #         flag_width = 20 * mm
-                    #         flag_height = 12 * mm
-                    #         img_width, img_height, flag_img = contentFit(flag_image_data, flag_width, flag_height)
-                    #         if flag_img:
-                    #             canvas.drawImage(flag_img, 5 * mm, 35 * mm, img_width, img_height)
-                    # except IOError:
-                    #     print(f"Flag image not found for {country.name}")
+                    flagf = FLAGDIR / "{country.alpha2.lower()}.png"
+                    if not flagf.exists():
+                        flagf = FLAGDIR / "un.png"
+
+                        flag_image_data = flagf.read_bytes()
+                        flag_width = 15 * mm
+                        flag_height = 10 * mm
+                        img_width, img_height, flag_img = contentFit(
+                            flag_image_data, flag_width, flag_height
+                        )
+                        if flag_img:
+                            canvas.drawImage(
+                                flag_img, 5 * mm, 15 * mm, img_width, img_height
+                            )
+
             except AttributeError:
                 pass
 
             canvas.drawString(20 * mm, 40 * mm, nationality_name)
 
-        card_type = request.GET.get('card_type', 'name')
+        card_type = request.GET.get("card_type", "name")
 
-        if card_type == 'double':
-            draw_doublenamecard(p, person)
+        if card_type == "double":
+            draw_doublenamecard(p, tm)
         else:
-            draw_namecard(p, person)
+            draw_namecard(p, tm)
 
         p.save()
         return response

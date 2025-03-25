@@ -9,9 +9,18 @@ from rest_framework import generics
 from django.contrib.auth.decorators import login_required, user_passes_test
 from rest_framework.response import Response
 from django.db.models import Q
-from .models import Championship, Team, Person, Round, championship_team, round_team, ChangeLane
+from .models import (
+    Championship,
+    Team,
+    Person,
+    Round,
+    championship_team,
+    round_team,
+    ChangeLane,
+)
 from .serializers import ChangeLaneSerializer
 from rest_framework.decorators import api_view
+
 # Create your views here.
 
 
@@ -63,12 +72,13 @@ def get_team_card(request):
 
     context = {
         "round_team": round_team_instance,
-        'round': round,
-        'is_paused': is_paused,
-        'remaining_seconds': remaining,
+        "round": round,
+        "is_paused": is_paused,
+        "remaining_seconds": remaining,
     }
     html = render(request, "layout/teamcard.html", context).content.decode("utf-8")
     return JsonResponse({"html": html})
+
 
 def changelane_info(request, lane_number):
     end_date = dt.date.today()
@@ -76,8 +86,9 @@ def changelane_info(request, lane_number):
     round = Round.objects.filter(
         Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
     ).first()
-    change_lane = get_object_or_404(ChangeLane,round=round, lane=lane_number)
-    return render(request, 'layout/changelane_info.html', {'change_lane': change_lane})
+    change_lane = get_object_or_404(ChangeLane, round=round, lane=lane_number)
+    return render(request, "layout/changelane_info.html", {"change_lane": change_lane})
+
 
 def changelane_detail(request, lane_number):
     end_date = dt.date.today()
@@ -85,8 +96,10 @@ def changelane_detail(request, lane_number):
     round = Round.objects.filter(
         Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
     ).first()
-    change_lane = get_object_or_404(ChangeLane,round=round, lane=lane_number)
-    return render(request, 'layout/changelane_small_detail.html', {'change_lane': change_lane})
+    change_lane = get_object_or_404(ChangeLane, round=round, lane=lane_number)
+    return render(
+        request, "layout/changelane_small_detail.html", {"change_lane": change_lane}
+    )
 
 
 def update_change_lane(request, lane_number):
@@ -95,11 +108,11 @@ def update_change_lane(request, lane_number):
     round = Round.objects.filter(
         Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
     ).first()
-    change_lane = get_object_or_404(ChangeLane,round=round, lane=lane_number)
+    change_lane = get_object_or_404(ChangeLane, round=round, lane=lane_number)
     if change_lane.open == True:
-        change_lane.next_driver() #This is the function that updates the driver.
+        change_lane.next_driver()  # This is the function that updates the driver.
     change_lane.save()
-    return render(request, 'layout/changelane_info.html', {'change_lane': change_lane})
+    return render(request, "layout/changelane_info.html", {"change_lane": change_lane})
 
 
 def changedriver_info(request):
@@ -109,13 +122,19 @@ def changedriver_info(request):
         round = Round.objects.filter(
             Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
         ).first()
-        change_lanes = ChangeLane.objects.filter(round=round, open=True).order_by('lane')
-        return render(request, 'layout/changedriver_info.html', {'change_lanes': change_lanes})
+        change_lanes = ChangeLane.objects.filter(round=round, open=True).order_by(
+            "lane"
+        )
+        return render(
+            request, "layout/changedriver_info.html", {"change_lanes": change_lanes}
+        )
     except:
-        return render(request, 'pages/norace.html')
+        return render(request, "pages/norace.html")
+
 
 def is_race_director(user):
-    return user.is_authenticated and user.groups.filter(name='Race Director').exists()
+    return user.is_authenticated and user.groups.filter(name="Race Director").exists()
+
 
 @login_required
 @user_passes_test(is_race_director)
@@ -126,10 +145,13 @@ def racecontrol(request):
         round = Round.objects.filter(
             Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
         ).first()
-        lanes = round.changelane_set.all().order_by('lane')
-        return render(request, 'pages/racecontrol.html', {'round': round, "lanes": lanes})
+        lanes = round.changelane_set.all().order_by("lane")
+        return render(
+            request, "pages/racecontrol.html", {"round": round, "lanes": lanes}
+        )
     except:
-        return render(request, 'pages/norace.html')
+        return render(request, "pages/norace.html")
+
 
 @login_required
 @user_passes_test(is_race_director)
@@ -145,11 +167,13 @@ def preracecheck(request):
 
     return JsonResponse({"result": True})
 
+
 @login_required
 @user_passes_test(is_race_director)
 def race_start(request):
     # Your start race logic
     return HttpResponse("OK")
+
 
 @login_required
 @user_passes_test(is_race_director)
@@ -157,11 +181,13 @@ def falsestart(request):
     # Your false start logic
     return HttpResponse("OK")
 
+
 @login_required
 @user_passes_test(is_race_director)
 def racepaused(request):
     # Your pause logic
     return HttpResponse("OK")
+
 
 @login_required
 @user_passes_test(is_race_director)
@@ -169,15 +195,15 @@ def racerestart(request):
     # Your restart logic
     return HttpResponse("OK")
 
+
 @login_required
 @user_passes_test(is_race_director)
 def falserestart(request):
     # Your false restart logic
     return HttpResponse("OK")
 
+
 @login_required
 @user_passes_test(is_race_director)
 def endofrace(request):
     return HttpResponse("OK")
-
-
