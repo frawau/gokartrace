@@ -6,7 +6,8 @@ from reportlab.lib.units import mm
 from reportlab.lib.colors import black, darkred, white
 from reportlab.graphics.barcode.qr import QrCodeWidget
 from reportlab.graphics import renderPDF
-from reportlab.lib.utils import ImageReader  #
+from reportlab.lib.utils import ImageReader
+from django.db.models import Q#
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.views import View
