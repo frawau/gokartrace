@@ -1,9 +1,12 @@
+import datetime as dt
+import pycountry
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A5
 from reportlab.lib.units import mm
 from reportlab.lib.colors import black, darkred, white
 from reportlab.graphics.barcode.qr import QrCodeWidget
 from reportlab.graphics import renderPDF
+from reportlab.lib.utils import ImageReader  #
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.views import View
@@ -12,8 +15,6 @@ from pathlib import Path
 from io import BytesIO
 from pathlib import Path
 
-import pycountry
-from reportlab.lib.utils import ImageReader  # For embedding images
 from .models import Round, Person, team_member
 
 FLAGDIR = Path("/home/pi/gokartrace/static/flags")
