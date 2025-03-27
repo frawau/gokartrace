@@ -19,7 +19,7 @@ from pathlib import Path
 
 from .models import Round, Person, team_member
 
-FLAGDIR = Path("/home/pi/gokartrace/static/flags")
+FLAGDIR = Path("/home/llama/gokartrace/static/flags")
 
 
 class GenerateCardPDF(View):
