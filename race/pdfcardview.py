@@ -95,7 +95,7 @@ class GenerateCardPDF(View):
             # --- Mugshot (Right) ---
             mugshot_width = 35 * mm
             mugshot_height = 45 * mm
-            mugshot_x = card_w - mugshot_width - 10 * mm
+            mugshot_x = card_w - mugshot_width - 25 * mm
             mugshot_y = card_h - 30 * mm - mugshot_height
 
             if person.mugshot:
@@ -135,7 +135,7 @@ class GenerateCardPDF(View):
             flag_width = 30 * mm
             flag_height = 20 * mm
             flag_x = qr_x + qr_size + 25 * mm
-            flag_y = qr_y
+            flag_y = qr_y + qr_size
 
             nationality_name = "N/A"
             try:
