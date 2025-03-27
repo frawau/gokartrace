@@ -151,7 +151,8 @@ class GenerateCardPDF(View):
                         img_width, img_height, flag_img = contentFit(flag_image_data, flag_width, flag_height)
                         if flag_img:
                             canvas.drawImage(flag_img, flag_x, flag_y, img_width, img_height)
-            except AttributeError:
+            except AttributeError Exception as e:
+                print(f"Fils de p...: {e}")
                 pass
 
             # --- Weight ---
