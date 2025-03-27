@@ -97,7 +97,8 @@ class GenerateCardPDF(View):
             id_text = f"{person.pk:04d}"
             text_width_id = canvas.stringWidth(id_text, "Helvetica-Bold", 8)
             x_id = (
-                card_width - 25 * mm - (qr_code.barWidth * 5) - 2 * mm - text_width_id
+                # card_width - 25 * mm - (qr_code.barWidth * 5) - 2 * mm - text_width_id
+                card_width - 25 * mm - (qr_code.width * 5) - 2 * mm - text_width_id
             )
             canvas.drawString(x_id, 10 * mm, id_text)
 
@@ -174,7 +175,8 @@ class GenerateCardPDF(View):
             id_text = f"{person.pk:04d}"
             text_width_id = canvas.stringWidth(id_text, "Helvetica-Bold", 8)
             x_id = (
-                card_width - 30 * mm - (qr_code.barWidth * 5) - 2 * mm - text_width_id
+                # card_width - 30 * mm - (qr_code.barWidth * 5) - 2 * mm - text_width_id
+                card_width - 30 * mm - (qr_code.width * 5) - 2 * mm - text_width_id
             )
             canvas.drawString(x_id, 15 * mm, id_text)
 
