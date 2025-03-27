@@ -143,7 +143,7 @@ class GenerateCardPDF(View):
                     country = pycountry.countries.get(alpha_2=person.country.code)
                     if country:
                         nationality_name = country.name
-                        flagf = FLAGDIR / f"{country.alpha2.lower()}.png"
+                        flagf = FLAGDIR / f"{country.alpha_2.lower()}.png"
                         if not flagf.exists():
                             flagf = FLAGDIR / "un.png"
 
