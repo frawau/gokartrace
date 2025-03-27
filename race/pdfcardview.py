@@ -95,7 +95,7 @@ class GenerateCardPDF(View):
             # --- Mugshot (Right) ---
             mugshot_width = 35 * mm
             mugshot_height = 45 * mm
-            mugshot_x = card_w - mugshot_width - 25 * mm
+            mugshot_x = card_w - mugshot_width - 30 * mm
             mugshot_y = card_h - 30 * mm - mugshot_height
 
             if person.mugshot:
@@ -108,19 +108,19 @@ class GenerateCardPDF(View):
                     print(f"Error loading mugshot: {e}")
 
             # --- Nickname ---
-            canvas.setFont("Helvetica-Bold", 18)
+            canvas.setFont("Helvetica-Bold", 24)
             nickname = person.nickname if person.nickname else "N/A"
-            text_width_nick = canvas.stringWidth(nickname, "Helvetica-Bold", 18)
+            text_width_nick = canvas.stringWidth(nickname, "Helvetica-Bold", 24)
             x_nick = mugshot_x
-            y_nick = mugshot_y - 10 * mm  # Adjust for spacing
+            y_nick = mugshot_y -30 * mm  # Adjust for spacing
             canvas.drawString(x_nick, y_nick, nickname)
 
             # --- Full Name ---
-            canvas.setFont("Helvetica", 12)
+            canvas.setFont("Helvetica", 16)
             full_name = f"{person.firstname} {person.surname}"
-            text_width_full = canvas.stringWidth(full_name, "Helvetica", 12)
+            text_width_full = canvas.stringWidth(full_name, "Helvetica", 16)
             x_full = mugshot_x
-            y_full = y_nick - 5 - 12 # Adjust for spacing
+            y_full = y_nick - 5 - 42 # Adjust for spacing
             canvas.drawString(x_full, y_full, full_name)
 
             # --- QR Code ---
@@ -156,11 +156,11 @@ class GenerateCardPDF(View):
                 pass
 
             # --- Weight ---
-            canvas.setFont("Helvetica", 24)
+            canvas.setFont("Helvetica", 32)
             weight_text = f"{teammember.weight:.1f} kg"
-            text_width_weight = canvas.stringWidth(weight_text, "Helvetica", 24)
+            text_width_weight = canvas.stringWidth(weight_text, "Helvetica", 32)
             weight_x = flag_x
-            weight_y = flag_y - 5 - 10 # Adjust for spacing
+            weight_y = flag_y - 5 - 30 # Adjust for spacing
             canvas.drawString(weight_x, weight_y, weight_text)
 
             canvas.restoreState()
