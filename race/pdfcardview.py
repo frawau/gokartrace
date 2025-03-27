@@ -105,7 +105,7 @@ class GenerateCardPDF(View):
             canvas.setFont("Helvetica", 10)
             nationality_name = "N/A"
             try:
-                country = pycountry.countries.get(alpha2=person.country.code)
+                country = pycountry.countries.get(alpha_2=person.country.code)
                 if country:
                     nationality_name = country.name
                     flagf = FLAGDIR / "{country.alpha2.lower()}.png"
@@ -184,7 +184,7 @@ class GenerateCardPDF(View):
             canvas.setFont("Helvetica", 12)
             nationality_name = "N/A"
             try:
-                country = pycountry.countries.get(alpha2=person.country.code)
+                country = pycountry.countries.get(alpha_2=person.country.code)
                 if country:
                     nationality_name = country.name
                     flagf = FLAGDIR / "{country.alpha2.lower()}.png"
