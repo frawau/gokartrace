@@ -30,7 +30,6 @@ class GenerateCardPDF(View):
         filename = f"card_{person.nickname}.pdf"
         try:
             tm = team_member.objects.get(member=person, team__round=round_obj)
-            _ = tm.weight
         except team_member.DoesNotExist:
             return HttpResponse("Error: Person not found in a current team.", status=404)
 
@@ -157,7 +156,8 @@ class GenerateCardPDF(View):
 
             # --- Weight ---
             canvas.setFont("Helvetica", 10)
-            weight_text = f"{team_member.weight:.1f} kg"
+            weight = team_member.weight * 1
+            weight_text = f"{weight:.1f} kg"
             text_width_weight = canvas.stringWidth(weight_text, "Helvetica", 10)
             weight_x = flag_x
             weight_y = flag_y - 5 - 10 # Adjust for spacing
