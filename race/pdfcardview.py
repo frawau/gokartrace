@@ -40,16 +40,16 @@ class GenerateCardPDF(View):
         buffer = BytesIO()
         p = canvas.Canvas(buffer, pagesize=A4)  # Use A4 for 2 cards
 
-        card_width = 148 * mm
-        card_height = 210 * mm
-        margin = 10 * mm
+        margin = 5 * mm
+        card_width = A5[0] -  2 * margin
+        card_height = A5[1] -2 * margin
         cards_per_row = 2
-        card_spacing_x = 10 * mm
-        card_spacing_y = 10 * mm
+        card_spacing_x = 0 * mm
+        card_spacing_y = 0 * mm
 
         # Calculate the position for the first card on the A4 sheet
         x_offset = margin
-        y_offset = A5[1] - margin - card_height
+        y_offset = A4[1] - margin - card_height
 
         def contentFit(image_data, max_width, max_height):
             try:
