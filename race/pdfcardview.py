@@ -111,7 +111,7 @@ class GenerateCardPDF(View):
             canvas.setFont("Helvetica-Bold", 48)
             nickname = person.nickname if person.nickname else "N/A"
             text_width_nick = canvas.stringWidth(nickname, "Helvetica-Bold", 4)
-            x_nick = mugshot_x
+            x_nick = ( card_w - text_width_nick ) / 2
             y_nick = mugshot_y -30 * mm  # Adjust for spacing
             canvas.drawString(x_nick, y_nick, nickname)
 
@@ -119,7 +119,7 @@ class GenerateCardPDF(View):
             canvas.setFont("Helvetica", 24)
             full_name = f"{person.firstname} {person.surname}"
             text_width_full = canvas.stringWidth(full_name, "Helvetica", 24)
-            x_full = mugshot_x
+            x_full = ( card_w - text_width_full ) / 2
             y_full = y_nick - 5 - 42 # Adjust for spacing
             canvas.drawString(x_full, y_full, full_name)
 
@@ -127,8 +127,8 @@ class GenerateCardPDF(View):
             qr_data = f"Team: {team.name}\nMember: {person.nickname} ({full_name})\nID: {teammember.pk}"
             qr_size = card_h * 0.2
             qr_code = QRCodeImage(qr_data, qr_size)
-            qr_x = 10 * mm
-            qr_y = 10 * mm
+            qr_x = 15 * mm
+            qr_y = 15 * mm
             if teammember.driver:
                 qr_code.drawOn(canvas, qr_x, qr_y)
 
