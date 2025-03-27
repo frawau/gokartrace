@@ -23,13 +23,13 @@ class GenerateCardPDF(View):
     def get(self, request, pk):
         end_date = dt.date.today()
         start_date = end_date - dt.timedelta(days=3)
-        round_obj = Round.objects.filter(
+        cround = Round.objects.filter(
             Q(start__date__range=[start_date, end_date]) & Q(started__isnull=True)
         ).first()
         person = get_object_or_404(Person, pk=pk)
         filename = f"card_{person.nickname}.pdf"
         try:
-            tm = team_member.objects.get(member=person, team__round=round_obj)
+            tm = team_member.objects.get(member=person, team__round=cround)
         except team_member.DoesNotExist:
             return HttpResponse("Error: Person not found in a current team.", status=404)
 
@@ -156,8 +156,7 @@ class GenerateCardPDF(View):
 
             # --- Weight ---
             canvas.setFont("Helvetica", 10)
-            weight = team_member.weight * 1
-            weight_text = f"{weight:.1f} kg"
+            weight_text = f"{teammember.weight:.1f} kg"
             text_width_weight = canvas.stringWidth(weight_text, "Helvetica", 10)
             weight_x = flag_x
             weight_y = flag_y - 5 - 10 # Adjust for spacing
