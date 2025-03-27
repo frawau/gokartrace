@@ -108,17 +108,17 @@ class GenerateCardPDF(View):
                     print(f"Error loading mugshot: {e}")
 
             # --- Nickname ---
-            canvas.setFont("Helvetica-Bold", 24)
+            canvas.setFont("Helvetica-Bold", 48)
             nickname = person.nickname if person.nickname else "N/A"
-            text_width_nick = canvas.stringWidth(nickname, "Helvetica-Bold", 24)
+            text_width_nick = canvas.stringWidth(nickname, "Helvetica-Bold", 4)
             x_nick = mugshot_x
             y_nick = mugshot_y -30 * mm  # Adjust for spacing
             canvas.drawString(x_nick, y_nick, nickname)
 
             # --- Full Name ---
-            canvas.setFont("Helvetica", 16)
+            canvas.setFont("Helvetica", 24)
             full_name = f"{person.firstname} {person.surname}"
-            text_width_full = canvas.stringWidth(full_name, "Helvetica", 16)
+            text_width_full = canvas.stringWidth(full_name, "Helvetica", 24)
             x_full = mugshot_x
             y_full = y_nick - 5 - 42 # Adjust for spacing
             canvas.drawString(x_full, y_full, full_name)
@@ -129,7 +129,8 @@ class GenerateCardPDF(View):
             qr_code = QRCodeImage(qr_data, qr_size)
             qr_x = 10 * mm
             qr_y = 10 * mm
-            qr_code.drawOn(canvas, qr_x, qr_y)
+            if teammember.driver:
+                qr_code.drawOn(canvas, qr_x, qr_y)
 
             # --- Flag and Weight ---
             flag_width = 30 * mm
