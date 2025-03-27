@@ -156,11 +156,11 @@ class GenerateCardPDF(View):
                 pass
 
             # --- Weight ---
-            canvas.setFont("Helvetica", 32)
+            canvas.setFont("Helvetica-Bold", 48)
             weight_text = f"{teammember.weight:.1f} kg"
-            text_width_weight = canvas.stringWidth(weight_text, "Helvetica", 32)
+            text_width_weight = canvas.stringWidth(weight_text, "Helvetica-Bold", 48)
             weight_x = flag_x
-            weight_y = flag_y - 5 - 30 # Adjust for spacing
+            weight_y = flag_y - 5 - 60 # Adjust for spacing
             canvas.drawString(weight_x, weight_y, weight_text)
 
             canvas.restoreState()
