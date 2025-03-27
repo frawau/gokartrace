@@ -160,11 +160,11 @@ class GenerateCardPDF(View):
                     print(f"Error loading mugshot: {e}")
 
             # --- QR Code ---
-            qr_data = f"Name: {person.nickname} ({full_name})\nID: {teammember.pk}"
-            qr_code = QrCodeWidget(qr_data)
-            qr_code.barHeight = 12 * mm
-            qr_code.barWidth = 12 * mm
-            qr_code.drawOn(canvas, card_width - 30 * mm, 10 * mm)
+            # qr_data = f"Name: {person.nickname} ({full_name})\nID: {teammember.pk}"
+            # qr_code = QrCodeWidget(qr_data)
+            # qr_code.barHeight = 12 * mm
+            # qr_code.barWidth = 12 * mm
+            # qr_code.drawOn(canvas, card_width - 30 * mm, 10 * mm)
 
             # --- ID Number ---
             canvas.setFont("Helvetica-Bold", 8)
