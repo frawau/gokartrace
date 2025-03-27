@@ -75,7 +75,7 @@ class GenerateCardPDF(View):
             canvas.rect(0, 0, card_w, card_h)  # Optional: Draw border
 
             person = teammember.member
-            team = teammember.team.team
+            team = teammember.team
 
             # --- Team Name at the Top ---
             canvas.setFont("Helvetica-Bold", 18)
