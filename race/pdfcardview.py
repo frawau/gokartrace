@@ -107,7 +107,7 @@ class GenerateCardPDF(View):
                 except Exception as e:
                     print(f"Error loading mugshot: {e}")
 
-            # --- Nickname ---
+            # --- Nickname ---  Centered
             canvas.setFont("Helvetica-Bold", 48)
             nickname = person.nickname if person.nickname else "N/A"
             text_width_nick = canvas.stringWidth(nickname, "Helvetica-Bold", 4)
@@ -115,7 +115,7 @@ class GenerateCardPDF(View):
             y_nick = mugshot_y -30 * mm  # Adjust for spacing
             canvas.drawString(x_nick, y_nick, nickname)
 
-            # --- Full Name ---
+            # --- Full Name --- Centered
             canvas.setFont("Helvetica", 24)
             full_name = f"{person.firstname} {person.surname}"
             text_width_full = canvas.stringWidth(full_name, "Helvetica", 24)
