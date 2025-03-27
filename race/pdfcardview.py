@@ -85,18 +85,18 @@ class GenerateCardPDF(View):
             canvas.drawString(x_team, card_h - 10 * mm, team_name)
 
             # --- Team Number (Left) ---
-            canvas.setFont("Helvetica-Bold",60)
+            canvas.setFont("Helvetica-Bold",80)
             team_number_str = str(teammember.team.number) if teammember.team.number else "#"
             text_width_number = canvas.stringWidth(team_number_str, "Helvetica-Bold", 60)
-            x_number = 10 * mm
-            y_number = card_h * 0.7 - 20 * mm
+            x_number = 20 * mm
+            y_number = card_h * 0.7 - 10 * mm
             canvas.drawString(x_number, y_number, team_number_str)
 
             # --- Mugshot (Right) ---
             mugshot_width = 35 * mm
             mugshot_height = 45 * mm
             mugshot_x = card_w - mugshot_width - 10 * mm
-            mugshot_y = card_h - 10 * mm - mugshot_height
+            mugshot_y = card_h - 30 * mm - mugshot_height
 
             if person.mugshot:
                 try:
@@ -108,11 +108,11 @@ class GenerateCardPDF(View):
                     print(f"Error loading mugshot: {e}")
 
             # --- Nickname ---
-            canvas.setFont("Helvetica-Bold", 16)
+            canvas.setFont("Helvetica-Bold", 18)
             nickname = person.nickname if person.nickname else "N/A"
-            text_width_nick = canvas.stringWidth(nickname, "Helvetica-Bold", 16)
+            text_width_nick = canvas.stringWidth(nickname, "Helvetica-Bold", 18)
             x_nick = mugshot_x
-            y_nick = mugshot_y - 10 * mm - 5 # Adjust for spacing
+            y_nick = mugshot_y - 10 * mm  # Adjust for spacing
             canvas.drawString(x_nick, y_nick, nickname)
 
             # --- Full Name ---
@@ -134,8 +134,8 @@ class GenerateCardPDF(View):
             # --- Flag and Weight ---
             flag_width = 30 * mm
             flag_height = 20 * mm
-            flag_x = qr_x + qr_size + 10 * mm
-            flag_y = qr_y + (qr_size - flag_height) / 2
+            flag_x = qr_x + qr_size + 25 * mm
+            flag_y = qr_y
 
             nationality_name = "N/A"
             try:
