@@ -132,8 +132,8 @@ class GenerateCardPDF(View):
             qr_code.drawOn(canvas, qr_x, qr_y)
 
             # --- Flag and Weight ---
-            flag_width = 15 * mm
-            flag_height = 10 * mm
+            flag_width = 30 * mm
+            flag_height = 20 * mm
             flag_x = qr_x + qr_size + 5 * mm
             flag_y = qr_y + (qr_size - flag_height) / 2
 
@@ -155,9 +155,9 @@ class GenerateCardPDF(View):
                 pass
 
             # --- Weight ---
-            canvas.setFont("Helvetica", 10)
+            canvas.setFont("Helvetica", 24)
             weight_text = f"{teammember.weight:.1f} kg"
-            text_width_weight = canvas.stringWidth(weight_text, "Helvetica", 10)
+            text_width_weight = canvas.stringWidth(weight_text, "Helvetica", 24)
             weight_x = flag_x
             weight_y = flag_y - 5 - 10 # Adjust for spacing
             canvas.drawString(weight_x, weight_y, weight_text)
