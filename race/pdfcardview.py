@@ -85,16 +85,16 @@ class GenerateCardPDF(View):
             canvas.drawString(x_team, card_h - 10 * mm, team_name)
 
             # --- Team Number (Left) ---
-            canvas.setFont("Helvetica-Bold", 40)
+            canvas.setFont("Helvetica-Bold",60)
             team_number_str = str(teammember.team.number) if teammember.team.number else "#"
-            text_width_number = canvas.stringWidth(team_number_str, "Helvetica-Bold", 40)
+            text_width_number = canvas.stringWidth(team_number_str, "Helvetica-Bold", 60)
             x_number = 10 * mm
             y_number = card_h * 0.7 - 20 * mm
             canvas.drawString(x_number, y_number, team_number_str)
 
             # --- Mugshot (Right) ---
-            mugshot_width = card_w * 0.3
-            mugshot_height = card_h * 0.3
+            mugshot_width = 35 * mm
+            mugshot_height = 45 * mm
             mugshot_x = card_w - mugshot_width - 10 * mm
             mugshot_y = card_h - 10 * mm - mugshot_height
 
