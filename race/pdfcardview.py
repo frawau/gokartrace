@@ -56,81 +56,8 @@ class GenerateCardPDF(View):
                 print("Warning: Pillow/PIL not found, cannot fit images.")
                 return 0, 0, None
 
-        def draw_namecard(canvas, teammember):
-            card_width = 91 * mm
-            card_height = 55 * mm
-            canvas.rect(0, 0, card_width, card_height)
-            person = teammember.member
-            canvas.setFont("Helvetica-Bold", 22)
-            nickname = person.nickname if person.nickname else "Silly"
-            text_width = canvas.stringWidth(nickname, "Helvetica-Bold", 22)
-            x_nickname = (card_width - text_width) / 2
-            canvas.drawString(x_nickname, card_height - 20 * mm, nickname)
 
-            canvas.setFont("Helvetica", 14)
-            full_name = f"{person.firstname} {person.surname}"
-            text_width = canvas.stringWidth(full_name, "Helvetica", 14)
-            x_fullname = (card_width - text_width) / 2
-            canvas.drawString(x_fullname, card_height - 28 * mm, full_name)
-
-            if person.mugshot:
-                try:
-                    img_data = person.mugshot.read()
-                    img_width, img_height, img = contentFit(
-                        img_data, 33.5 * mm, 43.5 * mm
-                    )
-                    if img:
-                        x_img = 2 * mm
-                        y_img = 3 * mm
-                        canvas.drawImage(img, x_img, y_img, img_width, img_height)
-                except Exception as e:
-                    print(f"Error loading mugshot: {e}")
-
-            qr_data = f"Name: {person.nickname} ({full_name})\nID: {teammember.pk}"
-            qr_code = QRCodeImage(qr_data, 10 * mm)
-            # qr_code = QrCodeWidget(qr_data)
-            # qr_code.barHeight = 10 * mm
-            # qr_code.barWidth = 10 * mm
-            qr_code.drawOn(canvas, card_width - 25 * mm, 5 * mm)
-
-            canvas.setFont("Helvetica-Bold", 8)
-            id_text = f"{person.pk:04d}"
-            text_width_id = canvas.stringWidth(id_text, "Helvetica-Bold", 8)
-            x_id = (
-                # card_width - 25 * mm - (qr_code.barWidth * 5) - 2 * mm - text_width_id
-                card_width - 25 * mm - (qr_code.width * 5) - 2 * mm - text_width_id
-            )
-            canvas.drawString(x_id, 10 * mm, id_text)
-
-            canvas.setFont("Helvetica", 10)
-            nationality_name = "N/A"
-            try:
-                country = pycountry.countries.get(alpha_2=person.country.code)
-                if country:
-                    nationality_name = country.name
-                    flagf = FLAGDIR / "{country.alpha2.lower()}.png"
-                    if not flagf.exists():
-                        flagf = FLAGDIR / "un.png"
-
-                        flag_image_data = flagf.read_bytes()
-                        flag_width = 15 * mm
-                        flag_height = 10 * mm
-                        img_width, img_height, flag_img = contentFit(
-                            flag_image_data, flag_width, flag_height
-                        )
-                        if flag_img:
-                            canvas.drawImage(
-                                flag_img, 5 * mm, 15 * mm, img_width, img_height
-                            )
-
-            except AttributeError:
-                pass  # Handle cases where country code might be invalid or not set
-
-            text_width_nat = canvas.stringWidth(nationality_name, "Helvetica", 10)
-            x_nat = 20 * mm
-            canvas.drawString(x_nat, 15 * mm, nationality_name)
-
-        def draw_doublenamecard(canvas, teammember):
+        def draw_drivercard(canvas, teammember):
             card_width = 91 * mm
             card_height = 130 * mm
             canvas.rect(0, 0, card_width, card_height)  # Optional: Draw border
@@ -207,12 +134,7 @@ class GenerateCardPDF(View):
 
             canvas.drawString(20 * mm, 40 * mm, nationality_name)
 
-        card_type = request.GET.get("card_type", "name")
-
-        if card_type == "double":
-            draw_doublenamecard(p, tm)
-        else:
-            draw_namecard(p, tm)
+        draw_drivercard(p, tm)
 
         p.save()
         return response
