@@ -136,8 +136,6 @@ class GenerateCardPDF(View):
             # --- Flag and Weight ---
             flag_width = 30 * mm
             flag_height = 20 * mm
-            flag_x = qr_x + qr_size + 25 * mm
-            flag_y = qr_y + qr_size
 
             nationality_name = "N/A"
             try:
@@ -151,6 +149,8 @@ class GenerateCardPDF(View):
 
                         flag_image_data = flagf.read_bytes()
                         img_width, img_height, flag_img = contentFit(flag_image_data, flag_width, flag_height)
+                        flag_x = ((card_width + 2 * margin) * 0.25 - img_width) / 2
+                        y_number = card_h * 0.7 + 10 * mm
                         if flag_img:
                             canvas.drawImage(flag_img, flag_x, flag_y, img_width, img_height)
             except AttributeError as e:
@@ -161,8 +161,8 @@ class GenerateCardPDF(View):
             canvas.setFont("Helvetica-Bold", 48)
             weight_text = f"{teammember.weight:.1f} kg"
             text_width_weight = canvas.stringWidth(weight_text, "Helvetica-Bold", 48)
-            weight_x = flag_x
-            weight_y = flag_y - 5 - 60 # Adjust for spacing
+            weight_x = qr_x + qr_size + 25 * mm
+            weight_y = qr_y + qr_size - 5 - 60 # Adjust for spacing
             canvas.drawString(weight_x, weight_y, weight_text)
 
             canvas.restoreState()
