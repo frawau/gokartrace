@@ -69,6 +69,15 @@ class GenerateCardPDF(View):
                 print("Warning: Pillow/PIL not found, cannot fit images.")
                 return 0, 0, None
 
+        def textFit(text, canvas, max_width, fontsize, font):
+            while fontsize > 0:
+                # canvas.setFont(font, fontsize)
+                text_width = canvas.stringWidth(team_name, "Helvetica-Bold", 18)
+                if text_width <= max_width:
+                    return fontsize
+                fontsize -= 1
+
+
         def draw_drivercard(canvas, teammember, x, y, card_w, card_h):
             canvas.saveState()
             canvas.rotate(90)
@@ -111,11 +120,11 @@ class GenerateCardPDF(View):
                     print(f"Error loading mugshot: {e}")
 
             # --- Nickname ---  Centered
-            canvas.setFont("Helvetica-Bold", 48)
-            nickname = person.nickname if person.nickname else "N/A"
-            text_width_nick = canvas.stringWidth(nickname, "Helvetica-Bold", 48)
             x_nick = mugshot_x - 20 * mm
             y_nick = mugshot_y -30 * mm  # Adjust for spacing
+            nickname = person.nickname if person.nickname else "N/A"
+            sz = textFit(nickname,canvas,card_w--x_nick,48,"Helvetica-Bold")
+            canvas.setFont("Helvetica-Bold", sz)
             canvas.drawString(x_nick, y_nick, nickname)
 
             # --- Full Name --- Centered
@@ -183,8 +192,8 @@ class GenerateCardPDF(View):
         draw_drivercard(p, tm, x_offset, y_offset, card_width, card_height)
 
         # Draw the second card (if it fits)
-        second_card_x = margin
-        second_card_y = card_width
+        second_card_x = card_width
+        second_card_y = margin
         if second_card_y +  card_width <= A4[1]:
             draw_drivercard(p, tm, second_card_x, second_card_y, card_width, card_height)
 
