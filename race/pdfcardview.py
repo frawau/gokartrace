@@ -171,7 +171,7 @@ class GenerateCardPDF(View):
                 manager_text = "Manager"
                 text_width_manager = canvas.stringWidth(manager_text, "Helvetica-Bold", 32)
                 manager_x = qr_x + qr_size + 25 * mm
-                manager_y = qr_y + qr_size - 5 - 60 -20 # Adjust for spacing
+                manager_y = qr_y + qr_size - 5 - 60 - 40 # Adjust for spacing
                 canvas.drawString(manager_x, manager_y, manager_text)
 
 
