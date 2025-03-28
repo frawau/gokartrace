@@ -88,7 +88,8 @@ class GenerateCardPDF(View):
             canvas.setFont("Helvetica-Bold",80)
             team_number_str = str(teammember.team.number) if teammember.team.number else "#"
             text_width_number = canvas.stringWidth(team_number_str, "Helvetica-Bold", 60)
-            x_number = 20 * mm
+            # x_number = 20 * mm
+            x_number = ((card_width + 2 * margin) * 0.25 - text_width_number) / 2
             y_number = card_h * 0.7 - 10 * mm
             canvas.drawString(x_number, y_number, team_number_str)
 
