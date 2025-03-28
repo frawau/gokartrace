@@ -112,7 +112,7 @@ class GenerateCardPDF(View):
             canvas.setFont("Helvetica-Bold", 48)
             nickname = person.nickname if person.nickname else "N/A"
             text_width_nick = canvas.stringWidth(nickname, "Helvetica-Bold", 48)
-            x_nick = ( card_w - text_width_nick ) / 2
+            x_nick = mugshot_x - 20 * mm
             y_nick = mugshot_y -30 * mm  # Adjust for spacing
             canvas.drawString(x_nick, y_nick, nickname)
 
@@ -120,7 +120,7 @@ class GenerateCardPDF(View):
             canvas.setFont("Helvetica", 24)
             full_name = f"{person.firstname} {person.surname}"
             text_width_full = canvas.stringWidth(full_name, "Helvetica", 24)
-            x_full = ( card_w - text_width_full ) / 2
+            x_full =  mugshot_x - 20 * mm
             y_full = y_nick - 5 - 42 # Adjust for spacing
             canvas.drawString(x_full, y_full, full_name)
 
@@ -171,7 +171,7 @@ class GenerateCardPDF(View):
                 manager_text = "Manager"
                 text_width_manager = canvas.stringWidth(manager_text, "Helvetica-Bold", 32)
                 manager_x = qr_x + qr_size + 25 * mm
-                manager_y = qr_y + qr_size - 40 # Adjust for spacing
+                manager_y = qr_y + qr_size - 5 - 60 -20 # Adjust for spacing
                 canvas.drawString(manager_x, manager_y, manager_text)
 
 
