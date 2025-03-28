@@ -89,7 +89,7 @@ class GenerateCardPDF(View):
             team_number_str = str(teammember.team.number) if teammember.team.number else "#"
             text_width_number = canvas.stringWidth(team_number_str, "Helvetica-Bold", 100)
             # x_number = 20 * mm
-            x_number = ((card_width + 2 * margin) * 0.25 - text_width_number) / 2
+            x_number = ((card_width + 2 * margin) * 0.32 - text_width_number) / 2
             y_number = card_h * 0.7 - 10 * mm
             canvas.drawString(x_number, y_number, team_number_str)
 
@@ -149,7 +149,7 @@ class GenerateCardPDF(View):
 
                         flag_image_data = flagf.read_bytes()
                         img_width, img_height, flag_img = contentFit(flag_image_data, flag_width, flag_height)
-                        flag_x = ((card_width + 2 * margin) * 0.25 - img_width) / 2
+                        flag_x = ((card_width + 2 * margin) * 0.32 - img_width) / 2
                         flag_y = card_h * 0.4
                         if flag_img:
                             canvas.drawImage(flag_img, flag_x, flag_y, img_width, img_height)
@@ -171,7 +171,7 @@ class GenerateCardPDF(View):
                 manager_text = "Manager"
                 text_width_manager = canvas.stringWidth(manager_text, "Helvetica-Bold", 32)
                 manager_x = qr_x + qr_size + 25 * mm
-                manager_y = qr_y + qr_size - 5 - 60 - 40 # Adjust for spacing
+                manager_y = qr_y + qr_size - 5 - 60 - 60 # Adjust for spacing
                 canvas.drawString(manager_x, manager_y, manager_text)
 
 
