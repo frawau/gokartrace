@@ -34,7 +34,7 @@ class GenerateCardPDF(View):
             Q(start__date__range=[start_date, end_date]) & Q(started__isnull=True)
         ).first()
 
-        person1 = get_object_or_404(Person, pk=pk1)
+        person = get_object_or_404(Person, pk=pk1)
         if pk2:
             person2 = get_object_or_404(Person, pk=pk2)
         filename = f"card_{person.nickname}.pdf"
