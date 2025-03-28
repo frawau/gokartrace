@@ -41,8 +41,8 @@ class GenerateCardPDF(View):
         p = canvas.Canvas(buffer, pagesize=A4)  # Use A4 for 2 cards
 
         margin = 5 * mm
-        card_width = A5[0] -  2 * margin
-        card_height = A5[1] - 2 * margin
+        card_width = A5[0]
+        card_height = A5[1]
         cards_per_row = 2
         card_spacing_x = 0 * mm
         card_spacing_y = 0 * mm
@@ -71,9 +71,7 @@ class GenerateCardPDF(View):
 
         def draw_drivercard(canvas, teammember, x, y, card_w, card_h):
             canvas.saveState()
-            canvas.translate(x + card_w, y) # move the origin to the correct top left corner after rotation
-            canvas.rotate(90) # rotate the card 90 degrees.
-            canvas.translate(0, -card_w) # move the origin back to the bottom left of the rotated card
+            canvas.translate(x, y)
             #canvas.rect(0, 0, card_w, card_h)  # Optional: Draw border
 
             person = teammember.member
