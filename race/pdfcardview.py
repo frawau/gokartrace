@@ -150,7 +150,7 @@ class GenerateCardPDF(View):
                         flag_image_data = flagf.read_bytes()
                         img_width, img_height, flag_img = contentFit(flag_image_data, flag_width, flag_height)
                         flag_x = ((card_width + 2 * margin) * 0.25 - img_width) / 2
-                        flag_y = card_h * 0.7 + 10 * mm
+                        flag_y = card_h * 0.5
                         if flag_img:
                             canvas.drawImage(flag_img, flag_x, flag_y, img_width, img_height)
             except AttributeError as e:
