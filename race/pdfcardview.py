@@ -72,7 +72,7 @@ class GenerateCardPDF(View):
         def draw_drivercard(canvas, teammember, x, y, card_w, card_h):
             canvas.saveState()
             canvas.translate(x, y)
-            canvas.rect(0, 0, card_w, card_h)  # Optional: Draw border
+            #canvas.rect(0, 0, card_w, card_h)  # Optional: Draw border
 
             person = teammember.member
             team = teammember.team
