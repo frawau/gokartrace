@@ -111,7 +111,7 @@ class GenerateCardPDF(View):
             # --- Nickname ---  Centered
             canvas.setFont("Helvetica-Bold", 48)
             nickname = person.nickname if person.nickname else "N/A"
-            text_width_nick = canvas.stringWidth(nickname, "Helvetica-Bold", 4)
+            text_width_nick = canvas.stringWidth(nickname, "Helvetica-Bold", 48)
             x_nick = ( card_w - text_width_nick ) / 2
             y_nick = mugshot_y -30 * mm  # Adjust for spacing
             canvas.drawString(x_nick, y_nick, nickname)
@@ -150,7 +150,7 @@ class GenerateCardPDF(View):
                         flag_image_data = flagf.read_bytes()
                         img_width, img_height, flag_img = contentFit(flag_image_data, flag_width, flag_height)
                         flag_x = ((card_width + 2 * margin) * 0.25 - img_width) / 2
-                        flag_y = card_h * 0.5
+                        flag_y = card_h * 0.4
                         if flag_img:
                             canvas.drawImage(flag_img, flag_x, flag_y, img_width, img_height)
             except AttributeError as e:
