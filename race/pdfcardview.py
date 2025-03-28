@@ -158,20 +158,21 @@ class GenerateCardPDF(View):
                 pass
 
             # --- Weight ---
-            canvas.setFont("Helvetica-Bold", 48)
-            weight_text = f"{teammember.weight:.1f} kg"
-            text_width_weight = canvas.stringWidth(weight_text, "Helvetica-Bold", 48)
-            weight_x = qr_x + qr_size + 25 * mm
-            weight_y = qr_y + qr_size - 40 # Adjust for spacing
-            canvas.drawString(weight_x, weight_y, weight_text)
+            if teammember.driver:
+                canvas.setFont("Helvetica-Bold", 48)
+                weight_text = f"{teammember.weight:.1f} kg"
+                text_width_weight = canvas.stringWidth(weight_text, "Helvetica-Bold", 48)
+                weight_x = qr_x + qr_size + 25 * mm
+                weight_y = qr_y + qr_size - 5 - 60 # Adjust for spacing
+                canvas.drawString(weight_x, weight_y, weight_text)
 
-            if teammemberis_manager:
+            if teammember.manager:
                 canvas.setFont("Helvetica-Bold", 32)
-            manager_text = "Manager"
-            text_width_manager = canvas.stringWidth(manager_text, "Helvetica-Bold", 32)
-            manager_x = qr_x + qr_size + 25 * mm
-            manager_y = qr_y + qr_size - 5 - 60 # Adjust for spacing
-            canvas.drawString(manager_x, manager_y, manager_text)
+                manager_text = "Manager"
+                text_width_manager = canvas.stringWidth(manager_text, "Helvetica-Bold", 32)
+                manager_x = qr_x + qr_size + 25 * mm
+                manager_y = qr_y + qr_size - 40 # Adjust for spacing
+                canvas.drawString(manager_x, manager_y, manager_text)
 
 
             canvas.restoreState()
