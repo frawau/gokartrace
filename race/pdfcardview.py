@@ -97,7 +97,7 @@ class GenerateCardPDF(View):
             canvas.rotate(90)
             canvas.translate(0, -card_height)
             canvas.translate(x,y)
-            canvas.rect(0, 0, card_w, card_h)  # Optional: Draw border
+            # canvas.rect(0, 0, card_w, card_h)  # Optional: Draw border
 
             person = teammember.member
             team = teammember.team
