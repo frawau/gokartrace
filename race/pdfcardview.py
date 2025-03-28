@@ -72,11 +72,11 @@ class GenerateCardPDF(View):
         def textFit(text, canvas, max_width, fontsize, font):
             while fontsize > 0:
                 # canvas.setFont(font, fontsize)
-                text_width = canvas.stringWidth(text, "Helvetica-Bold", 18)
+                text_width = canvas.stringWidth(text, "Helvetica-Bold", fontsize)
                 if text_width <= max_width:
                     return fontsize
                 fontsize -= 1
-
+            return fontsize
 
         def draw_drivercard(canvas, teammember, x, y, card_w, card_h):
             canvas.saveState()
