@@ -193,6 +193,7 @@ class GenerateCardPDF(View):
 
             if teammember.manager:
                 canvas.setFont("Helvetica-Bold", 32)
+                canvas.setFillColor(darkred)
                 manager_text = "Manager"
                 text_width_manager = canvas.stringWidth(manager_text, "Helvetica-Bold", 32)
                 manager_x = qr_x + qr_size + 25 * mm
