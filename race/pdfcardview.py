@@ -73,8 +73,8 @@ class GenerateCardPDF(View):
             canvas.saveState()
             canvas.rotate(90)
             canvas.translate(0, -card_height)
-            canvas.translate(x, -y)
-            #canvas.rect(0, 0, card_w, card_h)  # Optional: Draw border
+            canvas.translate(x,y)
+            canvas.rect(0, 0, card_w, card_h)  # Optional: Draw border
 
             person = teammember.member
             team = teammember.team
@@ -184,7 +184,7 @@ class GenerateCardPDF(View):
 
         # Draw the second card (if it fits)
         second_card_x = margin
-        second_card_y = 2 * margin + card_width
+        second_card_y = card_width
         if second_card_y +  card_width <= A4[1]:
             draw_drivercard(p, tm, second_card_x, second_card_y, card_width, card_height)
 
