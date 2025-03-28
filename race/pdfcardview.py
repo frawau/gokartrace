@@ -40,7 +40,7 @@ class GenerateCardPDF(View):
         buffer = BytesIO()
         p = canvas.Canvas(buffer, pagesize=A4)  # Use A4 for 2 cards
 
-        margin = 0 * mm
+        margin = 3 * mm
         card_width = A5[0] - 2 * margin
         card_height = A5[1] - 2 * margin
         cards_per_row = 2
@@ -189,7 +189,7 @@ class GenerateCardPDF(View):
             canvas.restoreState()
 
         # Draw the first card
-        draw_drivercard(p, tm, x_offset, y_offset, card_width, card_height)
+        draw_drivercard(p, tm, x_offset, y_offset, card_width - 2*margin, card_height-2*margin)
 
         # Draw the second card (if it fits)
         second_card_x = card_width + 3 * margin
