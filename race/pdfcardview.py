@@ -21,15 +21,29 @@ FLAGDIR = Path("/home/llama/gokartrace/static/flags")
 
 class GenerateCardPDF(View):
     def get(self, request, pk):
+
+        if pk >= 10000:
+            pk1 = pk // 10000
+            pk2 = pk % 10000
+        else:
+            pk1 = pk
+            pk2 = None
         end_date = dt.date.today()
         start_date = end_date - dt.timedelta(days=3)
         cround = Round.objects.filter(
             Q(start__date__range=[start_date, end_date]) & Q(started__isnull=True)
         ).first()
-        person = get_object_or_404(Person, pk=pk)
+
+        person1 = get_object_or_404(Person, pk=pk1)
+        if pk2:
+            person2 = get_object_or_404(Person, pk=pk2)
         filename = f"card_{person.nickname}.pdf"
         try:
             tm = team_member.objects.get(member=person, team__round=cround)
+            if pk2:
+                tm2 = team_member.objects.get(member=person2, team__round=cround)
+            else:
+                tm2 = None
         except team_member.DoesNotExist:
             return HttpResponse("Error: Person not found in a current team.", status=404)
 
@@ -195,7 +209,8 @@ class GenerateCardPDF(View):
         second_card_x = card_width + 3 * margin
         second_card_y = margin
         if second_card_y +  card_width <= A4[1]:
-            draw_drivercard(p, tm, second_card_x, second_card_y, card_width - 2*margin, card_height - 2*margin)
+            if tm2:
+                draw_drivercard(p, tm2, second_card_x, second_card_y, card_width - 2*margin, card_height - 2*margin)
 
         p.save()
 
