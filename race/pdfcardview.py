@@ -49,7 +49,7 @@ class GenerateCardPDF(View):
 
         # Calculate the position for the first card on the A4 sheet
         x_offset = margin
-        y_offset = A4[1] - margin - card_height
+        y_offset = margin
 
         def contentFit(image_data, max_width, max_height):
             try:
