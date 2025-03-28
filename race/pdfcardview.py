@@ -195,7 +195,7 @@ class GenerateCardPDF(View):
         second_card_x = card_width + 3 * margin
         second_card_y = margin
         if second_card_y +  card_width <= A4[1]:
-            draw_drivercard(p, tm, second_card_x, second_card_y, card_width, card_height)
+            draw_drivercard(p, tm, second_card_x, second_card_y, card_width - 2*margin, card_height - 2*margin)
 
         p.save()
 
