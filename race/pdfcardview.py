@@ -18,6 +18,7 @@ from pathlib import Path
 from .models import Round, Person, team_member
 
 FLAGDIR = Path("/home/llama/gokartrace/static/flags")
+LOGOIMG = Path("/home/llama/gokartrace/static/logos/gokartrace-logo.png")
 
 class GenerateCardPDF(View):
     def get(self, request, pk):
@@ -109,6 +110,19 @@ class GenerateCardPDF(View):
             x_team = (card_w - text_width_team) / 2
             canvas.drawString(x_team, card_h - 10 * mm, team_name)
 
+            # --- Logo  ---
+            logo_width = 35 * mm
+            logo_height = 20 * mm
+            logo_x = logo_width + 10 * mm
+            logo_y = card_h - logo_height - 7*mm
+
+            try:
+                img_data = person.mugshot.read()
+                img_width, img_height, img = contentFit(img_data, logo_width, logo_height)
+                if img:
+                    canvas.drawImage(img,logo_x, logo_y, img_width, img_height)
+            except Exception as e:
+                print(f"Error loading mugshot: {e}")
             # --- Team Number (Left) ---
             canvas.setFont("Helvetica-Bold",100)
             team_number_str = str(teammember.team.number) if teammember.team.number else "#"
