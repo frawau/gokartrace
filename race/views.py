@@ -40,39 +40,39 @@ def index(request):
     ]
     end_date = dt.date.today()
     start_date = end_date - dt.timedelta(days=1)
-    round = Round.objects.filter(
+    cround = Round.objects.filter(
         Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
     ).first()
     return render(
-        request, "pages/index.html", {"round": round, "buttons": button_matrix}
+        request, "pages/index.html", {"round": cround, "buttons": button_matrix}
     )
 
 
 def team_carousel(request):
     end_date = dt.date.today()
     start_date = end_date - dt.timedelta(days=1)
-    round = Round.objects.filter(
+    cround = Round.objects.filter(
         Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
     ).first()
 
-    return render(request, "pages/teamcarousel.html", {"round": round})
+    return render(request, "pages/teamcarousel.html", {"round": cround})
 
 
 def get_team_card(request):
     team_id = request.GET.get("team_id")
     round_team_instance = get_object_or_404(round_team, pk=team_id)
-    round = round_team_instance.round
-    is_paused = round.round_pause_set.filter(end__isnull=True).exists()
-    if round.started:
-        elapsed = round.time_elapsed.total_seconds()
-        remaining = int(max(0, round.duration.total_seconds() - elapsed))
+    cround = round_team_instance.round
+    is_paused = cround.round_pause_set.filter(end__isnull=True).exists()
+    if cround.started:
+        elapsed = cround.time_elapsed.total_seconds()
+        remaining = int(max(0, cround.duration.total_seconds() - elapsed))
     else:
-        remaining = int(round.duration.total_seconds())
+        remaining = int(cround.duration.total_seconds())
         is_paused = True
 
     context = {
         "round_team": round_team_instance,
-        "round": round,
+        "round": cround,
         "is_paused": is_paused,
         "remaining_seconds": remaining,
     }
@@ -83,20 +83,20 @@ def get_team_card(request):
 def changelane_info(request, lane_number):
     end_date = dt.date.today()
     start_date = end_date - dt.timedelta(days=1)
-    round = Round.objects.filter(
+    cround = Round.objects.filter(
         Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
     ).first()
-    change_lane = get_object_or_404(ChangeLane, round=round, lane=lane_number)
+    change_lane = get_object_or_404(ChangeLane, round=cround, lane=lane_number)
     return render(request, "layout/changelane_info.html", {"change_lane": change_lane})
 
 
 def changelane_detail(request, lane_number):
     end_date = dt.date.today()
     start_date = end_date - dt.timedelta(days=1)
-    round = Round.objects.filter(
+    cround = Round.objects.filter(
         Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
     ).first()
-    change_lane = get_object_or_404(ChangeLane, round=round, lane=lane_number)
+    change_lane = get_object_or_404(ChangeLane, round=cround, lane=lane_number)
     return render(
         request, "layout/changelane_small_detail.html", {"change_lane": change_lane}
     )
@@ -105,10 +105,10 @@ def changelane_detail(request, lane_number):
 def update_change_lane(request, lane_number):
     end_date = dt.date.today()
     start_date = end_date - dt.timedelta(days=1)
-    round = Round.objects.filter(
+    cround = Round.objects.filter(
         Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
     ).first()
-    change_lane = get_object_or_404(ChangeLane, round=round, lane=lane_number)
+    change_lane = get_object_or_404(ChangeLane, round=cround, lane=lane_number)
     if change_lane.open == True:
         change_lane.next_driver()  # This is the function that updates the driver.
     change_lane.save()
@@ -119,10 +119,10 @@ def changedriver_info(request):
     end_date = dt.date.today()
     start_date = end_date - dt.timedelta(days=1)
     try:
-        round = Round.objects.filter(
+        cround = Round.objects.filter(
             Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
         ).first()
-        change_lanes = ChangeLane.objects.filter(round=round, open=True).order_by(
+        change_lanes = ChangeLane.objects.filter(round=cround, open=True).order_by(
             "lane"
         )
         return render(
@@ -142,12 +142,12 @@ def racecontrol(request):
     end_date = dt.date.today()
     start_date = end_date - dt.timedelta(days=1)
     try:
-        round = Round.objects.filter(
+        cround = Round.objects.filter(
             Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
         ).first()
-        lanes = round.changelane_set.all().order_by("lane")
+        lanes = cround.changelane_set.all().order_by("lane")
         return render(
-            request, "pages/racecontrol.html", {"round": round, "lanes": lanes}
+            request, "pages/racecontrol.html", {"round": cround, "lanes": lanes}
         )
     except:
         return render(request, "pages/norace.html")
@@ -158,10 +158,10 @@ def racecontrol(request):
 def preracecheck(request):
     end_date = dt.date.today()
     start_date = end_date - dt.timedelta(days=1)
-    round = Round.objects.filter(
+    cround = Round.objects.filter(
         Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
     ).first()
-    res = round.pre_race_check()
+    res = cround.pre_race_check()
     if res:
         return JsonResponse({"result": False, "error": res})
 
