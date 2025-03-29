@@ -113,11 +113,11 @@ class GenerateCardPDF(View):
             # --- Logo  ---
             logo_width = 35 * mm
             logo_height = 20 * mm
-            logo_x = logo_width + 10 * mm
-            logo_y = card_h - logo_height - 7*mm
+            logo_x = logo_width / 2
+            logo_y = card_h - logo_height - 10 * mm
 
             try:
-                img_data = person.mugshot.read()
+                img_data = LOGOIMG.read_bytes()
                 img_width, img_height, img = contentFit(img_data, logo_width, logo_height)
                 if img:
                     canvas.drawImage(img,logo_x, logo_y, img_width, img_height)
