@@ -18,7 +18,8 @@ from pathlib import Path
 from .models import Round, Person, team_member
 
 FLAGDIR = Path("/home/llama/gokartrace/static/flags")
-LOGOIMG = Path("/home/llama/gokartrace/static/logos/gokartrace-logo.png")
+LOGOIMG = Path("/home/llama/gokartrace/static/logos/gokartrace-logo.jpg")
+
 
 class GenerateCardPDF(View):
     def get(self, request, pk):
@@ -46,7 +47,9 @@ class GenerateCardPDF(View):
             else:
                 tm2 = None
         except team_member.DoesNotExist:
-            return HttpResponse("Error: Person not found in a current team.", status=404)
+            return HttpResponse(
+                "Error: Person not found in a current team.", status=404
+            )
 
         response = HttpResponse(content_type="application/pdf")
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
@@ -97,17 +100,18 @@ class GenerateCardPDF(View):
             canvas.saveState()
             canvas.rotate(90)
             canvas.translate(0, -card_height)
-            canvas.translate(x,y)
+            canvas.translate(x, y)
             # canvas.rect(0, 0, card_w, card_h)  # Optional: Draw border
 
             person = teammember.member
             team = teammember.team
 
             # --- Team Name at the Top ---
-            canvas.setFont("Helvetica-Bold", 18)
             team_name = team.name if team.name else "Team Name"
-            text_width_team = canvas.stringWidth(team_name, "Helvetica-Bold", 18)
+            ftsz = textFit(team_name, canvas, card_width - 6 * mm, 32, "Helvetica-Bold")
+            text_width_team = canvas.stringWidth(team_name, "Helvetica-Bold", ftsz)
             x_team = (card_w - text_width_team) / 2
+            canvas.setFont("Helvetica-Bold", ftsz)
             canvas.drawString(x_team, card_h - 10 * mm, team_name)
 
             # --- Logo  ---
@@ -118,15 +122,21 @@ class GenerateCardPDF(View):
 
             try:
                 img_data = LOGOIMG.read_bytes()
-                img_width, img_height, img = contentFit(img_data, logo_width, logo_height)
+                img_width, img_height, img = contentFit(
+                    img_data, logo_width, logo_height
+                )
                 if img:
-                    canvas.drawImage(img,logo_x, logo_y, img_width, img_height)
+                    canvas.drawImage(img, logo_x, logo_y, img_width, img_height)
             except Exception as e:
                 print(f"Error loading mugshot: {e}")
             # --- Team Number (Left) ---
-            canvas.setFont("Helvetica-Bold",100)
-            team_number_str = str(teammember.team.number) if teammember.team.number else "#"
-            text_width_number = canvas.stringWidth(team_number_str, "Helvetica-Bold", 100)
+            canvas.setFont("Helvetica-Bold", 100)
+            team_number_str = (
+                str(teammember.team.number) if teammember.team.number else "#"
+            )
+            text_width_number = canvas.stringWidth(
+                team_number_str, "Helvetica-Bold", 100
+            )
             # x_number = 20 * mm
             x_number = ((card_width + 2 * margin) * 0.32 - text_width_number) / 2
             y_number = card_h * 0.7 - 10 * mm
@@ -141,17 +151,21 @@ class GenerateCardPDF(View):
             if person.mugshot:
                 try:
                     img_data = person.mugshot.read()
-                    img_width, img_height, img = contentFit(img_data, mugshot_width, mugshot_height)
+                    img_width, img_height, img = contentFit(
+                        img_data, mugshot_width, mugshot_height
+                    )
                     if img:
-                        canvas.drawImage(img, mugshot_x, mugshot_y, img_width, img_height)
+                        canvas.drawImage(
+                            img, mugshot_x, mugshot_y, img_width, img_height
+                        )
                 except Exception as e:
                     print(f"Error loading mugshot: {e}")
 
             # --- Nickname ---  Centered
             x_nick = mugshot_x - 20 * mm
-            y_nick = mugshot_y -30 * mm  # Adjust for spacing
+            y_nick = mugshot_y - 30 * mm  # Adjust for spacing
             nickname = person.nickname if person.nickname else "N/A"
-            sz = textFit(nickname,canvas,card_w-x_nick,48,"Helvetica-Bold")
+            sz = textFit(nickname, canvas, card_w - x_nick, 48, "Helvetica-Bold")
             canvas.setFont("Helvetica-Bold", sz)
             canvas.drawString(x_nick, y_nick, nickname)
 
@@ -159,8 +173,8 @@ class GenerateCardPDF(View):
             canvas.setFont("Helvetica", 24)
             full_name = f"{person.firstname} {person.surname}"
             text_width_full = canvas.stringWidth(full_name, "Helvetica", 24)
-            x_full =  mugshot_x - 20 * mm
-            y_full = y_nick - 5 - 42 # Adjust for spacing
+            x_full = mugshot_x - 20 * mm
+            y_full = y_nick - 5 - 42  # Adjust for spacing
             canvas.drawString(x_full, y_full, full_name)
 
             # --- QR Code ---
@@ -187,11 +201,15 @@ class GenerateCardPDF(View):
                             flagf = FLAGDIR / "un.png"
 
                         flag_image_data = flagf.read_bytes()
-                        img_width, img_height, flag_img = contentFit(flag_image_data, flag_width, flag_height)
+                        img_width, img_height, flag_img = contentFit(
+                            flag_image_data, flag_width, flag_height
+                        )
                         flag_x = ((card_width + 2 * margin) * 0.32 - img_width) / 2
                         flag_y = card_h * 0.4
                         if flag_img:
-                            canvas.drawImage(flag_img, flag_x, flag_y, img_width, img_height)
+                            canvas.drawImage(
+                                flag_img, flag_x, flag_y, img_width, img_height
+                            )
             except AttributeError as e:
                 print(f"Fils de p...: {e}")
                 pass
@@ -200,32 +218,44 @@ class GenerateCardPDF(View):
             if teammember.driver:
                 canvas.setFont("Helvetica-Bold", 48)
                 weight_text = f"{teammember.weight:.1f} kg"
-                text_width_weight = canvas.stringWidth(weight_text, "Helvetica-Bold", 48)
+                text_width_weight = canvas.stringWidth(
+                    weight_text, "Helvetica-Bold", 48
+                )
                 weight_x = qr_x + qr_size + 25 * mm
-                weight_y = qr_y + qr_size - 5 - 60 # Adjust for spacing
+                weight_y = qr_y + qr_size - 5 - 60  # Adjust for spacing
                 canvas.drawString(weight_x, weight_y, weight_text)
 
             if teammember.manager:
                 canvas.setFont("Helvetica-Bold", 32)
                 canvas.setFillColor(darkred)
                 manager_text = "Manager"
-                text_width_manager = canvas.stringWidth(manager_text, "Helvetica-Bold", 32)
+                text_width_manager = canvas.stringWidth(
+                    manager_text, "Helvetica-Bold", 32
+                )
                 manager_x = qr_x + qr_size + 25 * mm
-                manager_y = qr_y + qr_size - 5 - 60 - 60 # Adjust for spacing
+                manager_y = qr_y + qr_size - 5 - 60 - 60  # Adjust for spacing
                 canvas.drawString(manager_x, manager_y, manager_text)
-
 
             canvas.restoreState()
 
         # Draw the first card
-        draw_drivercard(p, tm, x_offset, y_offset, card_width - 2*margin, card_height-2*margin)
+        draw_drivercard(
+            p, tm, x_offset, y_offset, card_width - 2 * margin, card_height - 2 * margin
+        )
 
         # Draw the second card (if it fits)
         second_card_x = card_width + 3 * margin
         second_card_y = margin
-        if second_card_y +  card_width <= A4[1]:
+        if second_card_y + card_width <= A4[1]:
             if tm2:
-                draw_drivercard(p, tm2, second_card_x, second_card_y, card_width - 2*margin, card_height - 2*margin)
+                draw_drivercard(
+                    p,
+                    tm2,
+                    second_card_x,
+                    second_card_y,
+                    card_width - 2 * margin,
+                    card_height - 2 * margin,
+                )
 
         p.save()
 
