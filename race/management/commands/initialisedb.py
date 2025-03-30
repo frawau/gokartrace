@@ -89,7 +89,7 @@ class Command(BaseCommand):
                 :
             ]  # Make a copy to avoid modifying the original list
             for round_team_obj in round_teams:
-                num_team_members = random.randint(2, 7)
+                num_team_members = random.randint(3, 7)
                 selected_people = []
 
                 for _ in range(num_team_members):
@@ -112,7 +112,7 @@ class Command(BaseCommand):
                 team_member.objects.create(
                     team=round_team_obj,
                     member=manager,
-                    driver=random.choice([True, False]),
+                    driver=random.choice([True, False, True, True, True, True]),
                     manager=True,
                     weight=random.uniform(50, 100),
                 )
