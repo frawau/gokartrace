@@ -48,9 +48,7 @@ class Command(BaseCommand):  # Inherit from BaseCommand
             country = random.choice(country_codes)
             email = fake.email()
 
-            image = requests.get(
-                "https://thispersondoesnotexist.com/image", stream=True
-            )
+            image = requests.get("https://thispersondoesnotexist.com/", stream=True)
             buffer = BytesIO()
             for chunk in image:
                 buffer.write(chunk)
