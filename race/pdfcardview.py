@@ -60,11 +60,21 @@ class GenerateCardPDF(View):
         # Create a PDF in memory
         buffer = BytesIO()
         p = canvas.Canvas(buffer, pagesize=A4)  # Use A4 for 2 cards
-        pdfmetrics.registerFont(TTFont('THFont', 'NotoSansThai-Regular.ttf'))
-        pdfmetrics.registerFont(TTFont('JPFont', 'NotoSansJP-Regular.ttf'))
-        pdfmetrics.registerFont(TTFont('KRFont', 'NotoSansKR-Regular.ttf'))
-        pdfmetrics.registerFont(TTFont('ZHFont', 'NotoSansTC-Regular.ttf'))
-        pdfmetrics.registerFont(TTFont('ENFont', 'NotoSans-Regular.ttf'))
+        pdfmetrics.registerFont(
+            TTFont("THFont", "/usr/local/share/fonts/NotoSansThai-Regular.ttf")
+        )
+        pdfmetrics.registerFont(
+            TTFont("JPFont", "/usr/local/share/fonts/NotoSansJP-Regular.ttf")
+        )
+        pdfmetrics.registerFont(
+            TTFont("KRFont", "/usr/local/share/fonts/NotoSansKR-Regular.ttf")
+        )
+        pdfmetrics.registerFont(
+            TTFont("ZHFont", "/usr/local/share/fonts/NotoSansTC-Regular.ttf")
+        )
+        pdfmetrics.registerFont(
+            TTFont("ENFont", "/usr/local/share/fonts/NotoSans-Regular.ttf")
+        )
 
         margin = 3 * mm
         card_width = A5[0] - 2 * margin
