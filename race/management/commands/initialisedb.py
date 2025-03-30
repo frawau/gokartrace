@@ -83,55 +83,58 @@ class Command(BaseCommand):
 
         # 5. Add Team Members (with corrected logic)
         people = list(Person.objects.all())
-        round_teams = round_team.objects.all()
-        for round_team_obj in round_teams:
-            num_team_members = random.randint(2, 7)
+        for round_obj in rounds:
+            round_teams = round_team.objects.filter(round=round_obj)
             available_people = people[
                 :
             ]  # Make a copy to avoid modifying the original list
-            selected_people = []
+            for round_team_obj in round_teams:
+                num_team_members = random.randint(2, 7)
+                selected_people = []
 
-            for _ in range(num_team_members):
-                if not available_people:  # Check if there are still available people
-                    break
-                person = random.choice(available_people)
-                selected_people.append(person)
-                available_people.remove(
-                    person
-                )  # Ensure each person is unique within the round
+                for _ in range(num_team_members):
+                    if (
+                        not available_people
+                    ):  # Check if there are still available people
+                        break
+                    person = random.choice(available_people)
+                    selected_people.append(person)
+                    available_people.remove(
+                        person
+                    )  # Ensure each person is unique within the round
 
-            if not selected_people:  # prevent error if no person is selected.
-                continue
+                if not selected_people:  # prevent error if no person is selected.
+                    continue
 
-            manager = random.choice(selected_people)
-            selected_people.remove(manager)  # Manager is unique
+                manager = random.choice(selected_people)
+                selected_people.remove(manager)  # Manager is unique
 
-            team_member.objects.create(
-                team=round_team_obj,
-                member=manager,
-                driver=random.choice([True, False]),
-                manager=True,
-                weight=random.uniform(50, 100),
-            )
-            self.stdout.write(
-                self.style.SUCCESS(
-                    f'Manager added to round team "{round_team_obj.id}".'
-                )
-            )
-
-            for person in selected_people:
                 team_member.objects.create(
                     team=round_team_obj,
-                    member=person,
-                    driver=True,
-                    manager=False,
+                    member=manager,
+                    driver=random.choice([True, False]),
+                    manager=True,
                     weight=random.uniform(50, 100),
                 )
-            self.stdout.write(
-                self.style.SUCCESS(
-                    f'{len(selected_people)} Drivers added to round team "{round_team_obj.id}".'
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f'Manager added to round team "{round_team_obj.id}".'
+                    )
                 )
-            )
+
+                for person in selected_people:
+                    team_member.objects.create(
+                        team=round_team_obj,
+                        member=person,
+                        driver=True,
+                        manager=False,
+                        weight=random.uniform(50, 100),
+                    )
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f'{len(selected_people)} Drivers added to round team "{round_team_obj.id}".'
+                    )
+                )
 
         # 6. Create User Groups
         groups = ["Driver Scanner", "Queue Scanner", "Race Director"]
