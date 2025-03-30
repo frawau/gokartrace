@@ -8,7 +8,12 @@ from django.core.files.base import ContentFile
 from io import BytesIO
 from django.core.management.base import BaseCommand  # Import BaseCommand
 
-fake = Faker(["th_TH", "en_GB", "fr_FR", "ja_JP"])
+fakerth = Faker(["th_TH"])
+fakeren = Faker(["en_GB"])
+fakerfr = Faker(["fr_FR"])
+fakerjp = Faker(["ja_JP"])
+
+fakers = [fakerth, fakeren, fakerfr, fakerjp]
 
 
 class Command(BaseCommand):  # Inherit from BaseCommand
@@ -31,11 +36,12 @@ class Command(BaseCommand):  # Inherit from BaseCommand
         country_codes = [code for code, name in list(countries)]
 
         for _ in range(num_people):
-            surname = fake.last_name()
-            firstname = fake.first_name()
-            nickname = fake.user_name()
+            fake = random.choice(fakers)
             gender = random.choice(genders)
-            birthdate = fake.date_between(start_date="-60y", end_date="-18y")
+            surname = fake.last_name()
+            firstname = fake.first_name(f"{'female' if gender == 'F' else 'male'}")
+            nickname = fake.user_name()
+            birthdate = fake.date_between(start_date="-70y", end_date="-18y")
             country = random.choice(country_codes)
             email = fake.email()
 
