@@ -1,5 +1,6 @@
 import datetime as dt
 import pycountry
+from langdetect import detect, LangDetectException
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A5, A4
 from reportlab.lib.units import mm
@@ -59,7 +60,11 @@ class GenerateCardPDF(View):
         # Create a PDF in memory
         buffer = BytesIO()
         p = canvas.Canvas(buffer, pagesize=A4)  # Use A4 for 2 cards
-        pdfmetrics.registerFont(TTFont('DejaVuSans', 'DejaVuSans.ttf'))
+        pdfmetrics.registerFont(TTFont('THFont', 'NotoSansThai-Regular.ttf'))
+        pdfmetrics.registerFont(TTFont('JPFont', 'NotoSansJP-Regular.ttf'))
+        pdfmetrics.registerFont(TTFont('KRFont', 'NotoSansKR-Regular.ttf'))
+        pdfmetrics.registerFont(TTFont('ZHFont', 'NotoSansTC-Regular.ttf'))
+        pdfmetrics.registerFont(TTFont('ENFont', 'NotoSans-Regular.ttf'))
 
         margin = 3 * mm
         card_width = A5[0] - 2 * margin
@@ -173,11 +178,27 @@ class GenerateCardPDF(View):
             canvas.drawString(x_nick, y_nick, nickname)
 
             # --- Full Name --- Centered
+            full_name = f"{person.firstname} {person.surname}"
+            try:
+                lang = detect(full_name)
+            except LangDetectException:
+                lang = "unknown"
+
+            if lang == "th":
+                ufont = "THFont"
+            elif lang == "jp":
+                ufont = "JPFont"
+            elif lang == "kr":
+                ufont = "KRFont"
+            elif lang == "zh":
+                ufont = "ZHFont"
+            else:
+                ufont = "ENFont"
+
             x_full = mugshot_x - 20 * mm
             y_full = y_nick - 5 - 42  # Adjust for spacing
-            full_name = f"{person.firstname} {person.surname}"
-            ftsz = textFit(full_name, canvas, card_w - x_full, 24, "DejaVuSans")
-            canvas.setFont("DejaVuSans", ftsz)
+            ftsz = textFit(full_name, canvas, card_w - x_full, 24, ufont)
+            canvas.setFont(ufont, ftsz)
             canvas.drawString(x_full, y_full, full_name)
 
             # --- QR Code ---
