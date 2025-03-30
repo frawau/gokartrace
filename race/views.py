@@ -226,7 +226,7 @@ def agent_login(request):
     ).first()
     if cround is None:
         return Response(
-            "error: No Championshipt Round today.", status=status.HTTP_401_UNAUTHORIZED
+            "error: No Championship Round today.", status=status.HTTP_401_UNAUTHORIZED
         )
     username = request.data.get("username")
     password = request.data.get("password")

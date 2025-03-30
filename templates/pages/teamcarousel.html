@@ -27,27 +27,32 @@
     }
 {% endblock extra_style %}
 {% block main_content %}
-        <div class="section container">
-        <h2 class="countdown-timer" id="roundCountdown" data-remaining="{{ round|duration_difference_seconds|default:"0" }}" data-is-paused="{{ round|round_is_paused }}">Round: {{ round.name }} &nbsp;&nbsp;Time remaining: <span id="countdownDisplay">--:--:--</span></h2>
+<div class="section container">
+        {% if round is None %}
+            <h2> No rounf today.</h2>
+        {% else %}
+            <h2 class="countdown-timer" id="roundCountdown" data-remaining="{{ round|duration_difference_seconds|default:"0" }}" data-is-paused="{{ round|round_is_paused }}">Round: {{ round.name }} &nbsp;&nbsp;Time remaining: <span id="countdownDisplay">--:--:--</span></h2>
 
-            <div id="teamCarousel" class="carousel slide" data-ride="carousel" >
-                <div class="carousel-inner">
-                    {% for team in round.round_team_set.all %}
-                        <div class="carousel-item {% if forloop.first %}active{% endif %}" data-team-id="{{ team.pk }}">
-                            <div class="card" style="background-color: transparent;" >
-                                <div class="card-body">
-                                    <p>Loading...</p>
+                <div id="teamCarousel" class="carousel slide" data-ride="carousel" >
+                    <div class="carousel-inner">
+                        {% for team in round.round_team_set.all %}
+                            <div class="carousel-item {% if forloop.first %}active{% endif %}" data-team-id="{{ team.pk }}">
+                                <div class="card" style="background-color: transparent;" >
+                                    <div class="card-body">
+                                        <p>Loading...</p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    {% endfor %}
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
-        </div>
+        {% endif %}
 {% endblock main_content %}
 
 {% block extra_js %}
 <script>
+{% if round is not None %}
     $(document).ready(function() {
         // Set the interval for auto-sliding (7 seconds)
         $('#teamCarousel').carousel({
@@ -172,5 +177,6 @@
             }
         });
     });
+{% endif %}
 </script>
 {% endblock extra_js %}
