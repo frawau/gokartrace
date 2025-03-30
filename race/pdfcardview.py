@@ -4,6 +4,8 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A5, A4
 from reportlab.lib.units import mm
 from reportlab.lib.colors import black, darkred, white
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab_qrcode import QRCodeImage
 from reportlab.lib.utils import ImageReader
 from django.db.models import Q
@@ -57,6 +59,7 @@ class GenerateCardPDF(View):
         # Create a PDF in memory
         buffer = BytesIO()
         p = canvas.Canvas(buffer, pagesize=A4)  # Use A4 for 2 cards
+        pdfmetrics.registerFont(TTFont('DejaVuSans', 'DejaVuSans.ttf'))
 
         margin = 3 * mm
         card_width = A5[0] - 2 * margin
@@ -173,8 +176,8 @@ class GenerateCardPDF(View):
             x_full = mugshot_x - 20 * mm
             y_full = y_nick - 5 - 42  # Adjust for spacing
             full_name = f"{person.firstname} {person.surname}"
-            ftsz = textFit(full_name, canvas, card_w - x_full, 24, "Helvetica")
-            canvas.setFont("Helvetica", ftsz)
+            ftsz = textFit(full_name, canvas, card_w - x_full, 24, "DejaVuSans")
+            canvas.setFont("DejaVuSans", ftsz)
             canvas.drawString(x_full, y_full, full_name)
 
             # --- QR Code ---
