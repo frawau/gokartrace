@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.contrib.auth.models import Group
 from django.core.validators import MinValueValidator, MaxValueValidator
-from .models import (
+from race.models import (
     Person,
     Team,
     Championship,
