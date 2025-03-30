@@ -1,14 +1,14 @@
 import random
 import datetime
+import requests
 from django_countries import countries
 from faker import Faker
 from race.models import Person
 from django.core.files.base import ContentFile
 from io import BytesIO
-from PIL import Image
 from django.core.management.base import BaseCommand  # Import BaseCommand
 
-fake = Faker()
+fake = Faker(["th_TH", "en_GB", "fr_FR", "ja_JP"])
 
 
 class Command(BaseCommand):  # Inherit from BaseCommand
@@ -18,7 +18,7 @@ class Command(BaseCommand):  # Inherit from BaseCommand
         parser.add_argument(
             "--number",
             type=int,
-            default=50,
+            default=150,
             help="Number of teams to generate (default: 15)",
         )
 
@@ -39,17 +39,12 @@ class Command(BaseCommand):  # Inherit from BaseCommand
             country = random.choice(country_codes)
             email = fake.email()
 
-            image = Image.new(
-                "RGB",
-                (100, 100),
-                color=(
-                    random.randint(0, 255),
-                    random.randint(0, 255),
-                    random.randint(0, 255),
-                ),
+            image = requests.get(
+                "https://thispersondoesnotexist.com/image", stream=True
             )
-            buffer = BytesIO()
-            image.save(buffer, "PNG")
+            with ByteIo() as buffer:
+                for chunk in image:
+                    buffer.write(chunk)
             buffer.seek(0)
 
             person = Person(
@@ -63,7 +58,7 @@ class Command(BaseCommand):  # Inherit from BaseCommand
             )
 
             person.mugshot.save(
-                f"random_mugshot_{_}.png", ContentFile(buffer.read()), save=False
+                f"random_mugshot_{_}.jpg", ContentFile(buffer.read()), save=False
             )
 
             person.save()

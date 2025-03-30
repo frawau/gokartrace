@@ -68,7 +68,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
-    'corsheaders.middleware.CorsMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -201,12 +201,15 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
         "rest_framework.authentication.TokenAuthentication",
     ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
 }
 
 # __API_GENERATOR__END
 # Web sockets
 
-ASGI_APPLICATION = "core.asgi.application" # Replace your_project
+ASGI_APPLICATION = "core.asgi.application"  # Replace your_project
 
 CHANNEL_LAYERS = {
     "default": {
@@ -220,5 +223,5 @@ CHANNEL_LAYERS = {
 
 # __OAUTH_GITHUB__
 DEBUG_TOOLBAR_CONFIG = {
-    'SHOW_TOOLBAR_CALLBACK': lambda r: False,  # disables it
+    "SHOW_TOOLBAR_CALLBACK": lambda r: False,  # disables it
 }

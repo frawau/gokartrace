@@ -17,7 +17,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--number",
             type=int,
-            default=15,
+            default=30,
             help="Number of teams to generate (default: 15)",
         )
 

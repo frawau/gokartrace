@@ -29,4 +29,3 @@ try:
     urlpatterns.append(path("login/jwt/", view=obtain_auth_token))
 except:
     pass
-

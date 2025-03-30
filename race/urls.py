@@ -29,4 +29,7 @@ urlpatterns = [
     path("falserestart/", views.falserestart, name="falserestart"),
     path("endofrace/", views.endofrace, name="endofrace"),
     path("generate-card/<int:pk>/", GenerateCardPDF.as_view(), name="Driver Card"),
+    path("agent_login/", views.agent_login, name="Agent Login"),
+    path("driver_queue/", views.add_driver_to_queue, name="Driver Queue"),
+    path("driver_change/", views.change_kart_driver, name="Agent Login"),
 ]

@@ -13,7 +13,9 @@ from race import routing
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
 
-application = ProtocolTypeRouter({
-    "http": get_asgi_application(),
-    "websocket": URLRouter(routing.websocket_urlpatterns),
-})
+application = ProtocolTypeRouter(
+    {
+        "http": get_asgi_application(),
+        "websocket": URLRouter(routing.websocket_urlpatterns),
+    }
+)

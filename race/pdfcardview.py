@@ -173,7 +173,7 @@ class GenerateCardPDF(View):
             x_full = mugshot_x - 20 * mm
             y_full = y_nick - 5 - 42  # Adjust for spacing
             full_name = f"{person.firstname} {person.surname}"
-            ftsz = textFit(full_name,canvas, card_w - x_full, 24, "Helvetica")
+            ftsz = textFit(full_name, canvas, card_w - x_full, 24, "Helvetica")
             canvas.setFont("Helvetica", ftsz)
             canvas.drawString(x_full, y_full, full_name)
 
