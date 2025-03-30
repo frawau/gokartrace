@@ -39,7 +39,10 @@ class Command(BaseCommand):  # Inherit from BaseCommand
             fake = random.choice(fakers)
             gender = random.choice(genders)
             surname = fake.last_name()
-            firstname = fake.first_name(f"{'female' if gender == 'F' else 'male'}")
+            if gender == "F":
+                firstname = fake.first_name_female()
+            else:
+                firstname = fake.first_name_male()
             nickname = fake.user_name()
             birthdate = fake.date_between(start_date="-70y", end_date="-18y")
             country = random.choice(country_codes)
