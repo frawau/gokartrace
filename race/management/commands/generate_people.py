@@ -42,7 +42,7 @@ class Command(BaseCommand):  # Inherit from BaseCommand
             image = requests.get(
                 "https://thispersondoesnotexist.com/image", stream=True
             )
-            with ByteIo() as buffer:
+            with BytesIO() as buffer:
                 for chunk in image:
                     buffer.write(chunk)
             buffer.seek(0)
