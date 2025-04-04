@@ -38,9 +38,9 @@
             fetch(url, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json' // Set Content-Type to application/json
                 },
-                body: JSON.stringify(data)
+                body: JSON.stringify(data) // Convert the data object to a JSON string
             })
             .then(response => {
                 if (!response.ok) {
