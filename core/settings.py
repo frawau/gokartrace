@@ -27,12 +27,7 @@ APP_DOMAIN = os.getenv("APP_DOMAIN", "wautier.eu")
 
 # HOSTs List
 ALLOWED_HOSTS = ["127.0.0.1", "192.168.77.8", "localhost", APP_DOMAIN, ".wautier.eu"]
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8000",  # Your client-side development server
-    "http://192.168.77.8:8000",  # Your client-side development server
-    "http://toulouse.wautier.eu:8000",  # Your client-side development server
-    # "https://your-client-domain.com",  # Your production client domain
-]
+
 # Add here your deployment HOSTS
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
@@ -41,7 +36,6 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:5085",
     f"http://{APP_DOMAIN}",
     f"https://{APP_DOMAIN}",
-    "https://*.wautier.eu",
 ]
 
 RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
@@ -53,7 +47,6 @@ if RENDER_EXTERNAL_HOSTNAME:
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
-    'corsheaders',
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
@@ -71,10 +64,10 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "debug_toolbar.middleware.DebugToolbarMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
