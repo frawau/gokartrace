@@ -312,3 +312,9 @@ def change_kart_driver(request):
         )
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+def try_login(request):
+
+    return render(request, "pages/tryagentlogin.html")
