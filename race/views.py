@@ -226,8 +226,22 @@ def agent_login(request):
     ).first()
     if cround is None:
         return Response(
-            "error: No Championship Round today.", status=status.HTTP_401_UNAUTHORIZED
+            {"status":"error", "message": "No Championship Round today."}, status=status.HTTP_401_UNAUTHORIZED
         )
+    schema = request.scheme
+    server = request.META.get('HTTP_HOST') or request.META.get('SERVER_NAME')
+    port = request.META.get('SERVER_PORT')
+
+    if ':' in server:
+        # If HTTP_HOST already contains the port (e.g., 'example.com:8000')
+        server_name, _ = server.split(':', 1)
+    else:
+        server_name = server
+
+    if port and port not in ('80', '443'):  # Only include non-standard ports
+        servurl = f"{schema}://{server_name}:{port}"
+    else:
+        servurl = f"{schema}://{server_name}"
     username = request.data.get("username")
     password = request.data.get("password")
     user = authenticate(request, username=username, password=password)
@@ -235,20 +249,20 @@ def agent_login(request):
         if user.groups.filter(name="Queue Scanner").exists():
             token, created = Token.objects.get_or_create(user=user)
             return Response(
-                {"token": token.key, "url": "driver_queue/"}, status=status.HTTP_200_OK
+                {"status":"ok","token": token.key, "url": servurl+"/driver_queue/"}, status=status.HTTP_200_OK
             )
         elif user.groups.filter(name="Driver Scanner").exists():
             token, created = Token.objects.get_or_create(user=user)
             return Response(
-                {"token": token.key, "url": "driver_change/"}, status=status.HTTP_200_OK
+                {"status":"ok","token": token.key, "url": servurl+"driver_change/"}, status=status.HTTP_200_OK
             )
         else:
             return Response(
-                {"error": "This is not your role!"}, status=status.HTTP_401_UNAUTHORIZED
+                {"status":"error", "message": "This is not your role!"}, status=status.HTTP_401_UNAUTHORIZED
             )
     else:
         return Response(
-            {"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED
+            {"status":"error", "mwssage": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED
         )
 
 
