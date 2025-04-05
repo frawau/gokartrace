@@ -409,7 +409,6 @@ class championship_team(models.Model):
         unique_together = (("championship", "number"), ("championship", "team"))
         verbose_name = _("Championship Team")
         verbose_name_plural = _("Championship Teams")
-        ordering = ['team__number']
 
     def __str__(self):
         return f"{self.team.name} in {self.championship.name}."
@@ -423,6 +422,7 @@ class round_team(models.Model):
         unique_together = ("round", "team")
         verbose_name = _("Participating Team")
         verbose_name_plural = _("Participating Teams")
+        ordering = ['team__number']
 
     @property
     def name(self):
