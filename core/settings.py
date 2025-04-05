@@ -205,6 +205,12 @@ REST_FRAMEWORK = {
     ],
 }
 
+# _CORS thingy
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://toulouse.wautier.eu:8000",
+    # Add other domains you need
+]
 # __API_GENERATOR__END
 # Web sockets
 

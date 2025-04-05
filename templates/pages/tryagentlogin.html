@@ -38,6 +38,7 @@
                 headers: {
                     'Content-Type': 'application/json' // Set Content-Type to application/json
                 },
+                credentials: 'include',
                 body: JSON.stringify(data) // Convert the data object to a JSON string
             })
             .then(response => {

@@ -214,7 +214,7 @@ def falserestart(request):
 def endofrace(request):
     return HttpResponse("OK")
 
-
+@csrf_exempt
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def agent_login(request):
@@ -264,7 +264,7 @@ def agent_login(request):
             )
     else:
         return Response(
-            {"status":"error", "mwssage": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED
+            {"status":"error", "message": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED
         )
 
 
