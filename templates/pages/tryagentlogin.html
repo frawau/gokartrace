@@ -3,6 +3,7 @@
 {% block main_content %}
     <h1>Agent Login</h1>
     <form id="loginForm">
+        {% csrf_token %}
         <div>
             <label for="username">Username:</label>
             <input type="text" id="username" name="username" required>
@@ -32,7 +33,7 @@
             formData.forEach((value, key) => {
                 data[key] = value;
             });
-
+            console.log(data);
             fetch(url, {
                 method: 'POST',
                 headers: {

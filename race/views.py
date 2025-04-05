@@ -10,8 +10,9 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from rest_framework import generics
 from rest_framework.response import Response
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes,authentication_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 from django.db.models import Q
@@ -216,6 +217,7 @@ def endofrace(request):
 
 @csrf_exempt
 @api_view(["POST"])
+@authentication_classes([TokenAuthentication])
 @permission_classes([AllowAny])
 def agent_login(request):
     """
