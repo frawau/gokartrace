@@ -217,8 +217,8 @@ def endofrace(request):
 
 @csrf_exempt
 @api_view(["POST"])
-@authentication_classes([TokenAuthentication])
 @permission_classes([AllowAny])
+@authentication_classes([])
 def agent_login(request):
     """
     API endpoint for user login and token generation.
