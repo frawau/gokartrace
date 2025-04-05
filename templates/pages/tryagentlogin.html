@@ -3,7 +3,6 @@
 {% block main_content %}
     <h1>Agent Login</h1>
     <form id="loginForm">
-        {% csrf_token %}
         <div>
             <label for="username">Username:</label>
             <input type="text" id="username" name="username" required>
@@ -32,9 +31,7 @@
             const data = {};
 
             formData.forEach((value, key) => {
-                if (key !== 'csrfmiddlewaretoken') { // Skip the CSRF token in the JSON body
-                    data[key] = value;
-                }
+                data[key] = value;
             });
 
             // Get the CSRF token from the form
@@ -44,8 +41,7 @@
             fetch(url, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json', // Set Content-Type to application/json
-                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/json' // Set Content-Type to application/json
                 },
                 credentials: 'include',
                 body: JSON.stringify(data) // Convert the data object to a JSON string
