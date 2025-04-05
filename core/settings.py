@@ -206,10 +206,30 @@ REST_FRAMEWORK = {
 }
 
 # _CORS thingy
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [
-    "http://toulouse.wautier.eu:8000",
-    # Add other domains you need
+# CORS_ALLOWED_ORIGINS = [
+#     "http://toulouse.wautier.eu:8000",
+#     # Add other domains you need
+# ]
+# Allow specific HTTP methods
+CORS_ALLOW_METHODS = [
+    'GET',
+    'OPTIONS',
+    'POST',
+]
+
+# Allow specific headers
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
 ]
 # __API_GENERATOR__END
 # Web sockets
