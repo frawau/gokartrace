@@ -30,14 +30,22 @@
 
             const formData = new FormData(form);
             const data = {};
+
             formData.forEach((value, key) => {
-                data[key] = value;
+                if (key !== 'csrfmiddlewaretoken') { // Skip the CSRF token in the JSON body
+                    data[key] = value;
+                }
             });
-            console.log(data);
+
+            // Get the CSRF token from the form
+            const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+
             fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json' // Set Content-Type to application/json
+                    'X-CSRFToken': csrftoken,
                 },
                 credentials: 'include',
                 body: JSON.stringify(data) // Convert the data object to a JSON string
