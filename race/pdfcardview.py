@@ -282,7 +282,7 @@ class GenerateCardPDF(View):
             curcol = (curcol + 1) % cards_per_col
             currow = (currow + 1) % cards_per_row
             if currow == 0:
-                p.showpage()
+                p.showPage()
 
         p.save()
 
