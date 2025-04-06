@@ -220,6 +220,7 @@ class GenerateCardPDF(View):
             Q(start__date__range=[start_date, end_date]) & Q(started__isnull=True)
         ).first()
 
+        filename = f"card_{round(dt.datetime.now().timestamp())}.pdf"
         response = HttpResponse(content_type="application/pdf")
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
