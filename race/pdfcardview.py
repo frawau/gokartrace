@@ -253,7 +253,7 @@ class GenerateCardPDF(View):
 
         longpk = pk
         currow = 0
-        currcol = 0
+        curcol = 0
 
         while longpk % 10000:
             cpk = longpk % 10000
