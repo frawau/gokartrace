@@ -184,10 +184,6 @@ class GenerateCardPDF(View):
                         canvas.drawImage(
                             flag_img, flag_x, flag_y, img_width, img_height
                         )
-        except AttributeError as e:
-            print(f"Fils de p...: {e}")
-            pass
-
             # --- Weight ---
             if teammember.driver:
                 canvas.setFont("Helvetica-Bold", 48)
@@ -209,6 +205,10 @@ class GenerateCardPDF(View):
                 manager_x = qr_x + qr_size + 25 * scaledmm
                 manager_y = qr_y + qr_size - 5 - 60 - 60  # Adjust for spacing
                 canvas.drawString(manager_x, manager_y, manager_text)
+        except AttributeError as e:
+            print(f"Fils de p...: {e}")
+            pass
+
 
             canvas.restoreState()
 
