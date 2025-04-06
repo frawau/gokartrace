@@ -259,7 +259,7 @@ class GenerateCardPDF(View):
             cpk = longpk % 10000
             longpk = longpk // 10000
             try:
-                person = get_object_or_404(Person, pk=p)
+                person = get_object_or_404(Person, pk=cpk)
                 tm = team_member.objects.get(member=person, team__round=cround)
             except:
                 print("Error: Person not found in a current team.")
