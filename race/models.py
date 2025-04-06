@@ -422,7 +422,7 @@ class round_team(models.Model):
         unique_together = ("round", "team")
         verbose_name = _("Participating Team")
         verbose_name_plural = _("Participating Teams")
-        ordering = ['team__number']
+        ordering = ["team__number"]
 
     @property
     def name(self):
