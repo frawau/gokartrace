@@ -67,7 +67,6 @@ class GenerateCardPDF(View):
             canvas.rotate(90)
             canvas.translate(0, -self.card_height)
         canvas.translate(margin, margin)
-        canvas.translate(x + margin, y + margin)
         card_w = self.card_width - 2 * margin
         card_h = self.card_height - 2 * margin
         # canvas.rect(0, 0, card_w, card_h)  # Optional: Draw border
