@@ -173,7 +173,9 @@ class GenerateCardPDF(View):
         qr_data = json.dumps(
             {
                 "info": f"{person.nickname}\n{team.name}",
-                "data": b64encode(docrypt.encrypt(str(teammember.pk).encode())).decode("ascii"),
+                "data": b64encode(docrypt.encrypt(str(teammember.pk).encode())).decode(
+                    "ascii"
+                ),
             }
         )
         qr_size = card_h * 0.2
@@ -238,10 +240,7 @@ class GenerateCardPDF(View):
         if maxtw:
             maxt_x = qr_x + qr_size + 25 * scaledmm
             maxt_y = qr_y + qr_size - 125 * scalefactor  #
-            (
-                tl_text
-                + f"{maxtw.title()} driving limit: {(dt.datetime(2025,4,1) + maxt).strftime('%H:%M:%S')}"
-            )
+            tl_text = f"{maxtw.title()} driving limit: {(dt.datetime(2025,4,1) + maxt).strftime('%H:%M:%S')}"
             canvas.setFont("Helvetica", int(18 * scalefactor + 0.5))
             canvas.drawString(flag_x, nat_y, tl_text)
 
