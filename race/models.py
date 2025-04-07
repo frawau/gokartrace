@@ -152,7 +152,7 @@ class Round(models.Model):
     weight_penalty = models.JSONField(
         default=list,
         null=True,
-        help_text="Weight penalty configuration in format: [[upper_limit1,operator, value1], [upper_limit2, operator, value2], ...]",
+        help_text="Weight penalty configuration in format: ['oper', [limit1, value1], [limit2, value2], ...]",
     )
     # No user serviceable parts below
     ready = models.BooleanField(default=False)
@@ -476,7 +476,7 @@ class Round(models.Model):
         operator = None
         newrules = []
         for arule in rules:
-            if isinstance(arules, list):
+            if isinstance(arule, list):
                 newrules.append(arule)
             else:
                 operator = arule
