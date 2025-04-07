@@ -25,8 +25,8 @@ LOGOIMG = Path("/home/llama/gokartrace/static/logos/gokartrace-logo.jpg")
 
 
 class GenerateCardPDF(View):
-    card_width = A5[0]
-    card_height = A5[1]
+    card_width = pagesz.A5[0]
+    card_height = pagesz.A5[1]
     rotate = True
 
     def contentFit(self, image_data, max_width, max_height):
