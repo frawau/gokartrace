@@ -242,9 +242,9 @@ class GenerateCardPDF(View):
             carda = Config.objects.filter(name="card size").first().value
         except:
             carda = "A6"
-        pageanum = int(pagea[1])
-        cardanum = int(carda[1])
-        if pageanum < cardanum:
+        pageanum = int(pagea.strip()[1])
+        cardanum = int(carda.strip()[1])
+        if pageanum > cardanum:
             raise Exception("Wrong configuration. The card won't fit on the page.")
 
         self.card_width = sizelist[carda][0]
