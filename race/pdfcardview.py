@@ -234,8 +234,14 @@ class GenerateCardPDF(View):
             "A5": pagesz.A5,
             "A6": pagesz.A6,
         }
-        pagea = Config.objects.filter(name="page size").first() or "A4"
-        carda = Config.objects.filter(name="card size").first() or "A6"
+        try:
+            pagea = Config.objects.filter(name="page size").first().value
+        except:
+            pagea = "A4"
+        try:
+            carda = Config.objects.filter(name="card size").first().value
+        except:
+            carda = "A6"
         pageanum = int(pagea[1])
         cardanum = int(carda[1])
         if pageanum < cardanum:
