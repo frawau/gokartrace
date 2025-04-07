@@ -173,7 +173,7 @@ class GenerateCardPDF(View):
         qr_data = json.dumps(
             {
                 "info": f"{person.nickname}\n{team.name}",
-                "data": b64encode(docrypt(str(teammember.pk).encode())).decode("ascii"),
+                "data": b64encode(docrypt.encrypt(str(teammember.pk).encode())).decode("ascii"),
             }
         )
         qr_size = card_h * 0.2
