@@ -1,5 +1,6 @@
 import datetime as dt
 import pycountry
+import json
 from langdetect import detect, LangDetectException
 from reportlab.pdfgen import canvas
 import reportlab.lib.pagesizes as pagesz
@@ -15,6 +16,8 @@ from django.shortcuts import get_object_or_404
 from django.views import View
 from django.conf import settings
 from pathlib import Path
+from cryptography.fernet import Fernet
+from base64 import b64encode
 from io import BytesIO
 from pathlib import Path
 
@@ -166,7 +169,13 @@ class GenerateCardPDF(View):
         canvas.drawString(x_full, y_full, full_name)
 
         # --- QR Code ---
-        qr_data = f"Team: {team.name}\nMember: {person.nickname} ({full_name})\nID: {teammember.pk}"
+        docrypt = Fernet(cround.qr_fernet)
+        qr_data = json.dumps(
+            {
+                "info": f"{person.nickname}\n{team.name}",
+                "data": b64encode(docrypt(str(teammember.pk).encode())).decode("ascii"),
+            }
+        )
         qr_size = card_h * 0.2
         qr_code = QRCodeImage(qr_data, qr_size)
         qr_x = 15 * scaledmm
@@ -178,8 +187,9 @@ class GenerateCardPDF(View):
         flag_width = 37 * scaledmm
         flag_height = 25 * scaledmm
 
-        nationality_name = "N/A"
         try:
+            nationality_name = "World Citizen"
+            flagf = FLAGDIR / "un.png"
             if person.country:
                 country = pycountry.countries.get(alpha_2=person.country.code)
                 if country:
@@ -188,40 +198,52 @@ class GenerateCardPDF(View):
                     if not flagf.exists():
                         flagf = FLAGDIR / "un.png"
 
-                    flag_image_data = flagf.read_bytes()
-                    img_width, img_height, flag_img = self.contentFit(
-                        flag_image_data, flag_width, flag_height
-                    )
-                    flag_x = (self.card_width * 0.32 - img_width) / 2
-                    flag_y = card_h * 0.4
-                    if flag_img:
-                        canvas.drawImage(
-                            flag_img, flag_x, flag_y, img_width, img_height
-                        )
-            # --- Weight ---
-            if teammember.driver:
-                canvas.setFont("Helvetica-Bold", int(48 * scalefactor + 0.5))
-                weight_text = f"{teammember.weight:.1f} kg"
-                text_width_weight = canvas.stringWidth(
-                    weight_text, "Helvetica-Bold", int(48 * scalefactor + 0.5)
-                )
-                weight_x = qr_x + qr_size + 25 * scaledmm
-                weight_y = qr_y + qr_size  # Adjust for spacing
-                canvas.drawString(weight_x, weight_y, weight_text)
-
-            if teammember.manager:
-                canvas.setFont("Helvetica-Bold", int(32 * scalefactor + 0.5))
-                canvas.setFillColor(darkred)
-                manager_text = "Manager"
-                text_width_manager = canvas.stringWidth(
-                    manager_text, "Helvetica-Bold", int(32 * scalefactor + 0.5)
-                )
-                manager_x = qr_x + qr_size + 25 * scaledmm
-                manager_y = qr_y + qr_size - 125 * scalefactor  # Adjust for spacing
-                canvas.drawString(manager_x, manager_y, manager_text)
+            flag_image_data = flagf.read_bytes()
+            img_width, img_height, flag_img = self.contentFit(
+                flag_image_data, flag_width, flag_height
+            )
+            flag_x = (self.card_width * 0.32 - img_width) / 2
+            flag_y = card_h * 0.4
+            if flag_img:
+                canvas.drawImage(flag_img, flag_x, flag_y, img_width, img_height)
+            nat_y = flag_y - 10 * scaledmm
+            canvas.setFont("Helvetica", int(18 * scalefactor + 0.5))
+            canvas.drawString(flag_x, nat_y, nationality_name)
         except AttributeError as e:
             print(f"Fils de p...: {e}")
             pass
+
+        # --- Weight ---
+        if teammember.driver:
+            canvas.setFont("Helvetica-Bold", int(48 * scalefactor + 0.5))
+            weight_text = f"{teammember.weight:.1f} kg"
+            text_width_weight = canvas.stringWidth(
+                weight_text, "Helvetica-Bold", int(48 * scalefactor + 0.5)
+            )
+            weight_x = qr_x + qr_size + 25 * scaledmm
+            weight_y = qr_y + qr_size  # Adjust for spacing
+            canvas.drawString(weight_x, weight_y, weight_text)
+
+        if teammember.manager:
+            canvas.setFont("Helvetica-Bold", int(32 * scalefactor + 0.5))
+            canvas.setFillColor(darkred)
+            manager_text = "Manager"
+            text_width_manager = canvas.stringWidth(
+                manager_text, "Helvetica-Bold", int(32 * scalefactor + 0.5)
+            )
+            manager_x = qr_x + qr_size + 25 * scaledmm
+            manager_y = qr_y + qr_size - 65 * scalefactor  # Adjust for spacing
+            canvas.drawString(manager_x, manager_y, manager_text)
+        maxtw, maxt = teammember.team.round.driver_time_limit(teammember)
+        if maxtw:
+            maxt_x = qr_x + qr_size + 25 * scaledmm
+            maxt_y = qr_y + qr_size - 125 * scalefactor  #
+            (
+                tl_text
+                + f"{maxtw.title()} driving limit: {(dt.datetime(2025,4,1) + maxt).strftime('%H:%M:%S')}"
+            )
+            canvas.setFont("Helvetica", int(18 * scalefactor + 0.5))
+            canvas.drawString(flag_x, nat_y, tl_text)
 
         canvas.restoreState()
 

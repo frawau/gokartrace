@@ -9,6 +9,7 @@ from django.core.exceptions import (
 )
 from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
+from cryptography.fernet import Fernet
 
 import datetime as dt
 import logging
@@ -107,7 +108,16 @@ class Championship(models.Model):
 
 
 class Round(models.Model):
-
+    LIMIT = (
+        ("none", "No Time Limit"),
+        ("race", "Race Time Limit "),
+        ("session", "Session Time Limit"),
+    )
+    LMETHOD = (
+        ("none", "--"),
+        ("time", "Time in minutes"),
+        ("percent", "Average + N percents"),
+    )
     name = models.CharField(max_length=32)
     championship = models.ForeignKey(Championship, on_delete=models.CASCADE)
     start = models.DateTimeField()
@@ -119,9 +129,33 @@ class Round(models.Model):
     change_lanes = models.IntegerField(
         default=2, validators=[MinValueValidator(1), MaxValueValidator(4)]
     )
-    _max_drive = models.DurationField(null=True, blank=True)
     pitlane_open_after = models.DurationField(default=dt.timedelta(minutes=10))
     pitlane_close_before = models.DurationField(default=dt.timedelta(minutes=10))
+    qr_fernet = models.BinaryField(
+        max_length=64, default=Fernet.generate_key(), editable=False
+    )
+    limit_time = models.CharField(
+        max_length=16,
+        choices=LIMIT,
+        default="race",
+        verbose_name="Maximun Driving Time",
+    )
+    limit_method = models.CharField(
+        max_length=16,
+        choices=LMETHOD,
+        default="percent",
+        verbose_name="Maximun Driving Time Method",
+    )
+    limit_value = models.IntegerField(
+        default=30, verbose_name="Maximun Driving Time Value"
+    )
+    required_changes = models.IntegerField(
+        default=9, verbose_name="Required Driver Changes"
+    )
+    limit_time_min = models.DurationField(
+        default=dt.timedelta(minutes=1),
+        verbose_name="Minimum Driving Time",
+    )
 
     @property
     def ongoing(self):
@@ -386,6 +420,22 @@ class Round(models.Model):
         except MultipleObjectsReturned:
             # Driver is associated with multiple round_teams (unexpected)
             print(f"Driver {driver} is associated with multiple round_teams.")
+
+    def driver_time_limit(self, rteam):
+        """
+        For a team member, calculate the max time driving
+        """
+        if self.limit_time == "none":
+            return None, None
+        if self.limit_method == "none":
+            return None, None
+        if self.limit_method == "time":
+            return self.limit_time, self.limit_value
+        elif self.limit_method == "percent":
+            driver_count = team_member.objects.filter(team=rteam, driver=True).count()
+            maxt = (self.duration / driver_count) * (1 + self.limit_value / 100)
+            return self.limit_time, maxt
+        return None, None
 
     class Meta:
         unique_together = ("championship", "name")
