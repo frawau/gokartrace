@@ -217,19 +217,24 @@ class GenerateCardPDF(View):
 
         # --- Weight ---
         if teammember.driver:
-            canvas.setFont("Helvetica-Bold", int(48 * scalefactor + 0.5))
-            weight_text = f"{teammember.weight:.1f} kg"
-            text_width_weight = canvas.stringWidth(
-                weight_text, "Helvetica-Bold", int(48 * scalefactor + 0.5)
-            )
-            weight_x = qr_x + qr_size + 25 * scaledmm
-            weight_y = qr_y + qr_size  # Adjust for spacing
-            canvas.drawString(weight_x, weight_y, weight_text)
+            wp = teammember.weight_penalty
+            if not wp is None:
+                canvas.setFont("Helvetica-Bold", int(48 * scalefactor + 0.5))
+                pweight_text = f"{wp:.1f} kg"
+                pweight_x = qr_x + qr_size + 25 * scaledmm
+                pweight_y = qr_y + qr_size - 10 * scaledmm  # Adjust for spacing
+                canvas.drawString(pweight_x, pweight_y, pweight_text)
+
+                canvas.setFont("Helvetica", int(18 * scalefactor + 0.5))
+                weight_text = f"Weight {teammember.weight:.1f} kg"
+                weight_x = pweight_x
+                weight_y = pweight_y - 0.7 * scaledmm  # Adjust for spacing
+                canvas.drawString(weight_x, weight_y, weight_text)
 
         maxtw, maxt = teammember.team.round.driver_time_limit(team)
         if maxtw:
-            maxt_x = x_nick
-            maxt_y = qr_y
+            maxt_x = x_nick - 10 * scaledmm
+            maxt_y = qr_y - 7 * scaledmm
             tl_text = f"{maxtw.title()} driving limit: {(dt.datetime(2025,4,1) + maxt).strftime('%H:%M:%S')}"
             canvas.setFont("Helvetica", int(18 * scalefactor + 0.5))
             canvas.drawString(maxt_x, maxt_y, tl_text)
@@ -242,7 +247,7 @@ class GenerateCardPDF(View):
                 manager_text, "Helvetica-Bold", int(32 * scalefactor + 0.5)
             )
             manager_x = qr_x + qr_size + 25 * scaledmm
-            manager_y = qr_y + qr_size - 12 * scaledmm  # Adjust for spacing
+            manager_y = qr_y + qr_size - 25 * scaledmm  # Adjust for spacing
             canvas.drawString(manager_x, manager_y, manager_text)
 
         canvas.restoreState()

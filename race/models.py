@@ -122,18 +122,11 @@ class Round(models.Model):
     championship = models.ForeignKey(Championship, on_delete=models.CASCADE)
     start = models.DateTimeField()
     duration = models.DurationField()
-    ready = models.BooleanField(default=False)
-    started = models.DateTimeField(null=True, blank=True)
-    ended = models.DateTimeField(null=True, blank=True)
-    paused = models.BooleanField(default=False)
     change_lanes = models.IntegerField(
         default=2, validators=[MinValueValidator(1), MaxValueValidator(4)]
     )
     pitlane_open_after = models.DurationField(default=dt.timedelta(minutes=10))
     pitlane_close_before = models.DurationField(default=dt.timedelta(minutes=10))
-    qr_fernet = models.BinaryField(
-        max_length=64, default=Fernet.generate_key(), editable=False
-    )
     limit_time = models.CharField(
         max_length=16,
         choices=LIMIT,
@@ -155,6 +148,19 @@ class Round(models.Model):
     limit_time_min = models.DurationField(
         default=dt.timedelta(minutes=1),
         verbose_name="Minimum Driving Time",
+    )
+    weight_penalty = models.JSONField(
+        default=list,
+        null=True,
+        help_text="Weight penalty configuration in format: [[upper_limit1,operator, value1], [upper_limit2, operator, value2], ...]",
+    )
+    # No user serviceable parts below
+    ready = models.BooleanField(default=False)
+    started = models.DateTimeField(null=True, blank=True)
+    ended = models.DateTimeField(null=True, blank=True)
+    paused = models.BooleanField(default=False)
+    qr_fernet = models.BinaryField(
+        max_length=64, default=Fernet.generate_key(), editable=False
     )
 
     @property
@@ -437,6 +443,54 @@ class Round(models.Model):
             return self.limit_time, maxt
         return None, None
 
+    def clean(self):
+        super().clean()  # Call the parent class's clean method
+
+        if self.weight_penalty:
+            operatorok = False
+            for arule in self.weight_penalty:
+                if (
+                    isinstance(arule, list)
+                    and len(arule) == 2
+                    and isinstance(arule[0], (int, float))
+                    and isinstance(arule[1], (int, float))
+                ):
+                    continue
+                if (
+                    isinstance(arule, str)
+                    and arule in [">=", "<=", ">", "<"]
+                    and not operatorok
+                ):
+                    operatorok = True
+                    continue
+                raise ValidationError(
+                    "Only one operator is allowed for weight penalty. All others must be numeric lists of the form [<weight limit>, <penalty>]"
+                )
+            if not operatorok:
+                raise ValidationError(
+                    "Weight penaly must have an operator in >=, <=, > or <"
+                )
+
+    def save(self, *args, **kwargs):
+        rules = self.weight_penalty
+        operator = None
+        newrules = []
+        for arule in rules:
+            if isinstance(arules, list):
+                newrules.append(arule)
+            else:
+                operator = arule
+
+        if operator in [">=", ">"]:
+            newrules.sort(key=lambda item: item[0], reverse=True)
+        else:
+            newrules.sort(key=lambda item: item[0])
+
+        # Reconstruct the list with the operator and sorted pairs
+        self.weight_penalty = [operator] + newrules
+
+        super().save(*args, **kwargs)
+
     class Meta:
         unique_together = ("championship", "name")
         verbose_name = _("Round")
@@ -595,6 +649,26 @@ class team_member(models.Model):
 
     def __str__(self):
         return f"{self.member.nickname} for {self.team.team} in {self.team.round}"
+
+    @property
+    def weigth_penalty(self):
+        rules = self.team.round.weight_penalty
+        if not rules:
+            return None
+        oper = rules[0]
+        rules = rules[1:]
+        if oper == ">":
+            checkme = lambda x, y: x > y
+        elif oper == ">=":
+            checkme = lambda x, y: x >= y
+        elif oper == "<":
+            checkme = lambda x, y: x < y
+        else:
+            checkme = lambda x, y: x <= y
+
+        for l, v in rules:
+            if checkme(self.weight, l):
+                return v
 
 
 class Session(models.Model):
