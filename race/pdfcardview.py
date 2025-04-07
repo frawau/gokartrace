@@ -58,7 +58,7 @@ class GenerateCardPDF(View):
 
     def draw_drivercard(self, canvas, teammember, x, y):
         """This card is designed for A5, with a 3mm margin. Let's scale things"""
-        scalefactor = self.card[0] / pagesz.A5[0]
+        scalefactor = self.card_width / pagesz.A5[0]
         scaledmm = mm * scalefactor
         margin = 3 * scaledmm
         canvas.saveState()
