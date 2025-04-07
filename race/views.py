@@ -301,17 +301,22 @@ def add_driver_to_queue(request):
         tmember = team_member.objects.get(pk=tmpk)
         # Process the data and perform the desired actions
         result = {
-            "message": "Data received and processed successfully",
-            "received_data": tmember.member.name,
+            "message": "Data received and processed successfully: {tmember.member.name}",
+            "status": "ok",
         }
+        # print(result)
         return Response(result, status=status.HTTP_200_OK)
 
     except json.JSONDecodeError:
         return Response(
-            {"error": "Invalid JSON data"}, status=status.HTTP_400_BAD_REQUEST
+            {"status": "error", "message": "Invalid JSON data"},
+            status=status.HTTP_400_BAD_REQUEST,
         )
     except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(
+            {"status": "error", "message": f"Exception: {e}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
 
 @api_view(["POST"])
