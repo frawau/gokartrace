@@ -169,7 +169,7 @@ class GenerateCardPDF(View):
         canvas.drawString(x_full, y_full, full_name)
 
         # --- QR Code ---
-        docrypt = Fernet(cround.qr_fernet)
+        docrypt = Fernet(teammember.team.round.qr_fernet)
         qr_data = json.dumps(
             {
                 "info": f"{person.nickname}\n{team.name}",
