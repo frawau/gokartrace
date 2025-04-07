@@ -228,7 +228,7 @@ class GenerateCardPDF(View):
 
         maxtw, maxt = teammember.team.round.driver_time_limit(team)
         if maxtw:
-            maxt_x = qr_x + qr_size + 25 * scaledmm
+            maxt_x = x_nick
             maxt_y = qr_y
             tl_text = f"{maxtw.title()} driving limit: {(dt.datetime(2025,4,1) + maxt).strftime('%H:%M:%S')}"
             canvas.setFont("Helvetica", int(18 * scalefactor + 0.5))
