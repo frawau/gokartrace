@@ -2,7 +2,7 @@ import datetime as dt
 import pycountry
 from langdetect import detect, LangDetectException
 from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A6, A5, A4, A3
+import reportlab.lib.pagesizes as pagesz
 from reportlab.lib.units import mm
 from reportlab.lib.colors import black, darkred, white
 from reportlab.pdfbase import pdfmetrics
@@ -18,7 +18,7 @@ from pathlib import Path
 from io import BytesIO
 from pathlib import Path
 
-from .models import Round, Person, team_member
+from .models import Round, Person, team_member, Config
 
 FLAGDIR = Path("/home/llama/gokartrace/static/flags")
 LOGOIMG = Path("/home/llama/gokartrace/static/logos/gokartrace-logo.jpg")
@@ -27,7 +27,7 @@ LOGOIMG = Path("/home/llama/gokartrace/static/logos/gokartrace-logo.jpg")
 class GenerateCardPDF(View):
     card_width = A5[0]
     card_height = A5[1]
-    margin = 3 * mm
+    rotate = True
 
     def contentFit(self, image_data, max_width, max_height):
         try:
@@ -56,15 +56,18 @@ class GenerateCardPDF(View):
             fontsize -= 1
         return fontsize
 
-    def draw_drivercard(
-        self, canvas, teammember, x, y, card_w, card_h, scaledmm=mm, rotate=True
-    ):
-        """This card is designed for A5, if printed on A4 ut needs to be rotated"""
+    def draw_drivercard(self, canvas, teammember, x, y):
+        """This card is designed for A5, with a 3mm margin. Let's scale things"""
+        scalefactor = self.card[0] / pagesz.A5[0]
+        scaledmm = mm * scalefactor
+        margin = 3 * scaledmm
         canvas.saveState()
-        if rotate:
+        if self.rotate:
             canvas.rotate(90)
             canvas.translate(0, -self.card_height)
-        canvas.translate(x, y)
+        canvas.translate(x + margin, y + margin)
+        card_w = self.card_width - 2 * margin
+        card_h = self.card_height - 2 * margin
         # canvas.rect(0, 0, card_w, card_h)  # Optional: Draw border
 
         person = teammember.member
@@ -72,7 +75,9 @@ class GenerateCardPDF(View):
 
         # --- Team Name at the Top ---
         team_name = team.name if team.name else "Team Name"
-        ftsz = self.textFit(team_name, canvas, card_w, 32, "Helvetica-Bold")
+        ftsz = self.textFit(
+            team_name, canvas, card_w, int(32 * scalefactor + 0.5), "Helvetica-Bold"
+        )
         text_width_team = canvas.stringWidth(team_name, "Helvetica-Bold", ftsz)
         x_team = (card_w - text_width_team) / 2
         canvas.setFont("Helvetica-Bold", ftsz)
@@ -123,7 +128,13 @@ class GenerateCardPDF(View):
         x_nick = mugshot_x - 20 * scaledmm
         y_nick = mugshot_y - 30 * scaledmm  # Adjust for spacing
         nickname = person.nickname if person.nickname else "N/A"
-        sz = self.textFit(nickname, canvas, card_w - x_nick, 48, "Helvetica-Bold")
+        sz = self.textFit(
+            nickname,
+            canvas,
+            card_w - x_nick,
+            int(48 * scalefactor + 0.5),
+            "Helvetica-Bold",
+        )
         canvas.setFont("Helvetica-Bold", sz)
         canvas.drawString(x_nick, y_nick, nickname)
 
@@ -147,7 +158,9 @@ class GenerateCardPDF(View):
 
         x_full = mugshot_x - 20 * scaledmm
         y_full = y_nick - 5 - 42  # Adjust for spacing
-        ftsz = self.textFit(full_name, canvas, card_w - x_full, 24, ufont)
+        ftsz = self.textFit(
+            full_name, canvas, card_w - x_full, int(24 * scalefactor + 0.5), ufont
+        )
         canvas.setFont(ufont, ftsz)
         canvas.drawString(x_full, y_full, full_name)
 
@@ -161,8 +174,8 @@ class GenerateCardPDF(View):
             qr_code.drawOn(canvas, qr_x, qr_y)
 
         # --- Flag and Weight ---
-        flag_width = 30 * scaledmm
-        flag_height = 20 * scaledmm
+        flag_width = 37 * scaledmm
+        flag_height = 25 * scaledmm
 
         nationality_name = "N/A"
         try:
@@ -192,7 +205,7 @@ class GenerateCardPDF(View):
                     weight_text, "Helvetica-Bold", 48
                 )
                 weight_x = qr_x + qr_size + 25 * scaledmm
-                weight_y = qr_y + qr_size - 5 - 60  # Adjust for spacing
+                weight_y = qr_y + qr_size  # Adjust for spacing
                 canvas.drawString(weight_x, weight_y, weight_text)
 
             if teammember.manager:
@@ -209,24 +222,35 @@ class GenerateCardPDF(View):
             print(f"Fils de p...: {e}")
             pass
 
-
             canvas.restoreState()
 
-    def get(self, request, pk):
+    def ready_canvas(self):
+        sizelist = {
+            "A0": pagesz.A0,
+            "A1": pagesz.A1,
+            "A2": pagesz.A2,
+            "A3": pagesz.A3,
+            "A4": pagesz.A4,
+            "A5": pagesz.A5,
+            "A6": pagesz.A6,
+        }
+        pagea = Config.objects.filter(name="page size").first() or "A4"
+        carda = Config.objects.filter(name="card size").first() or "A6"
+        pageanum = int(pagea[1])
+        cardanum = int(carda[1])
+        if pageanum < cardanum:
+            raise Exception("Wrong configuration. The card won't fit on the page.")
 
-        end_date = dt.date.today()
-        start_date = end_date - dt.timedelta(days=3)
-        cround = Round.objects.filter(
-            Q(start__date__range=[start_date, end_date]) & Q(started__isnull=True)
-        ).first()
+        self.card_width = sizelist[carda][0]
+        self.card_height = sizelist[carda][1]
+        # We expect bpth the card and page to follow ISO formats
+        if (pageanum + cardanum) % 2:
+            self.rotate = True
+        else:
+            self.rotate = False
 
-        filename = f"card_{round(dt.datetime.now().timestamp())}.pdf"
-        response = HttpResponse(content_type="application/pdf")
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
-
-        # Create a PDF in memory
         buffer = BytesIO()
-        p = canvas.Canvas(buffer, pagesize=A4)  # Use A4 for 2 cards
+        p = canvas.Canvas(buffer, pagesize=sizelist[pagea])  # Use A4 for 2 cards
         pdfmetrics.registerFont(
             TTFont("THFont", "/usr/local/share/fonts/NotoSansThai-Regular.ttf")
         )
@@ -242,14 +266,31 @@ class GenerateCardPDF(View):
         pdfmetrics.registerFont(
             TTFont("ENFont", "/usr/local/share/fonts/NotoSans-Regular.ttf")
         )
-        scaledmm = 0.5 * mm
-        self.margin = 3 * scaledmm
-        self.card_width = A6[0]
-        self.card_height = A6[1]
-        cards_per_row = 2
-        cards_per_col = 2
-        card_spacing_x = 0 * scaledmm
-        card_spacing_y = 0 * scaledmm
+        return p
+
+    def get(self, request, pk):
+
+        end_date = dt.date.today()
+        start_date = end_date - dt.timedelta(days=3)
+        cround = Round.objects.filter(
+            Q(start__date__range=[start_date, end_date]) & Q(started__isnull=True)
+        ).first()
+        if cround is None:
+            return render(request, "pages/norace.html")
+
+        filename = f"card_{round(dt.datetime.now().timestamp())}.pdf"
+        response = HttpResponse(content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+        # Create a PDF in memory
+        p = self.ready_canvas()
+        pagesize = p._pagesize
+        if self.rotate:
+            cards_per_row = int(pagesize[1] / self.card_width)
+            cards_per_col = int(pagesize[0] / self.card_height)
+        else:
+            cards_per_row = int(pagesize[1] / self.card_height)
+            cards_per_col = int(pagesize[0] / self.card_width)
 
         longpk = pk
         currow = 0
@@ -265,19 +306,15 @@ class GenerateCardPDF(View):
                 print("Error: Person not found in a current team.")
                 continue
             # Calculate the position for the card on the A4 sheet
-            x_offset = self.card_width * curcol + self.margin
-            y_offset = self.card_height * currow + self.margin
+            x_offset = self.card_width * curcol
+            y_offset = self.card_height * currow
 
-            # Draw the first card
+            # Draw the card
             self.draw_drivercard(
                 p,
                 tm,
                 x_offset,
                 y_offset,
-                self.card_width - 2 * self.margin,
-                self.card_height - 2 * self.margin,
-                scaledmm,
-                False,
             )
             curcol = (curcol + 1) % cards_per_col
             if curcol == 0:

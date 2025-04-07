@@ -33,6 +33,17 @@ class UserProfile(models.Model):
         verbose_name_plural = _("User Profiles")
 
 
+class Config(models.Model):
+    name = models.CharField(max_length=128, unique=True)
+    value = models.CharField(max_length=128)
+
+    class Meta:
+        verbose_name = _("Configuration")
+
+    def __str__(self):
+        return f"Config {self.name} is {self.value}"
+
+
 def mugshot_path(instance, filename):
     # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
     return f"static/person/mug_{instance.surname}_{instance.country}_{round(dt.datetime.now().timestamp())}"
