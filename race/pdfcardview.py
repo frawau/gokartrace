@@ -222,7 +222,7 @@ class GenerateCardPDF(View):
             print(f"Fils de p...: {e}")
             pass
 
-            canvas.restoreState()
+        canvas.restoreState()
 
     def ready_canvas(self):
         sizelist = {
