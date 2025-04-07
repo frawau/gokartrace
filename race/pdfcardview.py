@@ -226,6 +226,14 @@ class GenerateCardPDF(View):
             weight_y = qr_y + qr_size  # Adjust for spacing
             canvas.drawString(weight_x, weight_y, weight_text)
 
+        maxtw, maxt = teammember.team.round.driver_time_limit(team)
+        if maxtw:
+            maxt_x = qr_x + qr_size + 25 * scaledmm
+            maxt_y = qr_y + qr_size - 125 * scaledmm  #
+            tl_text = f"{maxtw.title()} driving limit: {(dt.datetime(2025,4,1) + maxt).strftime('%H:%M:%S')}"
+            canvas.setFont("Helvetica", int(18 * scalefactor + 0.5))
+            canvas.drawString(flag_x, nat_y, tl_text)
+
         if teammember.manager:
             canvas.setFont("Helvetica-Bold", int(32 * scalefactor + 0.5))
             canvas.setFillColor(darkred)
@@ -234,15 +242,8 @@ class GenerateCardPDF(View):
                 manager_text, "Helvetica-Bold", int(32 * scalefactor + 0.5)
             )
             manager_x = qr_x + qr_size + 25 * scaledmm
-            manager_y = qr_y + qr_size - 65 * scalefactor  # Adjust for spacing
+            manager_y = qr_y + qr_size - 65 * scaledmm  # Adjust for spacing
             canvas.drawString(manager_x, manager_y, manager_text)
-        maxtw, maxt = teammember.team.round.driver_time_limit(team)
-        if maxtw:
-            maxt_x = qr_x + qr_size + 25 * scaledmm
-            maxt_y = qr_y + qr_size - 125 * scalefactor  #
-            tl_text = f"{maxtw.title()} driving limit: {(dt.datetime(2025,4,1) + maxt).strftime('%H:%M:%S')}"
-            canvas.setFont("Helvetica", int(18 * scalefactor + 0.5))
-            canvas.drawString(flag_x, nat_y, tl_text)
 
         canvas.restoreState()
 
