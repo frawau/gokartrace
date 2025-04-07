@@ -62,9 +62,11 @@ class GenerateCardPDF(View):
         scaledmm = mm * scalefactor
         margin = 3 * scaledmm
         canvas.saveState()
+        canvas.translate(x, y)
         if self.rotate:
             canvas.rotate(90)
             canvas.translate(0, -self.card_height)
+        canvas.translate(margin, margin)
         canvas.translate(x + margin, y + margin)
         card_w = self.card_width - 2 * margin
         card_h = self.card_height - 2 * margin
@@ -199,24 +201,24 @@ class GenerateCardPDF(View):
                         )
             # --- Weight ---
             if teammember.driver:
-                canvas.setFont("Helvetica-Bold", int(48*scalefactor + 0.5))
+                canvas.setFont("Helvetica-Bold", int(48 * scalefactor + 0.5))
                 weight_text = f"{teammember.weight:.1f} kg"
                 text_width_weight = canvas.stringWidth(
-                    weight_text, "Helvetica-Bold", int(48*scalefactor + 0.5)
+                    weight_text, "Helvetica-Bold", int(48 * scalefactor + 0.5)
                 )
                 weight_x = qr_x + qr_size + 25 * scaledmm
                 weight_y = qr_y + qr_size  # Adjust for spacing
                 canvas.drawString(weight_x, weight_y, weight_text)
 
             if teammember.manager:
-                canvas.setFont("Helvetica-Bold", int(32*scalefactor +0.5))
+                canvas.setFont("Helvetica-Bold", int(32 * scalefactor + 0.5))
                 canvas.setFillColor(darkred)
                 manager_text = "Manager"
                 text_width_manager = canvas.stringWidth(
-                    manager_text, "Helvetica-Bold", int(32*scalefactor +0.5)
+                    manager_text, "Helvetica-Bold", int(32 * scalefactor + 0.5)
                 )
                 manager_x = qr_x + qr_size + 25 * scaledmm
-                manager_y = qr_y + qr_size - 125*scalefactor  # Adjust for spacing
+                manager_y = qr_y + qr_size - 125 * scalefactor  # Adjust for spacing
                 canvas.drawString(manager_x, manager_y, manager_text)
         except AttributeError as e:
             print(f"Fils de p...: {e}")
