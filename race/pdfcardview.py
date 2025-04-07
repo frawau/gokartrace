@@ -157,7 +157,7 @@ class GenerateCardPDF(View):
             ufont = "ENFont"
 
         x_full = mugshot_x - 20 * scaledmm
-        y_full = y_nick - 5 - 42  # Adjust for spacing
+        y_full = y_nick - 47 * scalefactor  # Adjust for spacing
         ftsz = self.textFit(
             full_name, canvas, card_w - x_full, int(24 * scalefactor + 0.5), ufont
         )
@@ -199,24 +199,24 @@ class GenerateCardPDF(View):
                         )
             # --- Weight ---
             if teammember.driver:
-                canvas.setFont("Helvetica-Bold", 48)
+                canvas.setFont("Helvetica-Bold", int(48*scalefactor + 0.5))
                 weight_text = f"{teammember.weight:.1f} kg"
                 text_width_weight = canvas.stringWidth(
-                    weight_text, "Helvetica-Bold", 48
+                    weight_text, "Helvetica-Bold", int(48*scalefactor + 0.5)
                 )
                 weight_x = qr_x + qr_size + 25 * scaledmm
                 weight_y = qr_y + qr_size  # Adjust for spacing
                 canvas.drawString(weight_x, weight_y, weight_text)
 
             if teammember.manager:
-                canvas.setFont("Helvetica-Bold", 32)
+                canvas.setFont("Helvetica-Bold", int(32*scalefactor +0.5))
                 canvas.setFillColor(darkred)
                 manager_text = "Manager"
                 text_width_manager = canvas.stringWidth(
-                    manager_text, "Helvetica-Bold", 32
+                    manager_text, "Helvetica-Bold", int(32*scalefactor +0.5)
                 )
                 manager_x = qr_x + qr_size + 25 * scaledmm
-                manager_y = qr_y + qr_size - 5 - 60 - 60  # Adjust for spacing
+                manager_y = qr_y + qr_size - 125*scalefactor  # Adjust for spacing
                 canvas.drawString(manager_x, manager_y, manager_text)
         except AttributeError as e:
             print(f"Fils de p...: {e}")
