@@ -312,8 +312,12 @@ class GenerateCardPDF(View):
                 print("Error: Person not found in a current team.")
                 continue
             # Calculate the position for the card on the A4 sheet
-            x_offset = self.card_width * curcol
-            y_offset = self.card_height * currow
+            if self.rotate:
+                x_offset = self.card_height * curcol
+                y_offset = self.card_width * currow
+            else:
+                x_offset = self.card_width * curcol
+                y_offset = self.card_height * currow
 
             # Draw the card
             self.draw_drivercard(
