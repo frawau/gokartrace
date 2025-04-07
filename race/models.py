@@ -651,7 +651,7 @@ class team_member(models.Model):
         return f"{self.member.nickname} for {self.team.team} in {self.team.round}"
 
     @property
-    def weigth_penalty(self):
+    def weight_penalty(self):
         rules = self.team.round.weight_penalty
         if not rules:
             return None
