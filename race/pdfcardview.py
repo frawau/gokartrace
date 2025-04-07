@@ -16,12 +16,11 @@ from django.shortcuts import get_object_or_404
 from django.views import View
 from django.conf import settings
 from pathlib import Path
-from cryptography.fernet import Fernet
-from base64 import b64encode
 from io import BytesIO
 from pathlib import Path
 
 from .models import Round, Person, team_member, Config
+from .utils import dataencode
 
 FLAGDIR = Path("/home/llama/gokartrace/static/flags")
 LOGOIMG = Path("/home/llama/gokartrace/static/logos/gokartrace-logo.jpg")
@@ -173,9 +172,7 @@ class GenerateCardPDF(View):
         qr_data = json.dumps(
             {
                 "info": f"{person.nickname}\n{team.name}",
-                "data": b64encode(docrypt.encrypt(str(teammember.pk).encode())).decode(
-                    "ascii"
-                ),
+                "data": dataencode(teammember.team.round, teammember.pk),
             }
         )
         qr_size = card_h * 0.2

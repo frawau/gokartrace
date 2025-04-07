@@ -3,6 +3,7 @@
 Copyright (c) 2019 - present AppSeed.us
 """
 import datetime as dt
+import json
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate
@@ -28,9 +29,11 @@ from .models import (
     Round,
     championship_team,
     round_team,
+    team_member,
     ChangeLane,
 )
 from .serializers import ChangeLaneSerializer
+from .utils import datadecode
 
 # Create your views here.
 
@@ -287,11 +290,19 @@ def add_driver_to_queue(request):
     API endpoint that requires authentication using a token.
     """
     try:
-        data = json.loads(request.body)  # or request.data if using DRF parsers
+        end_date = dt.date.today()
+        start_date = end_date - dt.timedelta(days=1)
+        cround = Round.objects.filter(
+            Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
+        ).first()
+        payload = json.loads(request.body)  # or request.data if using DRF parsers
+
+        tmpk = datadecode(payload["data"])
+        tmember = team_member.objects.get(pk=tmpk)
         # Process the data and perform the desired actions
         result = {
             "message": "Data received and processed successfully",
-            "received_data": data,
+            "received_data": tmember.member.name,
         }
         return Response(result, status=status.HTTP_200_OK)
 
