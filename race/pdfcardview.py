@@ -272,7 +272,7 @@ class GenerateCardPDF(View):
         pdfmetrics.registerFont(
             TTFont("ENFont", "/usr/local/share/fonts/NotoSans-Regular.ttf")
         )
-        return p
+        return p, buffer
 
     def get(self, request, pk):
 
@@ -289,7 +289,7 @@ class GenerateCardPDF(View):
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
         # Create a PDF in memory
-        p = self.ready_canvas()
+        p, buffer = self.ready_canvas()
         pagesize = p._pagesize
         if self.rotate:
             cards_per_row = int(pagesize[1] / self.card_width)
