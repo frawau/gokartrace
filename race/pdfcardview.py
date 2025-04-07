@@ -234,7 +234,7 @@ class GenerateCardPDF(View):
             manager_x = qr_x + qr_size + 25 * scaledmm
             manager_y = qr_y + qr_size - 65 * scalefactor  # Adjust for spacing
             canvas.drawString(manager_x, manager_y, manager_text)
-        maxtw, maxt = teammember.team.round.driver_time_limit(teammember)
+        maxtw, maxt = teammember.team.round.driver_time_limit(team)
         if maxtw:
             maxt_x = qr_x + qr_size + 25 * scaledmm
             maxt_y = qr_y + qr_size - 125 * scalefactor  #
