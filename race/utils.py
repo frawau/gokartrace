@@ -10,4 +10,4 @@ def dataencode(cround, data):
 
 def datadecode(cround, data):
     docrypt = Fernet(cround.qr_fernet)
-    return int(docrtpt.decrypt(b64decode(data.encode())))
+    return int(docrypt.decrypt(b64decode(data.encode())))
