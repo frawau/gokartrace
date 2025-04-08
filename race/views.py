@@ -301,7 +301,7 @@ def add_driver_to_queue(request):
         tmember = team_member.objects.get(pk=tmpk)
         # Process the data and perform the desired actions
         result = {
-            "message": "Data received and processed successfully: {tmember.member.name}",
+            "message": f"Data received and processed successfully: {tmember.member.name}",
             "status": "ok",
         }
         # print(result)
