@@ -32,6 +32,10 @@ urlpatterns = [
     path("agent_login/", views.agent_login, name="Agent Login"),
     path("driver_queue/", views.add_driver_to_queue, name="Driver Queue"),
     path("driver_change/", views.change_kart_driver, name="Agent Login"),
+    # Admin stuffs
+    path("rounds/edit/", views.round_edit, name="round_edit"),
+    path("rounds/load/<int:round_id>/", views.load_round_data, name="load_round_data"),
+    path("rounds/update/<int:round_id>/", views.update_round, name="update_round"),
     # Debug stuffs
     path("trylogin/", views.try_login, name="Agent Login"),
 ]

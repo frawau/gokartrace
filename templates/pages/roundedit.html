@@ -1,0 +1,235 @@
+{% extends 'layout/sabase.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card">
+        <div class="card-header">
+            <h4 class="card-title">Edit Round</h4>
+        </div>
+        <div class="card-body">
+            <form id="roundForm" hx-post="{% url 'update_round' 0 %}" hx-target="#form-messages" hx-swap="outerHTML">
+                <div id="form-messages"></div>
+                <div class="form-group">
+                    <label for="roundSelect">Select Round</label>
+                    <select class="form-control" id="roundSelect" name="round_id" hx-get="" hx-target="#roundForm" hx-swap="outerHTML">
+                        <option value="">-- Select Round --</option>
+                        {% for round in rounds %}
+                            <option value="{{ round.id }}">{{ round.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div id="roundDetails" style="display: none;">
+                    <div class="form-group">
+                        <label for="name">Name</label>
+                        <input type="text" class="form-control" id="name" name="name">
+                    </div>
+                    <div class="form-group">
+                        <label for="start">Start</label>
+                        <input type="datetime-local" class="form-control" id="start" name="start">
+                    </div>
+                    <div class="form-group">
+                        <label for="duration">Duration</label>
+                        <input type="text" class="form-control" id="duration" name="duration">
+                    </div>
+                    <div class="form-group">
+                        <label for="change_lanes">Change Lanes</label>
+                        <input type="number" class="form-control" id="change_lanes" name="change_lanes">
+                    </div>
+                    <div class="form-group">
+                        <label for="pitlane_open_after">Pitlane Open After</label>
+                        <input type="text" class="form-control" id="pitlane_open_after" name="pitlane_open_after">
+                    </div>
+                    <div class="form-group">
+                        <label for="pitlane_close_before">Pitlane Close Before</label>
+                        <input type="text" class="form-control" id="pitlane_close_before" name="pitlane_close_before">
+                    </div>
+                    <div class="form-group">
+                        <label for="limit_time">Maximun Driving Time</label>
+                        <select class="form-control" id="limit_time" name="limit_time">
+                            {% for key, value in Round.LIMIT %}
+                                <option value="{{ key }}">{{ value }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="limit_method">Maximun Driving Time Method</label>
+                        <select class="form-control" id="limit_method" name="limit_method">
+                            {% for key, value in Round.LMETHOD %}
+                                <option value="{{ key }}">{{ value }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="limit_value">Maximun Driving Time Value</label>
+                        <input type="number" class="form-control" id="limit_value" name="limit_value">
+                    </div>
+                    <div class="form-group">
+                        <label for="required_changes">Required Driver Changes</label>
+                        <input type="number" class="form-control" id="required_changes" name="required_changes">
+                    </div>
+                    <div class="form-group">
+                        <label for="limit_time_min">Minimum Driving Time</label>
+                        <input type="text" class="form-control" id="limit_time_min" name="limit_time_min">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Weight Penalty</label>
+                        <div id="weight-penalty-container">
+                            <div class="d-flex align-items-center mb-2">
+                                <select class="form-control mr-2" id="weight-operator" name="weight_operator">
+                                    <option value=">=">&gt;=</option>
+                                    <option value="<=">&lt;=</option>
+                                    <option value=">">&gt;</option>
+                                    <option value="<">&lt;</option>
+                                    <option value="==">==</option>
+                                </select>
+                                <button type="button" class="btn btn-success btn-sm add-pair" style="margin-left: 10px;">Add Pair</button>
+                            </div>
+                            <div id="weight-penalty-pairs">
+                                <div class="weight-penalty-pair mb-2">
+                                    <input type="number" class="form-control weight-input mr-2" name="weight[]" placeholder="Weight">
+                                    <input type="number" class="form-control penalty-input mr-2" name="penalty[]" placeholder="Penalty">
+                                    <button type="button" class="btn btn-danger btn-sm remove-pair">Remove</button>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="weight_penalty" name="weight_penalty">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Update</button>
+                    <button type="button" class="btn btn-secondary" id="cancel-button">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        const roundSelect = $('#roundSelect');
+        const roundDetails = $('#roundDetails');
+        const weightPenaltyContainer = $('#weight-penalty-container');
+        const weightPenaltyPairs = $('#weight-penalty-pairs');
+        const weightOperatorSelect = $('#weight-operator');
+        const weightPenaltyHiddenInput = $('#weight_penalty');
+        const form = $('#roundForm');
+        const initialFormData = form.serializeArray();
+
+        // Function to load Round data
+        function loadRoundData(roundId) {
+            if (!roundId) {
+                roundDetails.hide();
+                return;
+            }
+
+            $.ajax({
+                url: `/rounds/load/${roundId}/`, // Django URL
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    $('#name').val(data.name);
+                    $('#start').val(data.start);
+                    $('#duration').val(data.duration);
+                    $('#change_lanes').val(data.change_lanes);
+                    $('#pitlane_open_after').val(data.pitlane_open_after);
+                    $('#pitlane_close_before').val(data.pitlane_close_before);
+                    $('#limit_time').val(data.limit_time);
+                    $('#limit_method').val(data.limit_method);
+                    $('#limit_value').val(data.limit_value);
+                    $('#required_changes').val(data.required_changes);
+                    $('#limit_time_min').val(data.limit_time_min);
+                    // Handle weight_penalty
+                    weightPenaltyPairs.empty();
+                    let weightPenalty = JSON.parse(data.weight_penalty);
+                    if (weightPenalty && weightPenalty.length > 1) {
+                        weightOperatorSelect.val(weightPenalty[0]);
+                        for (let i = 1; i < weightPenalty.length; i++) {
+                            addWeightPenaltyPair(weightPenalty[i][0], weightPenalty[i][1]);
+                        }
+                    } else {
+                        addWeightPenaltyPair(); // Add at least one pair
+                    }
+                    roundDetails.show();
+                    // Store initial form data for cancel
+                    initialFormData = form.serializeArray();
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error loading round data:", error);
+                    alert("Failed to load round data.");
+                }
+            });
+        }
+
+        // Function to add a weight/penalty pair
+        function addWeightPenaltyPair(initialWeight = '', initialPenalty = '') {
+            const pairDiv = $('<div class="weight-penalty-pair mb-2">');
+            const weightInput = $('<input type="number" class="form-control weight-input mr-2" name="weight[]" placeholder="Weight">').val(initialWeight);
+            const penaltyInput = $('<input type="number" class="form-control penalty-input mr-2" name="penalty[]" placeholder="Penalty">').val(initialPenalty);
+            const removeButton = $('<button type="button" class="btn btn-danger btn-sm remove-pair">Remove</button>');
+
+            pairDiv.append(weightInput, penaltyInput, removeButton);
+            weightPenaltyPairs.append(pairDiv);
+
+            removeButton.click(function() {
+                $(this).parent().remove();
+            });
+        }
+
+        // Event listener for Round selection
+        roundSelect.change(function() {
+            const roundId = $(this).val();
+            // Update the form's action URL dynamically
+            form.attr('hx-post', `/rounds/update/${roundId}/`);
+            loadRoundData(roundId);
+        });
+
+        // Event listener for adding weight/penalty pairs
+        weightPenaltyContainer.on('click', '.add-pair', function() {
+            addWeightPenaltyPair();
+        });
+
+        // Event listener for removing weight/penalty pairs
+        weightPenaltyContainer.on('click', '.remove-pair', function() {
+            $(this).parent().remove();
+        });
+
+        // Event listener for form submission (htmx handles this)
+
+        // Event listener for cancel button
+        $('#cancel-button').click(function() {
+            // Reset form to initial state
+            form.find("input, select").each(function(index, element) {
+                $(element).val(initialFormData[index].value);
+            });
+            // Reload weight penalty
+            loadRoundData(roundSelect.val());
+        });
+
+        // Initial load if a round is pre-selected (e.g., on page reload)
+        if (roundSelect.val()) {
+            loadRoundData(roundSelect.val());
+        }
+
+        // Event listener to serialize the weight penalty data before form submission
+        form.submit(function(event) {
+            event.preventDefault(); // Prevent default form submission
+            const operator = weightOperatorSelect.val();
+            const pairs = [];
+            weightPenaltyPairs.find('.weight-penalty-pair').each(function() {
+                const weight = parseFloat($(this).find('.weight-input').val());
+                const penalty = parseFloat($(this).find('.penalty-input').val());
+                if (!isNaN(weight) && !isNaN(penalty)) {
+                    pairs.push([weight, penalty]);
+                }
+            });
+            weightPenaltyHiddenInput.val(JSON.stringify([operator, ...pairs]));
+            // Now let htmx do its job
+            htmx.ajax('POST', form.attr('hx-post'), {swap: 'outerHTML', target: '#form-messages', values: form.serializeArray()});
+        });
+    });
+</script>
+{% endblock %}

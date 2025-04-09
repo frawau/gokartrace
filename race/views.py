@@ -9,6 +9,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
+from django.urls import reverse
 from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
@@ -345,3 +346,56 @@ def change_kart_driver(request):
 def try_login(request):
 
     return render(request, "pages/tryagentlogin.html")
+
+
+def round_edit(request):
+    end_date = dt.date.today().replace(month=12).replace(day=31)
+    start_date = dt.date.today().replace(month=1).replace(day=1)
+    champ = Championship.objects.filter(start=start_date, end=end_date).get()
+    rounds = Round.objects.filter(championship=champ)
+    return render(request, "rounds/roundedit.html", {"rounds": rounds})
+
+
+def load_round_data(request, round_id):
+    round_instance = get_object_or_404(Round, pk=round_id)
+    data = {
+        "name": round_instance.name,
+        "start": round_instance.start.isoformat(),
+        "duration": str(round_instance.duration),
+        "change_lanes": round_instance.change_lanes,
+        "pitlane_open_after": str(round_instance.pitlane_open_after),
+        "pitlane_close_before": str(round_instance.pitlane_close_before),
+        "limit_time": round_instance.limit_time,
+        "limit_method": round_instance.limit_method,
+        "limit_value": round_instance.limit_value,
+        "required_changes": round_instance.required_changes,
+        "limit_time_min": str(round_instance.limit_time_min),
+        "weight_penalty": json.dumps(
+            round_instance.weight_penalty
+        ),  # Convert to JSON string
+    }
+    return JsonResponse(data)
+
+
+def update_round(request, round_id):
+    if request.method == "POST":
+        round_instance = get_object_or_404(Round, pk=round_id)
+        round_instance.name = request.POST.get("name")
+        round_instance.start = request.POST.get("start")
+        round_instance.duration = request.POST.get("duration")
+        round_instance.change_lanes = int(request.POST.get("change_lanes"))
+        round_instance.pitlane_open_after = request.POST.get("pitlane_open_after")
+        round_instance.pitlane_close_before = request.POST.get("pitlane_close_before")
+        round_instance.limit_time = request.POST.get("limit_time")
+        round_instance.limit_method = request.POST.get("limit_method")
+        round_instance.limit_value = int(request.POST.get("limit_value"))
+        round_instance.required_changes = int(request.POST.get("required_changes"))
+        round_instance.limit_time_min = request.POST.get("limit_time_min")
+        round_instance.weight_penalty = json.loads(
+            request.POST.get("weight_penalty")
+        )  # Convert from JSON string
+
+        round_instance.save()
+        return redirect(reverse("round_edit"))  # Redirect after successful update
+    else:
+        return redirect(reverse("round_edit"))  # Handle GET requests (shouldn't happen)
