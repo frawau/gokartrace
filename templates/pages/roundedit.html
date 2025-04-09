@@ -117,7 +117,7 @@
         const weightOperatorSelect = $('#weight-operator');
         const weightPenaltyHiddenInput = $('#weight_penalty');
         const form = $('#roundForm');
-        const initialFormData = form.serializeArray();
+        let initialFormData = form.serializeArray();
 
         // Function to load Round data
         function loadRoundData(roundId) {
@@ -155,7 +155,8 @@
                     }
                     roundDetails.show();
                     // Store initial form data for cancel
-                    initialFormData = form.serializeArray();
+                    initialFormData.length = 0; // Clear the array
+                    initialFormData.push(...form.serializeArray());
                 },
                 error: function(xhr, status, error) {
                     console.error("Error loading round data:", error);
