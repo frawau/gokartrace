@@ -353,7 +353,7 @@ def round_edit(request):
     start_date = dt.date.today().replace(month=1).replace(day=1)
     champ = Championship.objects.filter(start=start_date, end=end_date).get()
     rounds = Round.objects.filter(championship=champ)
-    return render(request, "rounds/roundedit.html", {"rounds": rounds})
+    return render(request, "pages/roundedit.html", {"rounds": rounds})
 
 
 def load_round_data(request, round_id):
