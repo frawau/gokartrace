@@ -480,7 +480,7 @@ class Round(models.Model):
                 if isinstance(arule, list):
                     newrules.append(arule)
                 else:
-                    operator = arule
+                    operator = arule.ecode("ascii").decode()
 
             if operator in [">=", ">"]:
                 newrules.sort(key=lambda item: item[0], reverse=True)
