@@ -378,7 +378,18 @@ def round_form(request):
 
     try:
         selected_round = Round.objects.get(pk=round_id)
-        return render(request, "layout/roundedit.html", {"round": selected_round})
+        # Ensure weight_penalty is a Python object, not a JSON string
+        if isinstance(selected_round.weight_penalty, str):
+            try:
+                selected_round.weight_penalty = json.loads(
+                    selected_round.weight_penalty
+                )
+            except json.JSONDecodeError:
+                selected_round.weight_penalty = []
+
+        return render(
+            request, "rounds/round_form_partial.html", {"round": selected_round}
+        )
     except Round.DoesNotExist:
         return HttpResponse("Round not found")
 
