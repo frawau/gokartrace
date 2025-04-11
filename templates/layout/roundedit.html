@@ -1,9 +1,11 @@
 {% load static %}
+{% load json_filters %}
 
 <form method="POST" action="{% url 'update_round' round.id %}">
     {% csrf_token %}
 
     <div class="row">
+        <!-- Left column fields (unchanged) -->
         <div class="col-md-6">
             <div class="form-group">
                 <label for="id_name">Round Name</label>
@@ -37,6 +39,7 @@
             </div>
         </div>
 
+        <!-- Right column fields (unchanged) -->
         <div class="col-md-6">
             <div class="form-group">
                 <label for="id_limit_time">Maximum Driving Time</label>
@@ -98,7 +101,7 @@
                 </button>
 
                 <!-- Hidden input to store the final JSON -->
-                <input type="hidden" id="id_weight_penalty" name="weight_penalty" value="{{ round.weight_penalty|safe|escapejs }}">
+                <input type="hidden" id="id_weight_penalty" name="weight_penalty">
             </div>
         </div>
     </div>
@@ -122,13 +125,14 @@ function initWeightPenaltyWidget() {
     const addButton = document.getElementById('add-weight-pair');
     const hiddenInput = document.getElementById('id_weight_penalty');
 
+    // Set initial data
+    const initialData = {{ round.weight_penalty|safe }};
+    console.log("Initial weight penalty data:", initialData);
+
     // Add a new weight pair row
     addButton.addEventListener('click', function() {
         addWeightPair();
     });
-
-    // Initial setup based on existing data
-    updateFromHiddenField();
 
     // Update hidden field when any value changes
     container.addEventListener('change', function() {
@@ -187,40 +191,28 @@ function initWeightPenaltyWidget() {
         hiddenInput.value = JSON.stringify(weightPenaltyData);
     }
 
-    function updateFromHiddenField() {
-        try {
-            const hiddenValue = hiddenInput.value.trim();
-            if (!hiddenValue) {
-                addWeightPair();
-                return;
+    // Initialize from the data provided by Django
+    function initializeFromData() {
+        if (initialData && Array.isArray(initialData) && initialData.length > 0) {
+            // Set the operator
+            if (typeof initialData[0] === 'string') {
+                operatorSelect.value = initialData[0];
             }
+            updateOperatorDisplay();
 
-            const data = JSON.parse(hiddenValue);
-            if (Array.isArray(data) && data.length > 0) {
-                // Set the operator
-                operatorSelect.value = data[0];
-                updateOperatorDisplay();
-
-                // Clear existing pairs
-                pairsContainer.innerHTML = '';
-
-                // Add pairs from the data
-                for (let i = 1; i < data.length; i++) {
-                    if (Array.isArray(data[i]) && data[i].length === 2) {
-                        addWeightPair(data[i][0], data[i][1]);
-                    }
+            // Add pairs from the data
+            for (let i = 1; i < initialData.length; i++) {
+                if (Array.isArray(initialData[i]) && initialData[i].length === 2) {
+                    addWeightPair(initialData[i][0], initialData[i][1]);
                 }
-            } else {
-                // Add one empty pair if no data
-                pairsContainer.innerHTML = '';
-                addWeightPair();
             }
-        } catch (e) {
-            console.error("Failed to parse weight penalty JSON:", e);
-            console.error("Value was:", hiddenInput.value);
-            pairsContainer.innerHTML = '';
+        } else {
+            // Add one empty pair if no data
             addWeightPair();
         }
     }
+
+    // Initialize the widget
+    initializeFromData();
 }
 </script>
