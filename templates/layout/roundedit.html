@@ -1,0 +1,110 @@
+{% load static %}
+
+<form method="POST" action="{% url 'update_round' round.id %}">
+    {% csrf_token %}
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label for="id_name">Round Name</label>
+                <input type="text" class="form-control" id="id_name" name="name" value="{{ round.name }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="id_start">Start Time</label>
+                <input type="datetime-local" class="form-control" id="id_start" name="start" value="{{ round.start|date:'Y-m-d\TH:i' }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="id_duration">Duration (HH:MM:SS)</label>
+                <input type="text" class="form-control" id="id_duration" name="duration" value="{{ round.duration }}" required>
+                <small class="form-text text-muted">Format as hours:minutes:seconds</small>
+            </div>
+
+            <div class="form-group">
+                <label for="id_change_lanes">Lane Changes</label>
+                <input type="number" class="form-control" id="id_change_lanes" name="change_lanes" value="{{ round.change_lanes }}" min="1" max="4" required>
+            </div>
+
+            <div class="form-group">
+                <label for="id_pitlane_open_after">Pitlane Open After (minutes)</label>
+                <input type="text" class="form-control" id="id_pitlane_open_after" name="pitlane_open_after" value="{{ round.pitlane_open_after }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="id_pitlane_close_before">Pitlane Close Before (minutes)</label>
+                <input type="text" class="form-control" id="id_pitlane_close_before" name="pitlane_close_before" value="{{ round.pitlane_close_before }}" required>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="form-group">
+                <label for="id_limit_time">Maximum Driving Time</label>
+                <select class="form-control" id="id_limit_time" name="limit_time">
+                    {% for value, display in round.LIMIT %}
+                        <option value="{{ value }}" {% if round.limit_time == value %}selected{% endif %}>{{ display }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="id_limit_method">Maximum Driving Time Method</label>
+                <select class="form-control" id="id_limit_method" name="limit_method">
+                    {% for value, display in round.LMETHOD %}
+                        <option value="{{ value }}" {% if round.limit_method == value %}selected{% endif %}>{{ display }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="id_limit_value">Maximum Driving Time Value</label>
+                <input type="number" class="form-control" id="id_limit_value" name="limit_value" value="{{ round.limit_value }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="id_required_changes">Required Driver Changes</label>
+                <input type="number" class="form-control" id="id_required_changes" name="required_changes" value="{{ round.required_changes }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="id_limit_time_min">Minimum Driving Time (minutes)</label>
+                <input type="text" class="form-control" id="id_limit_time_min" name="limit_time_min" value="{{ round.limit_time_min }}" required>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weight Penalty Configuration -->
+    <div class="card mt-4 mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h4 class="mb-0">Weight Penalty Configuration</h4>
+        </div>
+        <div class="card-body" id="weight-penalty-container">
+            <div class="form-group">
+                <label for="weight-penalty-operator">Weight Comparison Operator</label>
+                <select id="weight-penalty-operator" class="form-control mb-3">
+                    <option value="<">Less than (&lt;)</option>
+                    <option value="<=">Less than or equal to (&le;)</option>
+                    <option value=">">Greater than (&gt;)</option>
+                    <option value=">=">Greater than or equal to (&ge;)</option>
+                </select>
+
+                <label>Weight-Penalty Pairs</label>
+                <div id="weight-pairs-container" class="mb-3">
+                    <!-- Weight pairs will be added here -->
+                </div>
+
+                <button type="button" id="add-weight-pair" class="btn btn-info">
+                    <i class="fas fa-plus"></i> Add Weight-Penalty Pair
+                </button>
+
+                <!-- Hidden input to store the final JSON -->
+                <input type="hidden" id="id_weight_penalty" name="weight_penalty" value="{{ round.weight_penalty|safe|escapejs }}">
+            </div>
+        </div>
+    </div>
+
+    <div class="text-center">
+        <button type="submit" class="btn btn-primary btn-lg">Save Changes</button>
+        <a href="{% url 'rounds_list' %}" class="btn btn-secondary btn-lg">Cancel</a>
+    </div>
+</form>

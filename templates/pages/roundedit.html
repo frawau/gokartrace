@@ -2,106 +2,35 @@
 {% load static %}
 
 {% block content %}
-<div class="container mt-5">
-    <div class="card">
-        <div class="card-header">
-            <h4 class="card-title">Edit Round</h4>
-        </div>
-        <div class="card-body">
-            <form id="roundForm" hx-post="{% url 'update_round' 0 %}" hx-target="#form-messages" hx-swap="outerHTML">
-                <div id="form-messages"></div>
-                <div class="form-group">
-                    <label for="roundSelect">Select Round</label>
-                    <select class="form-control" id="roundSelect" name="round_id" hx-get="" hx-target="#roundForm" hx-swap="outerHTML">
-                        <option value="">-- Select Round --</option>
-                        {% for round in rounds %}
-                            <option value="{{ round.id }}">{{ round.name }}</option>
-                        {% endfor %}
-                    </select>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Update Round Configuration</h3>
                 </div>
-
-                <div id="roundDetails" style="display: none;">
-                    <div class="form-group">
-                        <label for="name">Name</label>
-                        <input type="text" class="form-control" id="name" name="name">
-                    </div>
-                    <div class="form-group">
-                        <label for="start">Start</label>
-                        <input type="datetime-local" class="form-control" id="start" name="start">
-                    </div>
-                    <div class="form-group">
-                        <label for="duration">Duration</label>
-                        <input type="text" class="form-control" id="duration" name="duration">
-                    </div>
-                    <div class="form-group">
-                        <label for="change_lanes">Change Lanes</label>
-                        <input type="number" class="form-control" id="change_lanes" name="change_lanes">
-                    </div>
-                    <div class="form-group">
-                        <label for="pitlane_open_after">Pitlane Open After</label>
-                        <input type="text" class="form-control" id="pitlane_open_after" name="pitlane_open_after">
-                    </div>
-                    <div class="form-group">
-                        <label for="pitlane_close_before">Pitlane Close Before</label>
-                        <input type="text" class="form-control" id="pitlane_close_before" name="pitlane_close_before">
-                    </div>
-                    <div class="form-group">
-                        <label for="limit_time">Maximun Driving Time</label>
-                        <select class="form-control" id="limit_time" name="limit_time">
-                            {% for key, value in Round.LIMIT %}
-                                <option value="{{ key }}">{{ value }}</option>
+                <div class="card-body">
+                    <!-- Round Selection -->
+                    <div class="form-group mb-4">
+                        <label for="round-select" class="form-label">Select Round</label>
+                        <select id="round-select" class="form-control" hx-get="{% url 'round_form' %}" hx-target="#round-form-container" hx-trigger="change">
+                            <option value="">-- Select a Round --</option>
+                            {% for round in rounds %}
+                                <option value="{{ round.id }}">{{ round.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label for="limit_method">Maximun Driving Time Method</label>
-                        <select class="form-control" id="limit_method" name="limit_method">
-                            {% for key, value in Round.LMETHOD %}
-                                <option value="{{ key }}">{{ value }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="limit_value">Maximun Driving Time Value</label>
-                        <input type="number" class="form-control" id="limit_value" name="limit_value">
-                    </div>
-                    <div class="form-group">
-                        <label for="required_changes">Required Driver Changes</label>
-                        <input type="number" class="form-control" id="required_changes" name="required_changes">
-                    </div>
-                    <div class="form-group">
-                        <label for="limit_time_min">Minimum Driving Time</label>
-                        <input type="text" class="form-control" id="limit_time_min" name="limit_time_min">
-                    </div>
 
-                    <div class="form-group">
-                        <label>Weight Penalty</label>
-                        <div id="weight-penalty-container">
-                            <div class="d-flex align-items-center mb-2">
-                                <select class="form-control mr-2" id="weight-operator" name="weight_operator">
-                                    <option value=">=">&gt;=</option>
-                                    <option value="<=">&lt;=</option>
-                                    <option value=">">&gt;</option>
-                                    <option value="<">&lt;</option>
-                                    <option value="==">==</option>
-                                </select>
-                                <button type="button" class="btn btn-success btn-sm add-pair" style="margin-left: 10px;">Add Pair</button>
-                            </div>
-                            <div id="weight-penalty-pairs">
-                                <div class="weight-penalty-pair mb-2">
-                                    <input type="number" class="form-control weight-input mr-2" name="weight[]" placeholder="Weight">
-                                    <input type="number" class="form-control penalty-input mr-2" name="penalty[]" placeholder="Penalty">
-                                    <button type="button" class="btn btn-danger btn-sm remove-pair">Remove</button>
-                                </div>
-                            </div>
-                        </div>
-                        <input type="hidden" id="weight_penalty" name="weight_penalty">
+                    <!-- Form container that will be updated with HTMX -->
+                    <div id="round-form-container">
+                        {% if selected_round %}
+                            {% include "rounds/round_form_partial.html" with round=selected_round %}
+                        {% else %}
+                            <div class="alert alert-info">Please select a round to edit its details.</div>
+                        {% endif %}
                     </div>
-
-                    <button type="submit" class="btn btn-primary">Update</button>
-                    <button type="button" class="btn btn-secondary" id="cancel-button">Cancel</button>
                 </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>
@@ -109,128 +38,113 @@
 
 {% block extra_js %}
 <script>
-    $(document).ready(function() {
-        const roundSelect = $('#roundSelect');
-        const roundDetails = $('#roundDetails');
-        const weightPenaltyContainer = $('#weight-penalty-container');
-        const weightPenaltyPairs = $('#weight-penalty-pairs');
-        const weightOperatorSelect = $('#weight-operator');
-        const weightPenaltyHiddenInput = $('#weight_penalty');
-        const form = $('#roundForm');
-        let initialFormData = form.serializeArray();
-
-        // Function to load Round data
-        function loadRoundData(roundId) {
-            if (!roundId) {
-                roundDetails.hide();
-                return;
-            }
-
-            $.ajax({
-                url: `/rounds/load/${roundId}/`, // Django URL
-                type: 'GET',
-                dataType: 'json',
-                success: function(data) {
-                    $('#name').val(data.name);
-                    $('#start').val(data.start);
-                    $('#duration').val(data.duration);
-                    $('#change_lanes').val(data.change_lanes);
-                    $('#pitlane_open_after').val(data.pitlane_open_after);
-                    $('#pitlane_close_before').val(data.pitlane_close_before);
-                    $('#limit_time').val(data.limit_time);
-                    $('#limit_method').val(data.limit_method);
-                    $('#limit_value').val(data.limit_value);
-                    $('#required_changes').val(data.required_changes);
-                    $('#limit_time_min').val(data.limit_time_min);
-                    // Handle weight_penalty
-                    weightPenaltyPairs.empty();
-                    let weightPenalty = JSON.parse(data.weight_penalty);
-                    if (weightPenalty && weightPenalty.length > 1) {
-                        weightOperatorSelect.val(weightPenalty[0]);
-                        for (let i = 1; i < weightPenalty.length; i++) {
-                            addWeightPenaltyPair(weightPenalty[i][0], weightPenalty[i][1]);
-                        }
-                    } else {
-                        addWeightPenaltyPair(); // Add at least one pair
-                    }
-                    roundDetails.show();
-                    // Store initial form data for cancel
-                    initialFormData.length = 0; // Clear the array
-                    initialFormData.push(...form.serializeArray());
-                },
-                error: function(xhr, status, error) {
-                    console.error("Error loading round data:", error);
-                    alert("Failed to load round data.");
-                }
-            });
+    // This function will be applied after form is loaded with HTMX
+    document.body.addEventListener('htmx:afterSwap', function() {
+        if (document.getElementById('weight-penalty-container')) {
+            initWeightPenaltyWidget();
         }
-
-        // Function to add a weight/penalty pair
-        function addWeightPenaltyPair(initialWeight = '', initialPenalty = '') {
-            const pairDiv = $('<div class="weight-penalty-pair mb-2">');
-            const weightInput = $('<input type="number" class="form-control weight-input mr-2" name="weight[]" placeholder="Weight">').val(initialWeight);
-            const penaltyInput = $('<input type="number" class="form-control penalty-input mr-2" name="penalty[]" placeholder="Penalty">').val(initialPenalty);
-            const removeButton = $('<button type="button" class="btn btn-danger btn-sm remove-pair">Remove</button>');
-
-            pairDiv.append(weightInput, penaltyInput, removeButton);
-            weightPenaltyPairs.append(pairDiv);
-
-            removeButton.click(function() {
-                $(this).parent().remove();
-            });
-        }
-
-        // Event listener for Round selection
-        roundSelect.change(function() {
-            const roundId = $(this).val();
-            // Update the form's action URL dynamically
-            form.attr('hx-post', `/rounds/update/${roundId}/`);
-            loadRoundData(roundId);
-        });
-
-        // Event listener for adding weight/penalty pairs
-        weightPenaltyContainer.on('click', '.add-pair', function() {
-            addWeightPenaltyPair();
-        });
-
-        // Event listener for removing weight/penalty pairs
-        weightPenaltyContainer.on('click', '.remove-pair', function() {
-            $(this).parent().remove();
-        });
-
-        // Event listener for form submission (htmx handles this)
-
-        // Event listener for cancel button
-        $('#cancel-button').click(function() {
-            // Reset form to initial state
-            form.find("input, select").each(function(index, element) {
-                $(element).val(initialFormData[index].value);
-            });
-            // Reload weight penalty
-            loadRoundData(roundSelect.val());
-        });
-
-        // Initial load if a round is pre-selected (e.g., on page reload)
-        if (roundSelect.val()) {
-            loadRoundData(roundSelect.val());
-        }
-
-        // Event listener to serialize the weight penalty data before form submission
-        form.submit(function(event) {
-            event.preventDefault(); // Prevent default form submission
-            const operator = weightOperatorSelect.val();
-            const pairs = [];
-            weightPenaltyPairs.find('.weight-penalty-pair').each(function() {
-                const weight = parseFloat($(this).find('.weight-input').val());
-                const penalty = parseFloat($(this).find('.penalty-input').val());
-                if (!isNaN(weight) && !isNaN(penalty)) {
-                    pairs.push([weight, penalty]);
-                }
-            });
-            weightPenaltyHiddenInput.val(JSON.stringify([operator, ...pairs]));
-            // Now let htmx do its job
-            htmx.ajax('POST', form.attr('hx-post'), {swap: 'outerHTML', target: '#form-messages', values: form.serializeArray()});
-        });
     });
+
+    function initWeightPenaltyWidget() {
+        const container = document.getElementById('weight-penalty-container');
+        const operatorSelect = document.getElementById('weight-penalty-operator');
+        const pairsContainer = document.getElementById('weight-pairs-container');
+        const addButton = document.getElementById('add-weight-pair');
+        const hiddenInput = document.getElementById('id_weight_penalty');
+
+        // Add a new weight pair row
+        addButton.addEventListener('click', function() {
+            addWeightPair();
+        });
+
+        // Initial setup based on existing data
+        updateFromHiddenField();
+
+        // Update hidden field when any value changes
+        container.addEventListener('change', function() {
+            updateHiddenField();
+        });
+
+        function addWeightPair(weight = '', penalty = '') {
+            const row = document.createElement('div');
+            row.className = 'weight-pair-row d-flex mb-2 align-items-center';
+
+            row.innerHTML = `
+                <input type="number" step="0.5" class="form-control weight-value mr-2" value="${weight}" placeholder="Weight">
+                <div class="operator-display mx-2">${operatorSelect.value}</div>
+                <input type="number" step="0.5" class="form-control penalty-value ml-2" value="${penalty}" placeholder="Penalty">
+                <button type="button" class="btn btn-danger btn-sm ml-2 remove-pair">
+                    <i class="fas fa-times"></i> Remove
+                </button>
+            `;
+
+            row.querySelector('.remove-pair').addEventListener('click', function() {
+                row.remove();
+                updateHiddenField();
+            });
+
+            pairsContainer.appendChild(row);
+            updateHiddenField();
+        }
+
+        function updateOperatorDisplay() {
+            const operatorValue = operatorSelect.value;
+            document.querySelectorAll('.operator-display').forEach(element => {
+                element.textContent = operatorValue;
+            });
+        }
+
+        operatorSelect.addEventListener('change', updateOperatorDisplay);
+
+        function updateHiddenField() {
+            const operator = operatorSelect.value;
+            const pairs = [];
+
+            document.querySelectorAll('.weight-pair-row').forEach(row => {
+                const weightValue = row.querySelector('.weight-value').value;
+                const penaltyValue = row.querySelector('.penalty-value').value;
+
+                if (weightValue !== '' && penaltyValue !== '') {
+                    pairs.push([parseFloat(weightValue), parseFloat(penaltyValue)]);
+                }
+            });
+
+            // Sort pairs by weight in descending order
+            pairs.sort((a, b) => b[0] - a[0]);
+
+            // Create the JSON structure
+            const weightPenaltyData = [operator, ...pairs];
+            hiddenInput.value = JSON.stringify(weightPenaltyData);
+        }
+
+        function updateFromHiddenField() {
+            try {
+                const data = JSON.parse(hiddenInput.value);
+                if (Array.isArray(data) && data.length > 0) {
+                    // Set the operator
+                    operatorSelect.value = data[0];
+                    updateOperatorDisplay();
+
+                    // Clear existing pairs
+                    pairsContainer.innerHTML = '';
+
+                    // Add pairs from the data
+                    for (let i = 1; i < data.length; i++) {
+                        if (Array.isArray(data[i]) && data[i].length === 2) {
+                            addWeightPair(data[i][0], data[i][1]);
+                        }
+                    }
+                } else {
+                    // Add one empty pair if no data
+                    pairsContainer.innerHTML = '';
+                    addWeightPair();
+                }
+            } catch (e) {
+                console.error("Failed to parse weight penalty JSON:", e);
+                pairsContainer.innerHTML = '';
+                addWeightPair();
+            }
+        }
+    }
 </script>
 {% endblock %}
