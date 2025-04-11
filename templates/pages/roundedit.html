@@ -24,7 +24,7 @@
                     <!-- Form container that will be updated with HTMX -->
                     <div id="round-form-container">
                         {% if selected_round %}
-                            {% include "rounds/round_form_partial.html" with round=selected_round %}
+                            {% include "layout/roundedit.html" with round=selected_round %}
                         {% else %}
                             <div class="alert alert-info">Please select a round to edit its details.</div>
                         {% endif %}
@@ -34,7 +34,7 @@
         </div>
     </div>
 </div>
-{% endblock %}
+{% endblock content%}
 
 {% block extra_js %}
 <script>
@@ -147,4 +147,4 @@
         }
     }
 </script>
-{% endblock %}
+{% endblock extra_js %}
