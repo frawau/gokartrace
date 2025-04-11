@@ -387,9 +387,7 @@ def round_form(request):
             except json.JSONDecodeError:
                 selected_round.weight_penalty = []
 
-        return render(
-            request, "rounds/round_form_partial.html", {"round": selected_round}
-        )
+        return render(request, "layout/roundedit.html", {"round": selected_round})
     except Round.DoesNotExist:
         return HttpResponse("Round not found")
 
