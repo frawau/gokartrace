@@ -472,22 +472,23 @@ class Round(models.Model):
                 )
 
     def save(self, *args, **kwargs):
-        rules = self.weight_penalty
-        operator = None
-        newrules = []
-        for arule in rules:
-            if isinstance(arule, list):
-                newrules.append(arule)
+        if self.weight_penalty:
+            rules = self.weight_penalty
+            operator = None
+            newrules = []
+            for arule in rules:
+                if isinstance(arule, list):
+                    newrules.append(arule)
+                else:
+                    operator = arule
+
+            if operator in [">=", ">"]:
+                newrules.sort(key=lambda item: item[0], reverse=True)
             else:
-                operator = arule
+                newrules.sort(key=lambda item: item[0])
 
-        if operator in [">=", ">"]:
-            newrules.sort(key=lambda item: item[0], reverse=True)
-        else:
-            newrules.sort(key=lambda item: item[0])
-
-        # Reconstruct the list with the operator and sorted pairs
-        self.weight_penalty = [operator] + newrules
+            # Reconstruct the list with the operator and sorted pairs
+            self.weight_penalty = [operator] + newrules
 
         super().save(*args, **kwargs)
 
