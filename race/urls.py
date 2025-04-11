@@ -35,7 +35,7 @@ urlpatterns = [
     # Admin stuffs
     path("rounds/update/", views.round_list_update, name="Round Select"),
     path("rounds/form/", views.round_form, name="round_form"),
-    path("rounds/update/<int:round_id>/", views.update_round, name="Update Round"),
+    path("rounds/update/<int:round_id>/", views.update_round, name="update_round"),
     # Assuming you have a rounds list page
     # path('rounds/', views.rounds_list, name='rounds_list'),
     # Debug stuffs
