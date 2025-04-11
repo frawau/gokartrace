@@ -33,7 +33,7 @@ urlpatterns = [
     path("driver_queue/", views.add_driver_to_queue, name="Driver Queue"),
     path("driver_change/", views.change_kart_driver, name="Agent Login"),
     # Admin stuffs
-    path("rounds/update/", views.round_list_update, name="Round Select"),
+    path("rounds/update/", views.round_list_update, name="rounds_list"),
     path("rounds/form/", views.round_form, name="round_form"),
     path("rounds/update/<int:round_id>/", views.update_round, name="update_round"),
     # Assuming you have a rounds list page
