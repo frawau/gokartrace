@@ -8,7 +8,9 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.views.decorators.http import require_http_methods
 from django.contrib.auth.models import User
+from django.contrib import messages
 from django.urls import reverse
 from rest_framework import generics
 from rest_framework.response import Response
