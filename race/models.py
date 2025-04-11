@@ -489,6 +489,8 @@ class Round(models.Model):
 
             # Reconstruct the list with the operator and sorted pairs
             self.weight_penalty = [operator] + newrules
+        else:
+            self.weight_penalty = None
 
         super().save(*args, **kwargs)
 
