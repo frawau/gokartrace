@@ -1,5 +1,4 @@
 {% load static %}
-{% load json_filters %}
 
 <form method="POST" action="{% url 'update_round' round.id %}">
     {% csrf_token %}
@@ -113,6 +112,10 @@
 </form>
 
 <script>
+// Store the weight penalty data from Django directly as a JavaScript variable
+var weightPenaltyData = {{ round.weight_penalty|safe }};
+console.log("Initial weight penalty data:", weightPenaltyData);
+
 // Initialize weight penalty widget immediately after the form is loaded
 document.addEventListener('DOMContentLoaded', function() {
     initWeightPenaltyWidget();
@@ -125,9 +128,8 @@ function initWeightPenaltyWidget() {
     const addButton = document.getElementById('add-weight-pair');
     const hiddenInput = document.getElementById('id_weight_penalty');
 
-    // Set initial data
-    const initialData = {{ round.weight_penalty|safe }};
-    console.log("Initial weight penalty data:", initialData);
+    // Set the initial JSON value
+    hiddenInput.value = JSON.stringify(weightPenaltyData);
 
     // Add a new weight pair row
     addButton.addEventListener('click', function() {
@@ -158,7 +160,6 @@ function initWeightPenaltyWidget() {
         });
 
         pairsContainer.appendChild(row);
-        updateHiddenField();
     }
 
     function updateOperatorDisplay() {
@@ -191,25 +192,31 @@ function initWeightPenaltyWidget() {
         hiddenInput.value = JSON.stringify(weightPenaltyData);
     }
 
-    // Initialize from the data provided by Django
+    // Initialize from the data
     function initializeFromData() {
-        if (initialData && Array.isArray(initialData) && initialData.length > 0) {
+        // Clear existing pairs
+        pairsContainer.innerHTML = '';
+
+        if (Array.isArray(weightPenaltyData) && weightPenaltyData.length > 0) {
             // Set the operator
-            if (typeof initialData[0] === 'string') {
-                operatorSelect.value = initialData[0];
+            if (typeof weightPenaltyData[0] === 'string') {
+                operatorSelect.value = weightPenaltyData[0];
             }
             updateOperatorDisplay();
 
             // Add pairs from the data
-            for (let i = 1; i < initialData.length; i++) {
-                if (Array.isArray(initialData[i]) && initialData[i].length === 2) {
-                    addWeightPair(initialData[i][0], initialData[i][1]);
+            for (let i = 1; i < weightPenaltyData.length; i++) {
+                if (Array.isArray(weightPenaltyData[i]) && weightPenaltyData[i].length === 2) {
+                    addWeightPair(weightPenaltyData[i][0], weightPenaltyData[i][1]);
                 }
             }
         } else {
             // Add one empty pair if no data
             addWeightPair();
         }
+
+        // Update the hidden input with the initialized data
+        updateHiddenField();
     }
 
     // Initialize the widget
