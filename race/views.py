@@ -443,7 +443,7 @@ def update_round(request, round_id):
             round_obj.weight_penalty = weight_penalty
         except json.JSONDecodeError:
             messages.error(request, "Invalid weight penalty format")
-            return redirect("round_list")
+            return redirect("rounds_list")
 
         round_obj.save()
         messages.success(request, f"Round '{round_obj.name}' updated successfully")
@@ -451,4 +451,4 @@ def update_round(request, round_id):
     except Exception as e:
         messages.error(request, f"Error updating round: {str(e)}")
 
-    return redirect("round_list")
+    return redirect("rounds_list")
