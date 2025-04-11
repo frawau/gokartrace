@@ -371,7 +371,7 @@ def round_list_update(request):
 @require_http_methods(["GET"])
 def round_form(request):
     """HTMX view to return the round form partial"""
-    round_id = request.GET.get("round-select")
+    round_id = request.GET.get("round_id")
 
     if not round_id:
         return HttpResponse("Please select a round")

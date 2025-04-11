@@ -13,7 +13,7 @@
                     <!-- Round Selection -->
                     <div class="form-group mb-4">
                         <label for="round-select" class="form-label">Select Round</label>
-                        <select id="round-select" class="form-control" hx-get="{% url 'round_form' %}" hx-target="#round-form-container" hx-trigger="change">
+                        <select id="round-select" name="round_id" class="form-control" hx-get="{% url 'round_form' %}" hx-target="#round-form-container" hx-trigger="change">
                             <option value="">-- Select a Round --</option>
                             {% for round in rounds %}
                                 <option value="{{ round.id }}">{{ round.name }}</option>
@@ -34,7 +34,7 @@
         </div>
     </div>
 </div>
-{% endblock content%}
+{% endblock %}
 
 {% block extra_js %}
 <script>
@@ -147,4 +147,4 @@
         }
     }
 </script>
-{% endblock extra_js %}
+{% endblock %}
