@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     "django_dyn_api",
     "rest_framework",
     "rest_framework.authtoken",
+    'fontawesomefree',
     "debug_toolbar",
 ]
 
