@@ -53,6 +53,7 @@ function initWeightPenaltyWidget() {
     const hiddenInput = document.getElementById('id_weight_penalty');
 
     // Set the initial JSON value
+    console.log("Input data: ",hiddenInput.value);
     const weightPenaltyData = JSON.parse(hiddenInput.value || '[]');
 
     // Add a new weight pair row
