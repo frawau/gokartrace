@@ -152,6 +152,10 @@ def changedriver_info(request):
 def is_race_director(user):
     return user.is_authenticated and user.groups.filter(name="Race Director").exists()
 
+def is_admin_user(user):
+    return user.is_authenticated and user.groups.filter(name="Admin").exists()
+
+
 
 @login_required
 @user_passes_test(is_race_director)
@@ -350,6 +354,8 @@ def try_login(request):
     return render(request, "pages/tryagentlogin.html")
 
 
+@login_required
+@user_passes_test(is_race_director)
 def round_list_update(request):
     """View to list all rounds and provide the form to update them"""
     end_date = dt.date.today().replace(month=12).replace(day=31)
@@ -368,6 +374,8 @@ def round_list_update(request):
     return render(request, "pages/roundedit.html", context)
 
 
+@login_required
+@user_passes_test(is_race_director)
 @require_http_methods(["GET"])
 def round_form(request):
     """HTMX view to return the round form partial"""
@@ -398,6 +406,8 @@ def round_form(request):
     except Round.DoesNotExist:
         return HttpResponse("Round not found")
 
+@login_required
+@user_passes_test(is_race_director)
 @require_http_methods(["POST"])
 def update_round(request, round_id):
     """Handle the form submission to update a round"""
