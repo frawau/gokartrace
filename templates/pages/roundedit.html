@@ -57,12 +57,11 @@
         const weightPenaltyData = JSON.parse(hiddenInput.value || '[]');
 
         // Add a new weight pair row
-        container.addEventListener('click', function(e) {
-            if (e.target.id === 'add-weight-pair' || e.target.closest('#add-weight-pair')) {
-                addWeightPair();
-                updateHiddenField();
-                renderSortedPairs();
-                }
+        document.addEventListener('add-weight-pair', function() {
+            console.log("Add weight pair event triggered");
+            addWeightPair();
+            updateHiddenField();
+            renderSortedPairs();
             });
 
 
