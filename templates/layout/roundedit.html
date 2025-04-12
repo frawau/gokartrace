@@ -100,7 +100,7 @@
                 </button>
 
                 <!-- Hidden input to store the final JSON -->
-                <input type="hidden" id="id_weight_penalty" name="weight_penalty" value="{{ round.weight_penalty }}">
+                <input type="hidden" id="id_weight_penalty" name="weight_penalty" value="[]">
             </div>
         </div>
     </div>
@@ -115,11 +115,6 @@
 // Store the weight penalty data from Django directly as a JavaScript variable
 var weightPenaltyData = {{ round.weight_penalty|safe }};
 console.log("Initial weight penalty data:", weightPenaltyData);
-
-// Initialize weight penalty widget immediately after the form is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    initWeightPenaltyWidget();
-});
 
 function initWeightPenaltyWidget() {
     const container = document.getElementById('weight-penalty-container');
@@ -196,6 +191,7 @@ function initWeightPenaltyWidget() {
     function initializeFromData() {
         // Clear existing pairs
         pairsContainer.innerHTML = '';
+        console.log("Initialize weight penalty data:", weightPenaltyData);
 
         if (Array.isArray(weightPenaltyData) && weightPenaltyData.length > 0) {
             // Set the operator
@@ -222,4 +218,8 @@ function initWeightPenaltyWidget() {
     // Initialize the widget
     initializeFromData();
 }
+        // Initialize weight penalty widget immediately after the form is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    initWeightPenaltyWidget();
+});
 </script>
