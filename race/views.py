@@ -152,9 +152,9 @@ def changedriver_info(request):
 def is_race_director(user):
     return user.is_authenticated and user.groups.filter(name="Race Director").exists()
 
+
 def is_admin_user(user):
     return user.is_authenticated and user.groups.filter(name="Admin").exists()
-
 
 
 @login_required
@@ -379,7 +379,7 @@ def round_list_update(request):
 @require_http_methods(["GET"])
 def round_form(request):
     """HTMX view to return the round form partial"""
-    round_id = request.GET.get('round_id')
+    round_id = request.GET.get("round_id")
 
     if not round_id:
         return HttpResponse("Please select a round")
@@ -400,11 +400,12 @@ def round_form(request):
 
         # Convert to JSON string for template
         context = {
-            'round': round_obj,
+            "round": round_obj,
         }
-        return render(request, 'layout/roundedit.html', context)
+        return render(request, "layout/roundedit.html", context)
     except Round.DoesNotExist:
         return HttpResponse("Round not found")
+
 
 @login_required
 @user_passes_test(is_race_director)
@@ -415,13 +416,13 @@ def update_round(request, round_id):
 
     try:
         # Update basic fields
-        round_obj.name = request.POST.get('name')
-        round_obj.start = request.POST.get('start')
+        round_obj.name = request.POST.get("name")
+        round_obj.start = request.POST.get("start")
 
         # Parse duration strings
         def parse_duration(duration_str):
-            if ':' in duration_str:
-                parts = duration_str.split(':')
+            if ":" in duration_str:
+                parts = duration_str.split(":")
                 if len(parts) == 3:  # HH:MM:SS
                     hours, minutes, seconds = map(int, parts)
                     return dt.timedelta(hours=hours, minutes=minutes, seconds=seconds)
@@ -436,26 +437,30 @@ def update_round(request, round_id):
                 pass
             return dt.timedelta(0)  # Default
 
-        round_obj.duration = parse_duration(request.POST.get('duration'))
-        round_obj.pitlane_open_after = parse_duration(request.POST.get('pitlane_open_after'))
-        round_obj.pitlane_close_before = parse_duration(request.POST.get('pitlane_close_before'))
-        round_obj.limit_time_min = parse_duration(request.POST.get('limit_time_min'))
+        round_obj.duration = parse_duration(request.POST.get("duration"))
+        round_obj.pitlane_open_after = parse_duration(
+            request.POST.get("pitlane_open_after")
+        )
+        round_obj.pitlane_close_before = parse_duration(
+            request.POST.get("pitlane_close_before")
+        )
+        round_obj.limit_time_min = parse_duration(request.POST.get("limit_time_min"))
 
         # Update other fields
-        round_obj.change_lanes = int(request.POST.get('change_lanes'))
-        round_obj.limit_time = request.POST.get('limit_time')
-        round_obj.limit_method = request.POST.get('limit_method')
-        round_obj.limit_value = int(request.POST.get('limit_value'))
-        round_obj.required_changes = int(request.POST.get('required_changes'))
+        round_obj.change_lanes = int(request.POST.get("change_lanes"))
+        round_obj.limit_time = request.POST.get("limit_time")
+        round_obj.limit_method = request.POST.get("limit_method")
+        round_obj.limit_value = int(request.POST.get("limit_value"))
+        round_obj.required_changes = int(request.POST.get("required_changes"))
 
         # Handle weight_penalty JSON field
-        weight_penalty_json = request.POST.get('weight_penalty', '[">=", [0, 0]]')
+        weight_penalty_json = request.POST.get("weight_penalty", '[">=", [0, 0]]')
         try:
             weight_penalty = json.loads(weight_penalty_json)
             round_obj.weight_penalty = weight_penalty
         except json.JSONDecodeError:
             messages.error(request, "Invalid weight penalty format")
-            return redirect('rounds_list')
+            return redirect("rounds_list")
 
         round_obj.save()
         messages.success(request, f"Round '{round_obj.name}' updated successfully")
@@ -463,5 +468,4 @@ def update_round(request, round_id):
     except Exception as e:
         messages.error(request, f"Error updating round: {str(e)}")
 
-    return redirect('rounds_list')
-
+    return redirect("rounds_list")
