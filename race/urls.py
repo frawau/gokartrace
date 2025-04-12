@@ -3,8 +3,7 @@
 Copyright (c) 2019 - present AppSeed.us
 """
 
-from django.urls import path, include
-from django.contrib.auth import views as auth_views
+from django.urls import path
 from . import consumers
 from . import views
 from .pdfcardview import GenerateCardPDF
@@ -37,7 +36,4 @@ urlpatterns = [
     path("rounds/update/", views.round_list_update, name="rounds_list"),
     path("rounds/form/", views.round_form, name="round_form"),
     path("rounds/update/<int:round_id>/", views.update_round, name="update_round"),
-    # Login stuffs.
-    path("login/", auth_views.LoginView.as_view(), name="login"),
-    path("logout/", auth_views.LogoutView.as_view(), name="logout"),
 ]
