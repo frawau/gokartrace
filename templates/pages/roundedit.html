@@ -74,9 +74,9 @@
             const weightValue = row.querySelector('.weight-value')?.value;
             const penaltyValue = row.querySelector('.penalty-value')?.value;
 
-            if (weightValue !== '' && penaltyValue !== '') {
-                pairs.push([parseFloat(weightValue), parseFloat(penaltyValue)]);
-            }
+            // if (weightValue !== '' && penaltyValue !== '') {
+            pairs.push([parseFloat(weightValue), parseFloat(penaltyValue)]);
+            // }
         });
         return pairs;
     }
