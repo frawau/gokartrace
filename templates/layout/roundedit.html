@@ -1,4 +1,5 @@
 {% load static %}
+{% load json_filters %}
 
 <form method="POST" action="{% url 'update_round' round.id %}">
     {% csrf_token %}
