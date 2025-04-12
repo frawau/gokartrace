@@ -148,18 +148,6 @@
 
         operatorSelect.addEventListener('change', updateOperatorDisplay);
 
-        function collectPairs() {
-            const pairs = [];
-            document.querySelectorAll('.weight-pair-row').forEach(row => {
-                const weightValue = row.querySelector('.weight-value').value;
-                const penaltyValue = row.querySelector('.penalty-value').value;
-
-                if (weightValue !== '' && penaltyValue !== '') {
-                    pairs.push([parseFloat(weightValue), parseFloat(penaltyValue)]);
-                }
-            });
-            return pairs;
-        }
 
         function updateHiddenField() {
             const operator = operatorSelect.value;
