@@ -151,7 +151,7 @@
 
         function updateHiddenField() {
             const operator = operatorSelect.value;
-            const pairs = collectPairs();
+            const pairs = collectPairs(pairsContainer);
 
             // Sort pairs based on operator
             sortPairsByOperator(pairs, operator);
@@ -174,7 +174,7 @@
 
         function renderSortedPairs() {
             // Save current pairs
-            const pairs = collectPairs();
+            const pairs = collectPairs(pairsContainer);
             const operator = operatorSelect.value;
 
             // Sort them
