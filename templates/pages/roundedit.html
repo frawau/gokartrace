@@ -66,6 +66,19 @@
         return hasPositive;
     }
 
+    function collectPairs(pairsContainer) {
+        const pairs = [];
+        pairsContainer.querySelectorAll('.weight-pair-row').forEach(row => {
+            const weightValue = row.querySelector('.weight-value')?.value;
+            const penaltyValue = row.querySelector('.penalty-value')?.value;
+
+            if (weightValue !== '' && penaltyValue !== '') {
+                pairs.push([parseFloat(weightValue), parseFloat(penaltyValue)]);
+            }
+        });
+        return pairs;
+    }
+
     function initWeightPenaltyWidget() {
         const container = document.getElementById('weight-penalty-container');
         const operatorSelect = document.getElementById('weight-penalty-operator');
@@ -93,7 +106,7 @@
                 e.target.classList.contains('weight-value') ||
                 e.target.classList.contains('penalty-value')
             ) {
-                const pairs = collectPairs();
+                const pairs = collectPairs(pairsContainer);
                 if (shouldRenderSorted(pairs)) {
                     renderSortedPairs();
                 }
