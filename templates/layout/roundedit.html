@@ -100,7 +100,7 @@
                 </button>
 
                 <!-- Hidden input to store the final JSON -->
-                <input type="hidden" id="id_weight_penalty" name="weight_penalty" value='{{ round.weight_penalty|json_encode|safe }}' >
+                <input type="hidden" id="id_weight_penalty" name="weight_penalty" value='{{ round.weight_penalty|jsonify|safe }}' >
             </div>
         </div>
     </div>
