@@ -4,5 +4,7 @@ whitenoise==6.6.0
 python-dotenv==1.0.1
 django-theme-material-kit
 django-dynamic-api==1.0.4
-fontawesomefree==6.6.0
+fontawesomefree>=6.6.0
 pycountry
+cryptography>=44.0.2
+reportlab>=4.3.1

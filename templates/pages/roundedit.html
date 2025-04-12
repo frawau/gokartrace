@@ -110,8 +110,12 @@ function initWeightPenaltyWidget() {
             }
         });
 
-        // Sort pairs by weight in descending order
-        pairs.sort((a, b) => b[0] - a[0]);
+        if ( [">=", ">"].includes(operator) ) {
+            // Sort pairs by weight in descending order
+            pairs.sort((a, b) => b[0] - a[0]);
+        } else {
+            pairs.sort((a, b) => a[0] - b[0]);
+        };
 
         // Create the JSON structure
         const weightPenaltyData = [operator, ...pairs];
