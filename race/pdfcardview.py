@@ -11,7 +11,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab_qrcode import QRCodeImage
 from reportlab.lib.utils import ImageReader
 from django.db.models import Q
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views import View
 from django.conf import settings
