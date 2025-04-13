@@ -4,30 +4,21 @@ from .models import Round, championship_team, Person, team_member, round_team
 from django.shortcuts import render, redirect
 from django.views import View
 from django.contrib import messages
-from django.db.models import Exists, OuterRef
 
 class TeamSelectionForm(forms.Form):
     team = forms.ModelChoiceField(
         queryset=championship_team.objects.none(),
-        label="Select Team",
-        widget=forms.Select(attrs={'class': 'form-select'})
+        label="Select Team"
     )
 
     def __init__(self, *args, **kwargs):
         current_round = kwargs.pop('current_round', None)
         super().__init__(*args, **kwargs)
         if current_round:
-            # Add this annotation to track which teams have round_team records
             self.fields['team'].queryset = championship_team.objects.filter(
                 championship=current_round.championship
-            ).annotate(
-                has_round_team=Exists(
-                    round_team.objects.filter(
-                        round=current_round,
-                        team_id=OuterRef('pk')
-                    )
-                )
             ).order_by('number')
+
 class TeamMemberForm(forms.ModelForm):
     class Meta:
         model = team_member
@@ -73,7 +64,7 @@ class TeamMembersView(View):
         current_round = self.get_current_round()
         if not current_round:
             messages.error(request, "No current championship round found.")
-            return redirect('some_other_view')
+            return redirect('Home')
 
         team_form = TeamSelectionForm(current_round=current_round)
         add_member_form = AddMemberForm(current_round=current_round)
@@ -89,7 +80,18 @@ class TeamMembersView(View):
         current_round = self.get_current_round()
         if not current_round:
             messages.error(request, "No current championship round found.")
-            return redirect('some_other_view')
+            return redirect('Home')
+
+        if 'select_team' in request.POST:
+            # First clean up empty round_team records
+            empty_round_teams = round_team.objects.filter(
+                round=current_round,
+                team_member__isnull=True
+            )
+            deleted_count = empty_round_teams.delete()[0]
+            if deleted_count:
+                messages.info(request, f"Cleaned up {deleted_count} empty team records.")
+
 
         if 'select_team' in request.POST:
             team_form = TeamSelectionForm(request.POST, current_round=current_round)

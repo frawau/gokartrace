@@ -17,16 +17,8 @@
                 <div class="row">
                     <div class="col-md-8">
                         <div class="form-group">
-                            <label for="team_select">Select Team</label>
-                            <select name="team" id="team_select" class="form-select">
-                                {% for team in team_form.team.field.queryset %}
-                                    <option value="{{ team.id }}"
-                                            data-has-round-team="{{ team.has_round_team|yesno:"true,false" }}"
-                                            {% if team_form.team.value == team.id|stringformat:"s" %}selected{% endif %}>
-                                        {{ team.name }}
-                                    </option>
-                                {% endfor %}
-                            </select>
+                            {{ team_form.team.label_tag }}
+                            {{ team_form.team }}
                         </div>
                     </div>
                     <div class="col-md-4 d-flex align-items-end">
@@ -156,23 +148,6 @@ document.getElementById('printCardsForm').addEventListener('submit', function(e)
         window.open(url, '_blank').focus();
     });
 });
-document.addEventListener('DOMContentLoaded', function() {
-    const select = document.getElementById('team_select');
-    if (select) {
-        // Process all options
-        Array.from(select.options).forEach(option => {
-            const hasRoundTeam = option.dataset.hasRoundTeam === 'true';
-            if (hasRoundTeam) {
-                option.textContent += ' ✓';
-                option.style.color = '#28a745';  // Bootstrap success green
-            }
-        });
 
-        // Handle dynamic changes
-        select.addEventListener('change', function() {
-            this.blur();  // Remove focus after selection
-        });
-    }
-});
 </script>
 {% endblock %}
