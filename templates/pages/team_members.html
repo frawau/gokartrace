@@ -84,12 +84,13 @@
                     {% if selected_team %}
                     <div class="d-flex justify-content-between mb-3">
                         <h5>Team: {{ selected_team.team.name }} ({{ selected_team.number }})</h5>
-                        <div>
-                            <a href="{% url 'generate_cards' round_team_id=round_team_obj.id %}"
-                            class="btn btn-info">
+                        <form action="{% url 'generate_cards' %}" method="post" target="_blank">
+                            {% csrf_token %}
+                            <input type="hidden" name="round_team_id" value="{{ round_team_obj.id }}">
+                            <button type="submit" class="btn btn-info">
                                 <i class="material-icons">print</i> Print Cards
-                            </a>
-                        </div>
+                            </button>
+                        </form>
                     </div>
                     {% endif %}
                 </div>
