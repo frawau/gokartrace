@@ -88,13 +88,13 @@ def view_team_member(request):
     round_instance = get_round()
 
     if not round_instance:
-        return render(request, 'norace.html')
+        return render(request, 'pages/norace.html')
 
     team_form, formset, add_member_form, selected_team, round_team_instance = get_team_member_form(request, round_instance)
 
     if request.method == 'POST' and selected_team:
         if process_team_member(request, round_instance, selected_team, round_team_instance):
-            return redirect('Home')  # Replace with your success URL
+            return redirect('Home')
 
     context = {
         'team_form': team_form,
@@ -104,4 +104,4 @@ def view_team_member(request):
         'round': round_instance,
     }
 
-    return render(request, 'team_member.html', context)
+    return render(request, 'pages/team_member.html', context)
