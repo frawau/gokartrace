@@ -17,8 +17,16 @@
                 <div class="row">
                     <div class="col-md-8">
                         <div class="form-group">
-                            {{ team_form.team.label_tag }}
-                            {{ team_form.team }}
+                            <label for="team_select">Select Team</label>
+                            <select name="team" id="team_select" class="form-select">
+                                {% for team in team_form.team.field.queryset %}
+                                    <option value="{{ team.id }}"
+                                            data-has-round-team="{{ team.has_round_team|yesno:"true,false" }}"
+                                            {% if team_form.team.value == team.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ team.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
                         </div>
                     </div>
                     <div class="col-md-4 d-flex align-items-end">
@@ -149,28 +157,20 @@ document.getElementById('printCardsForm').addEventListener('submit', function(e)
     });
 });
 document.addEventListener('DOMContentLoaded', function() {
-    const select = document.getElementById('id_team');
+    const select = document.getElementById('team_select');
     if (select) {
-        // Get the options data from Django template
-        const optionsData = [
-            {% for team in team_form.team.field.queryset %}
-            {
-                id: {{ team.id }},
-                name: "{{ team.name|escapejs }}",
-                has_round_team: {% if team.has_round_team %}true{% else %}false{% endif %}
-            },
-            {% endfor %}
-        ];
-
-        // Update option texts
-        optionsData.forEach(team => {
-            const option = select.querySelector(`option[value="${team.id}"]`);
-            if (option) {
-                option.textContent = team.name + (team.has_round_team ? ' ✓' : '');
-                if (team.has_round_team) {
-                    option.style.color = '#28a745'; // Bootstrap success green
-                }
+        // Process all options
+        Array.from(select.options).forEach(option => {
+            const hasRoundTeam = option.dataset.hasRoundTeam === 'true';
+            if (hasRoundTeam) {
+                option.textContent += ' ✓';
+                option.style.color = '#28a745';  // Bootstrap success green
             }
+        });
+
+        // Handle dynamic changes
+        select.addEventListener('change', function() {
+            this.blur();  // Remove focus after selection
         });
     }
 });

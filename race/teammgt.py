@@ -9,14 +9,15 @@ from django.db.models import Exists, OuterRef
 class TeamSelectionForm(forms.Form):
     team = forms.ModelChoiceField(
         queryset=championship_team.objects.none(),
-        label="Select Team"
+        label="Select Team",
+        widget=forms.Select(attrs={'class': 'form-select'})
     )
 
     def __init__(self, *args, **kwargs):
         current_round = kwargs.pop('current_round', None)
         super().__init__(*args, **kwargs)
         if current_round:
-            # Add simple boolean annotation for teams with round_team records
+            # Add this annotation to track which teams have round_team records
             self.fields['team'].queryset = championship_team.objects.filter(
                 championship=current_round.championship
             ).annotate(
@@ -27,7 +28,6 @@ class TeamSelectionForm(forms.Form):
                     )
                 )
             ).order_by('number')
-
 class TeamMemberForm(forms.ModelForm):
     class Meta:
         model = team_member
