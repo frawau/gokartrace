@@ -4,36 +4,21 @@ from .models import Round, championship_team, Person, team_member, round_team
 from django.shortcuts import render, redirect
 from django.views import View
 from django.contrib import messages
-from django.db.models import Case, When, BooleanField
+
 
 class TeamSelectionForm(forms.Form):
     team = forms.ModelChoiceField(
         queryset=championship_team.objects.none(),
-        label="Select Team",
-        widget=forms.Select(attrs={'class': 'form-select'})
+        label="Select Team"
     )
 
     def __init__(self, *args, **kwargs):
         current_round = kwargs.pop('current_round', None)
         super().__init__(*args, **kwargs)
         if current_round:
-            # Get teams with existing round_team records
-            teams_with_round = round_team.objects.filter(
-                round=current_round
-            ).values_list('team_id', flat=True)
-
-            # Annotate the queryset
-            queryset = championship_team.objects.filter(
+            self.fields['team'].queryset = championship_team.objects.filter(
                 championship=current_round.championship
-            ).annotate(
-                has_round_team=Case(
-                    When(id__in=teams_with_round, then=True),
-                    default=False,
-                    output_field=BooleanField()
-                )
             ).order_by('number')
-
-            self.fields['team'].queryset = queryset
 
 class TeamMemberForm(forms.ModelForm):
     class Meta:
