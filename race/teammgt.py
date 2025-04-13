@@ -1,7 +1,7 @@
 import datetime as dt
 from django import forms
 from django.forms import inlineformset_factory
-from .models import Team, team_member, Person, round_team, Round
+from .models import Team, team_member, Person, round_team, Round, championship_team
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render, redirect
 
