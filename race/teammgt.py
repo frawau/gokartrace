@@ -138,12 +138,17 @@ class TeamMembersView(View):
             current_round=current_round,
             selected_team=selected_team
         )
+        member_data = []
+        for member, form in zip(members, member_forms):
+            member_data.append({
+                'member': member,
+                'form': form
+            })
 
         context = {
             'current_round': current_round,
             'selected_team': selected_team,
-            'member_forms': member_forms,
-            'members': members,
+            'member_data': member_data,  # Use this instead
             'add_member_form': add_member_form,
             'team_form': TeamSelectionForm(
                 initial={'team': selected_team.id},

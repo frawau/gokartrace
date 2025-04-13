@@ -48,19 +48,19 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for member, form in zip(members, member_forms) %}
+                            {% for data in member_data %}
                             <tr>
                                 <td>
-                                    {{ member.member.nickname }} ({{ member.member.firstname }} {{ member.member.surname }})
+                                    {{ data.member.member.nickname }} ({{ data.member.member.firstname }} {{ data.member.member.surname }})
                                 </td>
                                 <td>
-                                    {{ form.driver }}
+                                    {{ data.form.driver }}
                                 </td>
                                 <td>
-                                    {{ form.manager }}
+                                    {{ data.form.manager }}
                                 </td>
                                 <td>
-                                    {{ form.weight }}
+                                    {{ data.form.weight }}
                                 </td>
                             </tr>
                             {% empty %}
