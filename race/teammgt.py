@@ -164,7 +164,8 @@ class TeamMembersView(View):
         context = {
             'current_round': current_round,
             'selected_team': selected_team,
-            'member_data': member_data,  # Use this instead
+        'round_team_obj': round_team_obj,
+            'member_data': member_data,
             'add_member_form': add_member_form,
             'team_form': TeamSelectionForm(
                 initial={'team': selected_team.id},
