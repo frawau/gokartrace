@@ -34,11 +34,17 @@ def get_team_member_form(request, round_instance):
         if team_form.is_valid():
             selected_team = team_form.cleaned_data['team']
             try:
-                round_team_instance = round_team.objects.get(round=round_instance, team__team=selected_team)
+                championship_team_instance = championship_team.objects.get(
+                    championship=round_instance.championship,
+                    team=selected_team
+                )
+                round_team_instance = round_team.objects.get(round=round_instance, team=championship_team_instance)
                 formset = TeamMemberFormSet(request.POST, instance=round_team_instance, prefix='members')
             except ObjectDoesNotExist:
+                championship_team_instance = championship_team.objects.filter(championship=round_instance.championship, team=selected_team).first()
                 round_team_instance = None
                 formset = TeamMemberFormSet(request.POST, instance=None, prefix='members')
+
             add_member_form = AddTeamMemberForm(request.POST, round_instance=round_instance, team_instance=selected_team)
             return team_form, formset, add_member_form, selected_team, round_team_instance
 
@@ -51,18 +57,17 @@ def get_team_member_form(request, round_instance):
 
 def process_team_member(request, round_instance, selected_team, round_team_instance):
     if request.method == 'POST':
+        championship_team_instance = championship_team.objects.get(championship=round_instance.championship, team=selected_team)
         try:
-            round_team_instance = round_team.objects.get(round=round_instance, team__team=selected_team)
+            round_team_instance = round_team.objects.get(round=round_instance, team=championship_team_instance)
             formset = TeamMemberFormSet(request.POST, instance=round_team_instance, prefix='members')
         except ObjectDoesNotExist:
-            round_team_instance = None
             formset = TeamMemberFormSet(request.POST, instance=None, prefix='members')
 
         add_member_form = AddTeamMemberForm(request.POST, round_instance=round_instance, team_instance=selected_team)
 
         if formset.is_valid() and add_member_form.is_valid():
             if round_team_instance is None:
-                championship_team_instance = championship_team.objects.get(championship=round_instance.championship, team=selected_team)
                 round_team_instance = round_team.objects.create(round=round_instance, team=championship_team_instance)
             formset.instance = round_team_instance
             formset.save()
