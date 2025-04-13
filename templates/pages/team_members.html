@@ -62,6 +62,16 @@
                                 <td>
                                     {{ data.form.weight }}
                                 </td>
+                                <td>
+                                    <form method="post" style="display: inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="selected_team" value="{{ selected_team.id }}">
+                                        <input type="hidden" name="member_id" value="{{ data.member.id }}">
+                                        <button type="submit" name="remove_member" class="btn btn-danger btn-sm">
+                                            <i class="material-icons">delete</i> Remove
+                                        </button>
+                                    </form>
+                                </td>
                             </tr>
                             {% empty %}
                             <tr>
@@ -70,6 +80,18 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                    <!-- Add Print Cards button at the top of the member list -->
+                    {% if selected_team %}
+                    <div class="d-flex justify-content-between mb-3">
+                        <h5>Team: {{ selected_team.team.name }} ({{ selected_team.number }})</h5>
+                        <div>
+                            <a href="{% url 'generate_cards' round_team_id=round_team_obj.id %}"
+                            class="btn btn-info">
+                                <i class="material-icons">print</i> Print Cards
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
 
                 {% if members %}

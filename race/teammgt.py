@@ -113,6 +113,22 @@ class TeamMembersView(View):
             except championship_team.DoesNotExist:
                 messages.error(request, "Invalid team selected.")
                 return redirect(request.path)
+        elif 'remove_member' in request.POST:
+            selected_team_id = request.POST.get('selected_team')
+            member_id = request.POST.get('member_id')
+
+            if not selected_team_id or not member_id:
+                messages.error(request, "Invalid request.")
+                return redirect(request.path)
+
+            try:
+                member = team_member.objects.get(id=member_id)
+                member.delete()
+                messages.success(request, "Member removed successfully.")
+                return self.handle_team_selection(request, current_round, selected_team)
+            except team_member.DoesNotExist:
+                messages.error(request, "Member not found.")
+                return redirect(request.path)
 
         messages.error(request, "Invalid action.")
         return redirect(request.path)

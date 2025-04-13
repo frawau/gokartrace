@@ -299,21 +299,27 @@ class GenerateCardPDF(View):
         )
         return p, buffer
 
-    def get(self, request, pk):
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON data"}, status=400)
 
+        # Get current round
         end_date = dt.date.today()
         start_date = end_date - dt.timedelta(days=3)
         cround = Round.objects.filter(
             Q(start__date__range=[start_date, end_date]) & Q(started__isnull=True)
         ).first()
         if cround is None:
-            return render(request, "pages/norace.html")
+            return JsonResponse({"error": "No active round found"}, status=400)
 
-        filename = f"card_{round(dt.datetime.now().timestamp())}.pdf"
+        # Prepare PDF response
+        filename = f"cards_{dt.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
         response = HttpResponse(content_type="application/pdf")
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
-        # Create a PDF in memory
+        # Create canvas
         p, buffer = self.ready_canvas()
         pagesize = p._pagesize
         if self.rotate:
@@ -323,45 +329,72 @@ class GenerateCardPDF(View):
             cards_per_row = int(pagesize[1] / self.card_height)
             cards_per_col = int(pagesize[0] / self.card_width)
 
-        longpk = pk
-        currow = 0
-        curcol = 0
+        # Initialize card position tracking
+        card_pos = {
+            'currow': 0,
+            'curcol': 0,
+            'cards_per_row': cards_per_row,
+            'cards_per_col': cards_per_col
+        }
 
-        while longpk % 10000:
-            cpk = longpk % 10000
-            longpk = longpk // 10000
+        # Handle different input types
+        if 'round_team_id' in data:
+            # Single round_team
             try:
-                person = get_object_or_404(Person, pk=cpk)
-                tm = team_member.objects.get(member=person, team__round=cround)
-            except:
-                print("Error: Person not found in a current team.")
-                continue
-            # Calculate the position for the card on the A4 sheet
-            if self.rotate:
-                x_offset = self.card_height * curcol
-                y_offset = self.card_width * currow
-            else:
-                x_offset = self.card_width * curcol
-                y_offset = self.card_height * currow
+                round_team_obj = round_team.objects.get(id=data['round_team_id'])
+                team_members = team_member.objects.filter(team=round_team_obj)
+                for tm in team_members:
+                    card_pos = self._draw_card(p, tm, card_pos)
+            except round_team.DoesNotExist:
+                return JsonResponse({"error": "Team not found"}, status=404)
 
-            # Draw the card
-            self.draw_drivercard(
-                p,
-                tm,
-                x_offset,
-                y_offset,
-            )
-            curcol = (curcol + 1) % cards_per_col
-            if curcol == 0:
-                currow = (currow + 1) % cards_per_row
-                if currow == 0:
-                    p.showPage()
+        elif 'round_team_ids' in data:
+            # List of round_teams
+            for rt_id in data['round_team_ids']:
+                try:
+                    round_team_obj = round_team.objects.get(id=rt_id)
+                    team_members = team_member.objects.filter(team=round_team_obj)
+                    for tm in team_members:
+                        card_pos = self._draw_card(p, tm, card_pos)
+                except round_team.DoesNotExist:
+                    continue  # Skip invalid teams
+
+        elif 'person_id' in data:
+            # Single person
+            try:
+                person = Person.objects.get(id=data['person_id'])
+                tm = team_member.objects.get(member=person, team__round=cround)
+                card_pos = self._draw_card(p, tm, card_pos)
+            except Person.DoesNotExist:
+                return JsonResponse({"error": "Person not found"}, status=404)
+            except team_member.DoesNotExist:
+                return JsonResponse({"error": "Person not in current round"}, status=400)
+
+        else:
+            return JsonResponse({"error": "Invalid request format"}, status=400)
 
         p.save()
-
-        # Get the PDF content from the buffer
         pdf_content = buffer.getvalue()
         buffer.close()
-
         response.write(pdf_content)
         return response
+
+    def _draw_card(self, p, tm, card_pos):
+        """Helper method to handle card drawing logic"""
+        if self.rotate:
+            x_offset = self.card_height * card_pos['curcol']
+            y_offset = self.card_width * card_pos['currow']
+        else:
+            x_offset = self.card_width * card_pos['curcol']
+            y_offset = self.card_height * card_pos['currow']
+
+        self.draw_drivercard(p, tm, x_offset, y_offset)
+
+        # Update position tracking
+        card_pos['curcol'] = (card_pos['curcol'] + 1) % card_pos['cards_per_col']
+        if card_pos['curcol'] == 0:
+            card_pos['currow'] = (card_pos['currow'] + 1) % card_pos['cards_per_row']
+            if card_pos['currow'] == 0:
+                p.showPage()
+
+        return card_pos
