@@ -9,7 +9,7 @@ from . import views
 from .pdfcardview import GenerateCardPDF
 
 urlpatterns = [
-    path("", views.index, name="Everybody"),
+    path("", views.index, name="Home"),
     path("teamcarousel/", views.team_carousel, name="Participating Teams"),
     path("racecontrol/", views.racecontrol, name="Race Control"),
     path("get_team_card/", views.get_team_card, name="Team Card"),
