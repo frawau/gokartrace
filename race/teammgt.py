@@ -104,4 +104,4 @@ def view_team_member(request):
         'round': round_instance,
     }
 
-    return render(request, 'pages/team_member.html', context)
+    return render(request, 'pages/team_members.html', context)
