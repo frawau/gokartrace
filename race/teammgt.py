@@ -1,112 +1,216 @@
 import datetime as dt
 from django import forms
-from django.forms import inlineformset_factory
-from .models import Team, team_member, Person, round_team, Round, championship_team
-from django.core.exceptions import ObjectDoesNotExist
+from .models import Round, championship_team, Person, team_member, round_team
 from django.shortcuts import render, redirect
+from django.views import View
+from django.contrib import messages
 
 class TeamSelectionForm(forms.Form):
-    team = forms.ModelChoiceField(queryset=Team.objects.all())
+    team = forms.ModelChoiceField(
+        queryset=championship_team.objects.none(),
+        label="Select Team"
+    )
+
+    def __init__(self, *args, **kwargs):
+        current_round = kwargs.pop('current_round', None)
+        super().__init__(*args, **kwargs)
+        if current_round:
+            self.fields['team'].queryset = championship_team.objects.filter(
+                championship=current_round.championship
+            ).order_by('number')
 
 class TeamMemberForm(forms.ModelForm):
     class Meta:
         model = team_member
         fields = ['driver', 'manager', 'weight']
+        widgets = {
+            'driver': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'manager': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'weight': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
 
-TeamMemberFormSet = inlineformset_factory(
-    round_team, team_member, form=TeamMemberForm, extra=0, can_delete=True
-)
-
-class AddTeamMemberForm(forms.Form):
-    member = forms.ModelChoiceField(queryset=Person.objects.none())  # Initial queryset is empty
+class AddMemberForm(forms.Form):
+    person = forms.ModelChoiceField(
+        queryset=Person.objects.none(),
+        label="Add New Member"
+    )
 
     def __init__(self, *args, **kwargs):
-        round_instance = kwargs.pop('round_instance', None)
-        team_instance = kwargs.pop('team_instance', None)
+        current_round = kwargs.pop('current_round', None)
+        selected_team = kwargs.pop('selected_team', None)
         super().__init__(*args, **kwargs)
-        if round_instance and team_instance:
-            existing_members = team_member.objects.filter(team__round=round_instance, team__team=team_instance).values_list('member', flat=True)
-            self.fields['member'].queryset = Person.objects.exclude(id__in=existing_members)
 
-def get_team_member_form(request, round_instance):
-    if request.method == 'POST':
-        team_form = TeamSelectionForm(request.POST)
-        if team_form.is_valid():
-            selected_team = team_form.cleaned_data['team']
+        if current_round and selected_team:
+            # Get existing team members for this round and team
+            existing_members = team_member.objects.filter(
+                team__round=current_round,
+                team__team=selected_team
+            ).values_list('member_id', flat=True)
+
+            # Exclude people who are already team members
+            self.fields['person'].queryset = Person.objects.exclude(
+                id__in=existing_members
+            ).order_by('nickname')
+
+
+class TeamMembersView(View):
+    template_name = 'team_members.html'
+
+    def get_current_round(self):
+        # Get the current round (the next one starting today or later)
+        return Round.objects.filter(start__gte=dt.date.today()).first()
+
+    def get(self, request):
+        current_round = self.get_current_round()
+        if not current_round:
+            messages.error(request, "No current championship round found.")
+            return redirect('some_other_view')
+
+        team_form = TeamSelectionForm(current_round=current_round)
+        add_member_form = AddMemberForm(current_round=current_round)
+
+        context = {
+            'current_round': current_round,
+            'team_form': team_form,
+            'add_member_form': add_member_form,
+        }
+        return render(request, self.template_name, context)
+
+    def post(self, request):
+        current_round = self.get_current_round()
+        if not current_round:
+            messages.error(request, "No current championship round found.")
+            return redirect('some_other_view')
+
+        if 'select_team' in request.POST:
+            team_form = TeamSelectionForm(request.POST, current_round=current_round)
+            if team_form.is_valid():
+                selected_team = team_form.cleaned_data['team']
+                return self.handle_team_selection(request, current_round, selected_team)
+
+        elif 'save_members' in request.POST:
+            selected_team_id = request.POST.get('selected_team')
+            if not selected_team_id:
+                messages.error(request, "No team selected.")
+                return redirect(request.path)
+
             try:
-                championship_team_instance = championship_team.objects.get(
-                    championship=round_instance.championship,
-                    team=selected_team
-                )
-                round_team_instance = round_team.objects.get(round=round_instance, team=championship_team_instance)
-                formset = TeamMemberFormSet(request.POST, instance=round_team_instance, prefix='members')
-            except ObjectDoesNotExist:
-                championship_team_instance = championship_team.objects.filter(championship=round_instance.championship, team=selected_team).first()
-                round_team_instance = None
-                formset = TeamMemberFormSet(request.POST, instance=None, prefix='members')
+                selected_team = championship_team.objects.get(id=selected_team_id)
+                return self.handle_member_updates(request, current_round, selected_team)
+            except championship_team.DoesNotExist:
+                messages.error(request, "Invalid team selected.")
+                return redirect(request.path)
 
-            add_member_form = AddTeamMemberForm(request.POST, round_instance=round_instance, team_instance=selected_team)
-            return team_form, formset, add_member_form, selected_team, round_team_instance
+        elif 'add_member' in request.POST:
+            selected_team_id = request.POST.get('selected_team')
+            if not selected_team_id:
+                messages.error(request, "No team selected.")
+                return redirect(request.path)
 
-        else:
-            return team_form, None, None, None, None
+            try:
+                selected_team = championship_team.objects.get(id=selected_team_id)
+                return self.handle_add_member(request, current_round, selected_team)
+            except championship_team.DoesNotExist:
+                messages.error(request, "Invalid team selected.")
+                return redirect(request.path)
 
-    else:
-        team_form = TeamSelectionForm()
-        return team_form, None, None, None, None
+        messages.error(request, "Invalid action.")
+        return redirect(request.path)
 
-def process_team_member(request, round_instance, selected_team, round_team_instance):
-    if request.method == 'POST':
-        championship_team_instance = championship_team.objects.get(championship=round_instance.championship, team=selected_team)
+    def handle_team_selection(self, request, current_round, selected_team):
+        # Get or create round_team for the selected team
+        round_team_obj, created = round_team.objects.get_or_create(
+            round=current_round,
+            team=selected_team
+        )
+
+        # Get existing team members
+        members = team_member.objects.filter(team=round_team_obj)
+
+        # Create forms for each member
+        member_forms = [
+            TeamMemberForm(instance=member, prefix=f'member_{member.id}')
+            for member in members
+        ]
+
+        # Create add member form with filtered queryset
+        add_member_form = AddMemberForm(
+            current_round=current_round,
+            selected_team=selected_team
+        )
+
+        context = {
+            'current_round': current_round,
+            'selected_team': selected_team,
+            'member_forms': member_forms,
+            'members': members,
+            'add_member_form': add_member_form,
+            'team_form': TeamSelectionForm(
+                initial={'team': selected_team.id},
+                current_round=current_round
+            ),
+        }
+        return render(request, self.template_name, context)
+
+    def handle_member_updates(self, request, current_round, selected_team):
         try:
-            round_team_instance = round_team.objects.get(round=round_instance, team=championship_team_instance)
-            formset = TeamMemberFormSet(request.POST, instance=round_team_instance, prefix='members')
-        except ObjectDoesNotExist:
-            formset = TeamMemberFormSet(request.POST, instance=None, prefix='members')
+            round_team_obj = round_team.objects.get(
+                round=current_round,
+                team=selected_team
+            )
+        except round_team.DoesNotExist:
+            messages.error(request, "Team not found in this round.")
+            return redirect(request.path)
 
-        add_member_form = AddTeamMemberForm(request.POST, round_instance=round_instance, team_instance=selected_team)
+        members = team_member.objects.filter(team=round_team_obj)
+        all_valid = True
 
-        if formset.is_valid() and add_member_form.is_valid():
-            if round_team_instance is None:
-                round_team_instance = round_team.objects.create(round=round_instance, team=championship_team_instance)
-            formset.instance = round_team_instance
-            formset.save()
+        # Process each member form
+        for member in members:
+            form = TeamMemberForm(
+                request.POST,
+                instance=member,
+                prefix=f'member_{member.id}'
+            )
+            if form.is_valid():
+                form.save()
+            else:
+                all_valid = False
 
-            if add_member_form.cleaned_data['member']:
-                team_member.objects.create(
-                    team=round_team_instance,
-                    member=add_member_form.cleaned_data['member'],
-                    driver=False,
-                    manager=False,
-                    weight=0
-                )
-            return True
+        if all_valid:
+            messages.success(request, "Team members updated successfully.")
         else:
-            return False
-    else:
-        return False
+            messages.error(request, "There were errors in some member updates.")
 
-def get_round():
-    return Round.objects.filter(start__gte=dt.date.today()).first()
+        return self.handle_team_selection(request, current_round, selected_team)
 
-def view_team_member(request):
-    round_instance = get_round()
+    def handle_add_member(self, request, current_round, selected_team):
+        add_member_form = AddMemberForm(
+            request.POST,
+            current_round=current_round,
+            selected_team=selected_team
+        )
 
-    if not round_instance:
-        return render(request, 'pages/norace.html')
+        if add_member_form.is_valid():
+            person = add_member_form.cleaned_data['person']
 
-    team_form, formset, add_member_form, selected_team, round_team_instance = get_team_member_form(request, round_instance)
+            # Get or create round_team for the selected team
+            round_team_obj, created = round_team.objects.get_or_create(
+                round=current_round,
+                team=selected_team
+            )
 
-    if request.method == 'POST' and selected_team:
-        if process_team_member(request, round_instance, selected_team, round_team_instance):
-            return redirect('Home')
+            # Create new team member
+            team_member.objects.create(
+                team=round_team_obj,
+                member=person,
+                driver=True,
+                manager=False,
+                weight=0
+            )
 
-    context = {
-        'team_form': team_form,
-        'formset': formset,
-        'add_member_form': add_member_form,
-        'selected_team': selected_team,
-        'round': round_instance,
-    }
+            messages.success(request, f"{person.nickname} added to the team.")
+        else:
+            messages.error(request, "Invalid selection for new member.")
 
-    return render(request, 'pages/team_members.html', context)
+        return self.handle_team_selection(request, current_round, selected_team)

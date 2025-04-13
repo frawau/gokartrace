@@ -2,23 +2,103 @@
 {% load static %}
 
 {% block main_content %}
-<form method="post">
-    {% csrf_token %}
-    {{ team_form.as_p }}
-    <button type="submit">Select Team</button>
-</form>
+<div class="container mt-5">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4>Team Members Management</h4>
+            <p class="mb-0">Current Round: {{ current_round.name }} ({{ current_round.championship.name }})</p>
+        </div>
 
-{% if selected_team %}
-    <h2>Team Members for {{ selected_team.name }}</h2>
+        <div class="card-body">
+            <!-- Team Selection Form -->
+            <form method="post" class="mb-4">
+                {% csrf_token %}
+                <input type="hidden" name="select_team" value="1">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="form-group">
+                            {{ team_form.team.label_tag }}
+                            {{ team_form.team }}
+                        </div>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary">Select Team</button>
+                    </div>
+                </div>
+            </form>
 
-    <form method="post">
-        {% csrf_token %}
-        {{ formset.management_form }}
-        {% for form in formset %}
-            {{ form.as_p }}
-        {% endfor %}
-        {{ add_member_form.as_p }}
-        <button type="submit">Save</button>
-    </form>
-{% endif %}
+            {% if selected_team %}
+            <hr>
+            <h5>Team: {{ selected_team.team.name }} ({{ selected_team.number }})</h5>
+
+            <!-- Members List -->
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="selected_team" value="{{ selected_team.id }}">
+                <input type="hidden" name="save_members" value="1">
+
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Member</th>
+                                <th>Driver</th>
+                                <th>Manager</th>
+                                <th>Weight</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for member, form in zip(members, member_forms) %}
+                            <tr>
+                                <td>
+                                    {{ member.member.nickname }} ({{ member.member.firstname }} {{ member.member.surname }})
+                                </td>
+                                <td>
+                                    {{ form.driver }}
+                                </td>
+                                <td>
+                                    {{ form.manager }}
+                                </td>
+                                <td>
+                                    {{ form.weight }}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center">No members in this team yet.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if members %}
+                <div class="text-right mt-3">
+                    <button type="submit" class="btn btn-success">Save Changes</button>
+                </div>
+                {% endif %}
+            </form>
+
+            <!-- Add Member Form -->
+            <form method="post" class="mt-5">
+                {% csrf_token %}
+                <input type="hidden" name="selected_team" value="{{ selected_team.id }}">
+                <input type="hidden" name="add_member" value="1">
+
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="form-group">
+                            {{ add_member_form.person.label_tag }}
+                            {{ add_member_form.person }}
+                        </div>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-info">Add Member</button>
+                    </div>
+                </div>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
 {% endblock %}
