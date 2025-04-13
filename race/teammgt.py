@@ -4,6 +4,7 @@ from .models import Round, championship_team, Person, team_member, round_team
 from django.shortcuts import render, redirect
 from django.views import View
 from django.contrib import messages
+from django.db.models import Case, When, BooleanField
 
 class TeamSelectionForm(forms.Form):
     team = forms.ModelChoiceField(
