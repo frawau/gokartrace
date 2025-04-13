@@ -54,7 +54,7 @@ class AddMemberForm(forms.Form):
 
 
 class TeamMembersView(View):
-    template_name = 'team_members.html'
+    template_name = 'pages/team_members.html'
 
     def get_current_round(self):
         # Get the current round (the next one starting today or later)
