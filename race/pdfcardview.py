@@ -19,7 +19,7 @@ from pathlib import Path
 from io import BytesIO
 from pathlib import Path
 
-from .models import Round, Person, team_member, Config
+from .models import Round, Person, team_member, Config, round_team
 from .utils import dataencode
 
 FLAGDIR = Path("/home/llama/gokartrace/static/flags")
