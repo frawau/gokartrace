@@ -4,7 +4,7 @@ from .models import Round, championship_team, Person, team_member, round_team
 from django.shortcuts import render, redirect
 from django.views import View
 from django.contrib import messages
-
+from django.db.models import Exists, OuterRef
 
 class TeamSelectionForm(forms.Form):
     team = forms.ModelChoiceField(
@@ -16,8 +16,16 @@ class TeamSelectionForm(forms.Form):
         current_round = kwargs.pop('current_round', None)
         super().__init__(*args, **kwargs)
         if current_round:
+            # Add simple boolean annotation for teams with round_team records
             self.fields['team'].queryset = championship_team.objects.filter(
                 championship=current_round.championship
+            ).annotate(
+                has_round_team=Exists(
+                    round_team.objects.filter(
+                        round=current_round,
+                        team_id=OuterRef('pk')
+                    )
+                )
             ).order_by('number')
 
 class TeamMemberForm(forms.ModelForm):

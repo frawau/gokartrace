@@ -148,5 +148,31 @@ document.getElementById('printCardsForm').addEventListener('submit', function(e)
         window.open(url, '_blank').focus();
     });
 });
+document.addEventListener('DOMContentLoaded', function() {
+    const select = document.getElementById('id_team');
+    if (select) {
+        // Get the options data from Django template
+        const optionsData = [
+            {% for team in team_form.team.field.queryset %}
+            {
+                id: {{ team.id }},
+                name: "{{ team.name|escapejs }}",
+                has_round_team: {% if team.has_round_team %}true{% else %}false{% endif %}
+            },
+            {% endfor %}
+        ];
+
+        // Update option texts
+        optionsData.forEach(team => {
+            const option = select.querySelector(`option[value="${team.id}"]`);
+            if (option) {
+                option.textContent = team.name + (team.has_round_team ? ' ✓' : '');
+                if (team.has_round_team) {
+                    option.style.color = '#28a745'; // Bootstrap success green
+                }
+            }
+        });
+    }
+});
 </script>
 {% endblock %}
