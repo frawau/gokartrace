@@ -84,7 +84,7 @@
                     {% if selected_team %}
                     <div class="d-flex justify-content-between mb-3">
                         <h5>Team: {{ selected_team.team.name }} ({{ selected_team.number }})</h5>
-                        <form action="{% url 'generate_cards' %}" method="post" target="_blank">
+                        <form id="printCardsForm" action="{% url 'generate_cards' %}" method="post" target="_blank">
                             {% csrf_token %}
                             <input type="hidden" name="round_team_id" value="{{ round_team_obj.id }}">
                             <button type="submit" class="btn btn-info">
@@ -124,4 +124,29 @@
         </div>
     </div>
 </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+document.getElementById('printCardsForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const data = {
+        round_team_id: formData.get('round_team_id')
+    };
+
+    fetch(this.action, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.blob())
+    .then(blob => {
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank').focus();
+    });
+});
+</script>
 {% endblock %}
