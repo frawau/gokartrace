@@ -469,8 +469,3 @@ def update_round(request, round_id):
         messages.error(request, f"Error updating round: {str(e)}")
 
     return redirect("rounds_list")
-
-# Site Login/Logout
-def logout_view(request):
-    logout(request)
-    return redirect(reverse('Home'))
