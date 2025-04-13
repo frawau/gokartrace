@@ -186,12 +186,11 @@
 
                   </ul>
                 </li>
-
                 {% if request.user.is_authenticated %}
                 <li class="nav-item ms-lg-auto">
                     <form method="post" action="{% url 'logout' %}" style="display: inline;">
                         {% csrf_token %}
-                        <button type="submit" class="nav-link nav-link-icon me-2" style="background: none; border: none; padding: 0; cursor: pointer; color: inherit; font: inherit; text-align: left; text-decoration: none; -webkit-appearance: none; -moz-appearance: none; appearance: none;">
+                        <button type="submit" class="nav-link nav-link-icon me-2" style="background: none; border: none; padding: 0; cursor: pointer; color: inherit; font: inherit; text-align: left; text-decoration: none; -webkit-appearance: none; -moz-appearance: none; appearance: none; font-weight: 600; line-height: inherit; height: 100%;">
                             <i class="fa fa-sign-out me-1"></i>
                             <p class="d-inline text-sm z-index-1 font-weight-semibold" data-bs-toggle="tooltip"
                               data-bs-placement="bottom" title="Logout">Logout</p>
