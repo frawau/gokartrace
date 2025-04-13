@@ -8,16 +8,31 @@ from django.contrib import messages
 class TeamSelectionForm(forms.Form):
     team = forms.ModelChoiceField(
         queryset=championship_team.objects.none(),
-        label="Select Team"
+        label="Select Team",
+        widget=forms.Select(attrs={'class': 'form-select'})
     )
 
     def __init__(self, *args, **kwargs):
         current_round = kwargs.pop('current_round', None)
         super().__init__(*args, **kwargs)
         if current_round:
-            self.fields['team'].queryset = championship_team.objects.filter(
+            # Get teams with existing round_team records
+            teams_with_round = round_team.objects.filter(
+                round=current_round
+            ).values_list('team_id', flat=True)
+
+            # Annotate the queryset
+            queryset = championship_team.objects.filter(
                 championship=current_round.championship
+            ).annotate(
+                has_round_team=Case(
+                    When(id__in=teams_with_round, then=True),
+                    default=False,
+                    output_field=BooleanField()
+                )
             ).order_by('number')
+
+            self.fields['team'].queryset = queryset
 
 class TeamMemberForm(forms.ModelForm):
     class Meta:
@@ -164,7 +179,7 @@ class TeamMembersView(View):
         context = {
             'current_round': current_round,
             'selected_team': selected_team,
-        'round_team_obj': round_team_obj,
+            'round_team_obj': round_team_obj,
             'member_data': member_data,
             'add_member_form': add_member_form,
             'team_form': TeamSelectionForm(

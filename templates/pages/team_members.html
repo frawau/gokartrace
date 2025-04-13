@@ -18,7 +18,19 @@
                     <div class="col-md-8">
                         <div class="form-group">
                             {{ team_form.team.label_tag }}
-                            {{ team_form.team }}
+                            <select name="{{ team_form.team.name }}" id="{{ team_form.team.id_for_label }}" class="form-select">
+                                {% for team in team_form.team.field.queryset %}
+                                    <option value="{{ team.id }}"
+                                            {% if team.id == team_form.team.value %}selected{% endif %}>
+                                        {{ team.name }}
+                                        {% if team.has_round_team %}
+                                            <span class="text-success ms-2">
+                                                <i class="fas fa-check"></i>
+                                            </span>
+                                        {% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
                         </div>
                     </div>
                     <div class="col-md-4 d-flex align-items-end">
