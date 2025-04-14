@@ -37,6 +37,7 @@ from .models import (
 )
 from .serializers import ChangeLaneSerializer
 from .utils import datadecode
+from .forms import DriverForm
 
 # Create your views here.
 
@@ -355,7 +356,7 @@ def try_login(request):
 
 
 @login_required
-@user_passes_test(is_race_director)
+@user_passes_test(is_admin_user())
 def round_list_update(request):
     """View to list all rounds and provide the form to update them"""
     end_date = dt.date.today().replace(month=12).replace(day=31)
@@ -375,7 +376,7 @@ def round_list_update(request):
 
 
 @login_required
-@user_passes_test(is_race_director)
+@user_passes_test(is_admin_user())
 @require_http_methods(["GET"])
 def round_form(request):
     """HTMX view to return the round form partial"""
@@ -408,7 +409,7 @@ def round_form(request):
 
 
 @login_required
-@user_passes_test(is_race_director)
+@user_passes_test(is_admin_user())
 @require_http_methods(["POST"])
 def update_round(request, round_id):
     """Handle the form submission to update a round"""
@@ -469,3 +470,19 @@ def update_round(request, round_id):
         messages.error(request, f"Error updating round: {str(e)}")
 
     return redirect("rounds_list")
+
+
+
+@login_required
+@user_passes_test(is_admin_user())
+@require_http_methods(["POST"])
+def create_driver(request):
+    if request.method == 'POST':
+        form = DriverForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Driver added successfully!')
+            return redirect('add_driver')  # Redirect to a page listing persons
+    else:
+        form = DriverForm()
+    return render(request, 'add_driver.html', {'form': form})

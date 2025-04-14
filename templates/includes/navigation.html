@@ -109,6 +109,17 @@
                             <span class="text-sm">Display a driver status.</span>
                           </a>
                         </li>
+                        {% if user.is_authenticated and user|has_group:"Admin" %}
+                        <li class="nav-item list-group-item border-0 p-0">
+                        <a class="dropdown-item py-2 ps-3 border-radius-md"
+                        href="/driver/add/">
+                        <h6
+                        class="dropdown-header text-dark font-weight-bolder d-flex justify-content-cente align-items-center p-0">
+                        Add driver</h6>
+                        <span class="text-sm">Add a new driver.</span>
+                        </a>
+                        </li>
+                        {% endif %}
                       </ul>
                     </div>
 

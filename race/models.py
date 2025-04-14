@@ -57,8 +57,8 @@ def logo_path(instance, filename):
 
 class Person(models.Model):
     GENDER = (
-        ("M", "🕺"),
-        ("F", "💃"),
+        ("M", "♂"),
+        ("F", "♀"),
     )
     surname = models.CharField(max_length=32)
     firstname = models.CharField(max_length=32)

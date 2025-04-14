@@ -12,6 +12,7 @@ from race.models import (
     championship_team,
     round_team,
     team_member,
+    Config,
 )
 
 
@@ -53,93 +54,99 @@ class Command(BaseCommand):
 
         # 3. Add Teams to Championship
         teams = list(Team.objects.all())
-        used_numbers = set()
-        for team in teams:
-            number = random.randint(1, 99)
-            while number in used_numbers:
+        if teams:
+            used_numbers = set()
+            for team in teams:
                 number = random.randint(1, 99)
-            used_numbers.add(number)
-            championship_team.objects.create(
-                championship=championship, team=team, number=number
-            )
-            self.stdout.write(
-                self.style.SUCCESS(f'Team "{team.name}" added to championship.')
-            )
-
-        # 4. Add Round Teams
-        championship_teams = list(championship_team.objects.all())
-        for round_obj in rounds:
-            num_round_teams = random.randint(15, 22)
-            selected_championship_teams = random.sample(
-                championship_teams, min(num_round_teams, len(championship_teams))
-            )
-            for championship_team_obj in selected_championship_teams:
-                round_team.objects.create(round=round_obj, team=championship_team_obj)
-            self.stdout.write(
-                self.style.SUCCESS(
-                    f'{num_round_teams} round teams added to "{round_obj.name}".'
-                )
-            )
-
-        # 5. Add Team Members (with corrected logic)
-        people = list(Person.objects.all())
-        for round_obj in rounds:
-            round_teams = round_team.objects.filter(round=round_obj)
-            available_people = people[
-                :
-            ]  # Make a copy to avoid modifying the original list
-            for round_team_obj in round_teams:
-                num_team_members = random.randint(3, 7)
-                selected_people = []
-
-                for _ in range(num_team_members):
-                    if (
-                        not available_people
-                    ):  # Check if there are still available people
-                        break
-                    person = random.choice(available_people)
-                    selected_people.append(person)
-                    available_people.remove(
-                        person
-                    )  # Ensure each person is unique within the round
-
-                if not selected_people:  # prevent error if no person is selected.
-                    continue
-
-                manager = random.choice(selected_people)
-                selected_people.remove(manager)  # Manager is unique
-
-                team_member.objects.create(
-                    team=round_team_obj,
-                    member=manager,
-                    driver=random.choice([True, False, True, True, True, True]),
-                    manager=True,
-                    weight=random.uniform(50, 100),
+                while number in used_numbers:
+                    number = random.randint(1, 99)
+                used_numbers.add(number)
+                championship_team.objects.create(
+                    championship=championship, team=team, number=number
                 )
                 self.stdout.write(
+                    self.style.SUCCESS(f'Team "{team.name}" added to championship.')
+                )
+
+            # 4. Add Round Teams
+            championship_teams = list(championship_team.objects.all())
+            for round_obj in rounds:
+                num_round_teams = random.randint(15, 22)
+                selected_championship_teams = random.sample(
+                    championship_teams, min(num_round_teams, len(championship_teams))
+                )
+                for championship_team_obj in selected_championship_teams:
+                    round_team.objects.create(round=round_obj, team=championship_team_obj)
+                self.stdout.write(
                     self.style.SUCCESS(
-                        f'Manager added to round team "{round_team_obj.id}".'
+                        f'{num_round_teams} round teams added to "{round_obj.name}".'
                     )
                 )
 
-                for person in selected_people:
+            # 5. Add Team Members (with corrected logic)
+            people = list(Person.objects.all())
+            for round_obj in rounds:
+                round_teams = round_team.objects.filter(round=round_obj)
+                available_people = people[
+                    :
+                ]  # Make a copy to avoid modifying the original list
+                for round_team_obj in round_teams:
+                    num_team_members = random.randint(3, 7)
+                    selected_people = []
+
+                    for _ in range(num_team_members):
+                        if (
+                            not available_people
+                        ):  # Check if there are still available people
+                            break
+                        person = random.choice(available_people)
+                        selected_people.append(person)
+                        available_people.remove(
+                            person
+                        )  # Ensure each person is unique within the round
+
+                    if not selected_people:  # prevent error if no person is selected.
+                        continue
+
+                    manager = random.choice(selected_people)
+                    selected_people.remove(manager)  # Manager is unique
+
                     team_member.objects.create(
                         team=round_team_obj,
-                        member=person,
-                        driver=True,
-                        manager=False,
+                        member=manager,
+                        driver=random.choice([True, False, True, True, True, True]),
+                        manager=True,
                         weight=random.uniform(50, 100),
                     )
-                self.stdout.write(
-                    self.style.SUCCESS(
-                        f'{len(selected_people)} Drivers added to round team "{round_team_obj.id}".'
+                    self.stdout.write(
+                        self.style.SUCCESS(
+                            f'Manager added to round team "{round_team_obj.id}".'
+                        )
                     )
-                )
+
+                    for person in selected_people:
+                        team_member.objects.create(
+                            team=round_team_obj,
+                            member=person,
+                            driver=True,
+                            manager=False,
+                            weight=random.uniform(50, 100),
+                        )
+                    self.stdout.write(
+                        self.style.SUCCESS(
+                            f'{len(selected_people)} Drivers added to round team "{round_team_obj.id}".'
+                        )
+                    )
 
         # 6. Create User Groups
-        groups = ["Driver Scanner", "Queue Scanner", "Race Director"]
+        groups = ["Driver Scanner", "Queue Scanner", "Race Director", "admin"]
         for group_name in groups:
             Group.objects.get_or_create(name=group_name)
             self.stdout.write(self.style.SUCCESS(f'Group "{group_name}" created.'))
+
+        configs = [("page size", "A4"), ("card size", "A6"), ("display timeout","5")]
+        for key, val  in configs.items():
+            Config.objects.get_or_create(name=val, value=val)
+            self.stdout.write(self.style.SUCCESS(f'Config "{key}" = "{val}" created.'))
 
         self.stdout.write(self.style.SUCCESS("All tasks completed successfully."))
