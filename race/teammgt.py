@@ -5,15 +5,15 @@ from django.shortcuts import render, redirect
 from django.views import View
 from django.contrib import messages
 from django.db.models import Exists, OuterRef
-from django.utils.safestring import mark_safe
 
 
 
 class TeamChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
         # This will add a FontAwesome checkmark after the team name if is_round_team is True
-        checkmark = mark_safe(' <i class="fas fa-check text-success"></i>') if getattr(obj, 'is_round_team', False) else ""
-        return mark_safe(f"{str(obj)}{checkmark}")
+        checkmark = " ⭐" if getattr(obj, 'is_round_team', False) else ""
+        print(f"{str(obj)}{checkmark}")
+        return f"{str(obj)}{checkmark}"
 
 
 class TeamSelectionForm(forms.Form):
