@@ -55,12 +55,12 @@
                                     {{ data.member.member.nickname }} ({{ data.member.member.firstname }} {{ data.member.member.surname }})
                                 </td>
                                 <td class="text-center">
-                                    <div class="form-check form-check-inline">
+                                    <div class="custom-checkbox">
                                         {{ data.form.driver }}
                                     </div>
                                 </td>
                                 <td class="text-center">
-                                    <div class="form-check form-check-inline">
+                                    <div class="custom-checkbox">
                                         {{ data.form.manager }}
                                     </div>
                                 </td>
@@ -129,31 +129,52 @@
 
 {% block extra_js %}
 <style>
-/* Enhance existing checkboxes */
-.form-check {
-    margin-bottom: 0;
+/* Custom checkbox styling */
+.custom-checkbox {
+    display: inline-block;
+    position: relative;
 }
 
-/* Hide the checkbox label that Django generates and use our own */
-.form-check label {
-    display: none;
+.custom-checkbox input[type="checkbox"] {
+    width: 24px !important;
+    height: 24px !important;
+    border: 2px solid #aaa !important;
+    border-radius: 4px !important;
+    background-color: white !important;
+    background-image: none !important;
+    margin: 0 !important;
+    cursor: pointer !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
 }
 
-.checkbox-label {
-    display: none; /* Hide the extra labels we added */
+.custom-checkbox input[type="checkbox"]:checked {
+    background-color: #2196F3 !important;
+    border-color: #2196F3 !important;
 }
 
-/* Make the checkboxes more visible */
-.form-check-input {
-    box-shadow: 0 0 0 1px rgba(0,0,0,0.2);
-    width: 1.5em !important;
-    height: 1.5em !important;
-    margin-top: 0 !important;
+.custom-checkbox input[type="checkbox"]:checked::before {
+    content: '✓' !important;
+    position: absolute !important;
+    color: white !important;
+    left: 6px !important;
+    top: -1px !important;
+    font-size: 20px !important;
+    font-family: sans-serif !important;
 }
 
-/* Style FontAwesome icons to match your theme */
-.fa-trash {
-    font-size: 1.1em;
+/* Hide default label */
+.custom-checkbox label {
+    display: none !important;
+}
+
+/* Fix font awesome icon */
+.btn .fa-trash {
+    font-size: 1rem;
+    vertical-align: middle;
 }
 </style>
 
@@ -195,6 +216,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             }
         });
+    });
+
+    // Fix the FontAwesome checkmark issue by explicitly fixing any existing checkboxes
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        // Remove any content inside the checkbox
+        checkbox.innerHTML = '';
+
+        // Remove any pseudo-elements if possible
+        checkbox.setAttribute('style', 'content: none !important');
     });
 });
 </script>
