@@ -1,5 +1,6 @@
 {% extends 'layout/content.html' %}
 {% load static %}
+
 {% block main_content %}
 <div class="container mt-5">
     <div class="card">
@@ -53,11 +54,17 @@
                                 <td>
                                     {{ data.member.member.nickname }} ({{ data.member.member.firstname }} {{ data.member.member.surname }})
                                 </td>
-                                <td>
-                                    {{ data.form.driver }}
+                                <td class="text-center">
+                                    <div class="form-check form-check-inline">
+                                        {{ data.form.driver }}
+                                        <span class="checkbox-label">Driver</span>
+                                    </div>
                                 </td>
-                                <td>
-                                    {{ data.form.manager }}
+                                <td class="text-center">
+                                    <div class="form-check form-check-inline">
+                                        {{ data.form.manager }}
+                                        <span class="checkbox-label">Manager</span>
+                                    </div>
                                 </td>
                                 <td>
                                     {{ data.form.weight }}
@@ -82,7 +89,6 @@
                     </table>
                 </div>
 
-                <!-- Save Changes button - changed condition from members to member_data -->
                 {% if member_data %}
                 <div class="text-right mt-3">
                     <button type="submit" class="btn btn-success">Save Changes</button>
@@ -90,7 +96,7 @@
                 {% endif %}
             </form>
 
-            <!-- Add Member Form - moved below the member list -->
+            <!-- Add Member Form -->
             <form method="post" class="mt-4">
                 {% csrf_token %}
                 <input type="hidden" name="selected_team" value="{{ selected_team.id }}">
@@ -109,7 +115,7 @@
                 </div>
             </form>
 
-            <!-- Print Cards Form - moved to the bottom -->
+            <!-- Print Cards Form -->
             <form id="printCardsForm" action="{% url 'generate_cards' %}" method="post" target="_blank" class="mt-4">
                 {% csrf_token %}
                 <input type="hidden" name="round_team_id" value="{{ round_team_obj.id }}">
@@ -125,41 +131,34 @@
 
 {% block extra_js %}
 <style>
-/* Custom styles for checkboxes */
-.checkbox-wrapper {
-    display: inline-block;
-    position: relative;
-    }
+/* Enhance existing checkboxes */
+.form-check {
+    margin-bottom: 0;
+}
 
-    .checkbox-wrapper input[type="checkbox"] {
-        width: 20px;
-        height: 20px;
-        border: 2px solid #aaa;
-        border-radius: 3px;
-        appearance: none;
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        background-color: white;
-        margin: 0;
-        cursor: pointer;
-        display: inline-block;
-        vertical-align: middle;
-        }
+/* Hide the checkbox label that Django generates and use our own */
+.form-check label {
+    display: none;
+}
 
-    .checkbox-wrapper input[type="checkbox"]:checked {
-        background-color: #007bff;
-        border-color: #007bff;
-        }
+.checkbox-label {
+    display: none; /* Hide the extra labels we added */
+}
 
-    .checkbox-wrapper input[type="checkbox"]:checked::after {
-        content: '✓';
-        position: absolute;
-        color: white;
-        left: 6px;
-        top: -2px;
-        font-size: 16px;
-        }
+/* Make the checkboxes more visible */
+.form-check-input {
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.2);
+    width: 1.5em !important;
+    height: 1.5em !important;
+    margin-top: 0 !important;
+}
+
+/* Style FontAwesome icons to match your theme */
+.fa-trash {
+    font-size: 1.1em;
+}
 </style>
+
 <script>
 document.getElementById('printCardsForm').addEventListener('submit', function(e) {
     e.preventDefault();
