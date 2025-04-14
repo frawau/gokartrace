@@ -1,40 +1,40 @@
 {% extends 'layout/content.html' %}
 {% load static %}
 {% block extra_style %}
-/* Custom styles for checkboxes */
-.checkbox-wrapper {
-    display: inline-block;
-    position: relative;
-    }
+    /* Custom styles for checkboxes */
+    .checkbox-wrapper {
+        display: inline-block;
+        position: relative;
+        }
 
-.checkbox-wrapper input[type="checkbox"] {
-    width: 20px;
-    height: 20px;
-    border: 2px solid #aaa;
-    border-radius: 3px;
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    background-color: white;
-    margin: 0;
-    cursor: pointer;
-    display: inline-block;
-    vertical-align: middle;
-    }
+    .checkbox-wrapper input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        border: 2px solid #aaa;
+        border-radius: 3px;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        background-color: white;
+        margin: 0;
+        cursor: pointer;
+        display: inline-block;
+        vertical-align: middle;
+        }
 
-.checkbox-wrapper input[type="checkbox"]:checked {
-    background-color: #007bff;
-    border-color: #007bff;
-    }
+    .checkbox-wrapper input[type="checkbox"]:checked {
+        background-color: #007bff;
+        border-color: #007bff;
+        }
 
-.checkbox-wrapper input[type="checkbox"]:checked::after {
-    content: '✓';
-    position: absolute;
-    color: white;
-    left: 6px;
-    top: -2px;
-    font-size: 16px;
-    }
+    .checkbox-wrapper input[type="checkbox"]:checked::after {
+        content: '✓';
+        position: absolute;
+        color: white;
+        left: 6px;
+        top: -2px;
+        font-size: 16px;
+        }
 {% endblock extra_style %}
 {% block main_content %}
 <div class="container mt-5">
