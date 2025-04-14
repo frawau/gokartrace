@@ -17,7 +17,7 @@ class TeamChoiceField(forms.ModelChoiceField):
 
 
 class TeamSelectionForm(forms.Form):
-    team = forms.TeamChoiceField(
+    team = TeamChoiceField(
         queryset=championship_team.objects.none(),
         label="Select Team"
     )
