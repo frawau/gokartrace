@@ -15,7 +15,7 @@ class DriverForm(forms.ModelForm):
 class TeamForm(forms.ModelForm):
     class Meta:
         model = Team
-        fields = ['name']
+        fields = ['name', "logo"]
         widgets = {
             'logo': forms.FileInput(attrs={'class': 'file-input', 'id': 'logo-upload'}),
         }
