@@ -475,7 +475,6 @@ def update_round(request, round_id):
 
 @login_required
 @user_passes_test(is_admin_user)
-@require_http_methods(["POST"])
 def create_driver(request):
     if request.method == 'POST':
         form = DriverForm(request.POST, request.FILES)
