@@ -54,12 +54,13 @@ class AddMemberForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         current_round = kwargs.pop('current_round', None)
+        selected_team = kwargs.pop('selected_team', None)
         super().__init__(*args, **kwargs)
 
-        if current_round:
+        if current_round and selected_team:
             # Get existing team members for this round and team
             existing_members = team_member.objects.filter(
-                team__round=current_round
+                team__round=current_round,
             ).values_list('member_id', flat=True)
 
             # Exclude people who are already team members
