@@ -5,9 +5,19 @@ from django.shortcuts import render, redirect
 from django.views import View
 from django.contrib import messages
 from django.db.models import Exists, OuterRef
+from django.utils.safestring import mark_safe
+
+
+
+class TeamChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        # This will add a FontAwesome checkmark after the team name if is_round_team is True
+        checkmark = mark_safe(' <i class="fas fa-check text-success"></i>') if getattr(obj, 'is_round_team', False) else ""
+        return mark_safe(f"{str(obj)}{checkmark}")
+
 
 class TeamSelectionForm(forms.Form):
-    team = forms.ModelChoiceField(
+    team = forms.TeamChoiceField(
         queryset=championship_team.objects.none(),
         label="Select Team"
     )
@@ -16,9 +26,6 @@ class TeamSelectionForm(forms.Form):
         current_round = kwargs.pop('current_round', None)
         super().__init__(*args, **kwargs)
         if current_round:
-            self.fields['team'].queryset = championship_team.objects.filter(
-                championship=current_round.championship
-            ).order_by('number')
             self.fields['team'].queryset = championship_team.objects.filter(
                 championship=current_round.championship
             ).annotate(
