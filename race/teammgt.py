@@ -12,7 +12,6 @@ class TeamChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
         # This will add a FontAwesome checkmark after the team name if is_round_team is True
         checkmark = " ⭐" if getattr(obj, 'is_round_team', False) else ""
-        print(f"{str(obj)}{checkmark}")
         return f"{str(obj)}{checkmark}"
 
 
