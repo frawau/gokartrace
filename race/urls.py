@@ -39,4 +39,5 @@ urlpatterns = [
     path("rounds/update/<int:round_id>/", views.update_round, name="update_round"),
     path("rounds/team/", TeamMembersView.as_view(), name='team_members'),
     path('driver/add/', views.create_driver, name='add_driver'),
+    path('team/add/', views.create_team(), name='add_team'),
 ]

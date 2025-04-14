@@ -37,7 +37,7 @@ from .models import (
 )
 from .serializers import ChangeLaneSerializer
 from .utils import datadecode
-from .forms import DriverForm
+from .forms import DriverForm, TeamForm
 
 # Create your views here.
 
@@ -485,3 +485,16 @@ def create_driver(request):
     else:
         form = DriverForm()
     return render(request, 'pages/add_driver.html', {'form': form})
+
+@login_required
+@user_passes_test(is_admin_user)
+def create_team(request):
+    if request.method == 'POST':
+        form = TeamForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Team added successfully!')
+            return redirect('add_team')  # Redirect to a page listing persons
+    else:
+        form = TeamForm()
+    return render(request, 'pages/add_team.html', {'form': form})

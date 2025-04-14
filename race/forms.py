@@ -1,6 +1,6 @@
 # forms.py
 from django import forms
-from .models import Person
+from .models import Person, Team
 
 class DriverForm(forms.ModelForm):
     class Meta:
@@ -10,4 +10,12 @@ class DriverForm(forms.ModelForm):
         widgets = {
             'mugshot': forms.FileInput(attrs={'class': 'file-input', 'id': 'mugshot-upload'}),
             'birthdate': forms.DateInput(attrs={'type': 'date'}),
+        }
+
+class TeamForm(forms.ModelForm):
+    class Meta:
+        model = Team
+        fields = ['name']
+        widgets = {
+            'logo': forms.FileInput(attrs={'class': 'file-input', 'id': 'logo-upload'}),
         }
