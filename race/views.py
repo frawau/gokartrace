@@ -484,4 +484,4 @@ def create_driver(request):
             return redirect('add_driver')  # Redirect to a page listing persons
     else:
         form = DriverForm()
-    return render(request, 'add_driver.html', {'form': form})
+    return render(request, 'pages/add_driver.html', {'form': form})
