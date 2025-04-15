@@ -304,9 +304,9 @@ class Round(models.Model):
                 if sessions.exists():
                     registered_drivers.append(driver)
 
-                if driver.weight == 0:
+                if driver.weight <= 20:
                     errors.append(
-                        f"Driver {driver.member.nickname} in team {round_team_instance.team.team.name} has a weight of 0."
+                        f"Driver {driver.member.nickname} in team {round_team_instance.team.team.name} has an unlikely weight."
                     )
 
             if len(registered_drivers) != 1:
