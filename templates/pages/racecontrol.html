@@ -86,45 +86,114 @@
 
 {% block extra_js %}
 <script>
-    $(document).ready(function() {
-        function updateCountdown() {
-            const countdownEl = $('#roundCountdown');
-            const displayEl = $('#countdownDisplay');
-            const remainingSeconds = parseInt(countdownEl.attr('data-remaining'), 10);
-            const isPaused = countdownEl.attr('data-is-paused') === 'true';
+$(document).ready(function() {
+    function updateCountdown() {
+        const countdownEl = $('#roundCountdown');
+        const displayEl = $('#countdownDisplay');
+        const remainingSeconds = parseInt(countdownEl.attr('data-remaining'), 10);
+        const isPaused = countdownEl.attr('data-is-paused') === 'true';
 
-            if (isNaN(remainingSeconds)) {
-                displayEl.text('--:--:--');
-                return;
-            }
+        if (isNaN(remainingSeconds)) {
+            displayEl.text('--:--:--');
+            return;
+        }
 
-            let remainingTime = remainingSeconds * 1000;
-            if (!isPaused) {
-                const now = new Date().getTime();
-                const elapsedSincePageLoad = now - pageLoadTime;
-                remainingTime = Math.max(0, remainingTime - elapsedSincePageLoad);
-            }
+        let remainingTime = remainingSeconds * 1000;
+        if (!isPaused) {
+            const now = new Date().getTime();
+            const elapsedSincePageLoad = now - pageLoadTime;
+            remainingTime = Math.max(0, remainingTime - elapsedSincePageLoad);
+        }
 
-            const hours = Math.floor(remainingTime / (1000 * 60 * 60));
-            const minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((remainingTime % (1000 * 60)) / 1000);
+        const hours = Math.floor(remainingTime / (1000 * 60 * 60));
+        const minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((remainingTime % (1000 * 60)) / 1000);
 
-            displayEl.text(
-                hours.toString().padStart(2, '0') + ':' +
-                minutes.toString().padStart(2, '0') + ':' +
-                seconds.toString().padStart(2, '0')
-            );
-        };
-
-        const pageLoadTime = new Date().getTime();
-        setInterval(updateCountdown, 1000);
-        updateCountdown();
-
-        const roundSocket = new WebSocket(
-            'ws://' + window.location.host + '/ws/roundpause/{{ round.id }}/'
+        displayEl.text(
+            hours.toString().padStart(2, '0') + ':' +
+            minutes.toString().padStart(2, '0') + ':' +
+            seconds.toString().padStart(2, '0')
         );
+    };
 
-        roundSocket.onmessage = function(e) {
+    const pageLoadTime = new Date().getTime();
+    setInterval(updateCountdown, 1000);
+    updateCountdown();
+
+    // Create WebSocket connection with reconnection logic
+    function createWebSocketWithReconnect(url, messageHandler, openHandler, errorHandler) {
+        let socket;
+        let reconnectTimeout;
+        const RECONNECT_DELAY = 10000; // 10 seconds
+
+        function connect() {
+            socket = new WebSocket(url);
+
+            socket.onmessage = messageHandler;
+
+            socket.onopen = function(event) {
+                // Clear any pending reconnect timeouts
+                if (reconnectTimeout) {
+                    clearTimeout(reconnectTimeout);
+                    reconnectTimeout = null;
+                }
+
+                // Call the custom open handler if provided
+                if (openHandler) {
+                    openHandler(event);
+                }
+            };
+
+            socket.onerror = function(event) {
+                // Call the custom error handler if provided
+                if (errorHandler) {
+                    errorHandler(event);
+                }
+            };
+
+            socket.onclose = function(event) {
+                // Don't reconnect if the closure was clean (intentional)
+                if (!event.wasClean) {
+                    console.log(`WebSocket connection to ${url} closed unexpectedly. Reconnecting in 10 seconds...`);
+
+                    // Schedule reconnection
+                    reconnectTimeout = setTimeout(function() {
+                        console.log(`Attempting to reconnect to ${url}...`);
+                        connect();
+                    }, RECONNECT_DELAY);
+                }
+            };
+        }
+
+        // Initial connection
+        connect();
+
+        // Return functions to interact with the socket
+        return {
+            send: function(data) {
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(data);
+                } else {
+                    console.warn("Cannot send message, socket is not open");
+                }
+            },
+            close: function() {
+                if (socket) {
+                    // Clear reconnect timeout to prevent reconnection after manual close
+                    if (reconnectTimeout) {
+                        clearTimeout(reconnectTimeout);
+                        reconnectTimeout = null;
+                    }
+                    socket.close();
+                }
+            }
+        };
+    }
+
+    // Round socket with reconnection
+    const roundSocket = createWebSocketWithReconnect(
+        'ws://' + window.location.host + '/ws/roundpause/{{ round.id }}/',
+        function(e) {
             const data = JSON.parse(e.data);
             if (data.type === 'round_update') {
                 $('#roundCountdown').data('is-paused', data.is_paused);
@@ -133,56 +202,37 @@
                 }
                 window.pageLoadTime = new Date().getTime();
             }
-        };
-        {% for lane in lanes %}
-        const laneNumber{{ lane.id }} = {{ lane.lane }};
-        const socketcl{{ lane.id }} = new WebSocket(`ws://${window.location.host}/ws/pitlanes/${laneNumber{{ lane.id }}}/`);
+        }
+    );
 
-        socketcl{{ lane.id }}.onmessage = function (event) {
+    // Lane sockets with reconnection
+    {% for lane in lanes %}
+    const laneNumber{{ lane.id }} = {{ lane.lane }};
+
+    const socketcl{{ lane.id }} = createWebSocketWithReconnect(
+        `ws://${window.location.host}/ws/pitlanes/${laneNumber{{ lane.id }}}/`,
+        function(event) {
             const data = JSON.parse(event.data);
             if (data.type === 'rclane.update') {
                 document.getElementById(`lane-{{ lane.id }}`).outerHTML = data.lane_html;
             }
-        };
-
-        socketcl{{ lane.id }}.onclose = function(event) {
-            if (!event.wasClean) {
-                reloadTimer = setTimeout(() => {
-                    location.reload();
-                }, 3000); // Reload after 3 seconds
-            }
-        };
-        {% endfor %}
-        {% for lane in lanes %}
-        function loadLane{{ lane.id }}() {
-            $.get('/pitlanedetail/{{ lane.lane }}/', function(data) {
-                document.getElementById(`lane-{{ lane.id }}`).outerHTML = data;
-            });
         }
-        loadLane{{ lane.id }}(); // Load on page load
-        {% endfor %}
-    });
+    );
 
+    function loadLane{{ lane.id }}() {
+        $.get('/pitlanedetail/{{ lane.lane }}/', function(data) {
+            document.getElementById(`lane-{{ lane.id }}`).outerHTML = data;
+        });
+    }
+    loadLane{{ lane.id }}(); // Load on page load
+    {% endfor %}
+
+    // Button event handlers
     $('#raceButton').click(function() {
         const button = $(this);
         $.ajaxSetup({
             headers: { "X-CSRFToken": getCookie("csrftoken") }
         });
-
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
 
         if (button.text() === 'Pre Race Check') {
             $.post('/preracecheck/', function(response) {
@@ -255,122 +305,209 @@
             $('#teamSelect').val($('#teamSelect option:first').val());
         }
     });
-    // Initialize WebSocket connection
-    document.addEventListener('DOMContentLoaded', function() {
-        // Create WebSocket connection - no need for round ID
-        const emptyTeamsSocket = new WebSocket(
-            'ws://' + window.location.host + '/ws/empty_teams/'
-        );
+});
 
-        // Handle received messages
-        emptyTeamsSocket.onmessage = function(e) {
+// Initialize empty teams WebSocket connection with reconnection
+document.addEventListener('DOMContentLoaded', function() {
+    // Create WebSocket connection with reconnection logic
+    function createWebSocketWithReconnect(url, messageHandler, openHandler, errorHandler) {
+        let socket;
+        let reconnectTimeout;
+        const RECONNECT_DELAY = 10000; // 10 seconds
+
+        function connect() {
+            socket = new WebSocket(url);
+
+            socket.onmessage = messageHandler;
+
+            socket.onopen = function(event) {
+                // Clear any pending reconnect timeouts
+                if (reconnectTimeout) {
+                    clearTimeout(reconnectTimeout);
+                    reconnectTimeout = null;
+                }
+
+                // Call the custom open handler if provided
+                if (openHandler) {
+                    openHandler(event);
+                }
+            };
+
+            socket.onerror = function(event) {
+                // Call the custom error handler if provided
+                if (errorHandler) {
+                    errorHandler(event);
+                }
+            };
+
+            socket.onclose = function(event) {
+                // Don't reconnect if the closure was clean (intentional)
+                if (!event.wasClean) {
+                    console.log(`WebSocket connection to ${url} closed unexpectedly. Reconnecting in 10 seconds...`);
+
+                    // Schedule reconnection
+                    reconnectTimeout = setTimeout(function() {
+                        console.log(`Attempting to reconnect to ${url}...`);
+                        connect();
+                    }, RECONNECT_DELAY);
+                }
+            };
+        }
+
+        // Initial connection
+        connect();
+
+        // Return functions to interact with the socket
+        return {
+            send: function(data) {
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(data);
+                } else {
+                    console.warn("Cannot send message, socket is not open");
+                }
+            },
+            close: function() {
+                if (socket) {
+                    // Clear reconnect timeout to prevent reconnection after manual close
+                    if (reconnectTimeout) {
+                        clearTimeout(reconnectTimeout);
+                        reconnectTimeout = null;
+                    }
+                    socket.close();
+                }
+            }
+        };
+    }
+
+    const emptyTeamsSocket = createWebSocketWithReconnect(
+        'ws://' + window.location.host + '/ws/empty_teams/',
+        function(e) {
             const data = JSON.parse(e.data);
-
             if (data.type === 'empty_teams_list') {
                 updateEmptyTeamsList(data.teams);
             } else if (data.type === 'system_message') {
                 addSystemMessage(data.message, data.tag);
             }
-        };
-
-        // Handle connection opening
-        emptyTeamsSocket.onopen = function(e) {
+        },
+        function(e) {
             console.log('WebSocket connection established');
             document.getElementById('emptyTeamsPlaceholder').textContent = 'Waiting for data...';
-        };
-
-        // Handle errors
-        emptyTeamsSocket.onerror = function(e) {
+        },
+        function(e) {
             console.error('WebSocket error:', e);
             document.getElementById('emptyTeamsPlaceholder').textContent = 'Connection error!';
-        };
+        }
+    );
 
-        // Handle connection closing
-        emptyTeamsSocket.onclose = function(e) {
-            console.log('WebSocket connection closed');
-            document.getElementById('emptyTeamsPlaceholder').textContent = 'Connection closed!';
-        };
+    // Set up delete button
+    document.getElementById('deleteEmptyTeamsBtn').addEventListener('click', function() {
+        if (confirm('Are you sure you want to delete all teams with no members?')) {
+            emptyTeamsSocket.send(JSON.stringify({
+                'action': 'delete_empty_teams'
+            }));
+        }
+    });
 
-        // Set up delete button
-        document.getElementById('deleteEmptyTeamsBtn').addEventListener('click', function() {
-            if (confirm('Are you sure you want to delete all teams with no members?')) {
+    // For individual team deletion buttons
+    document.querySelectorAll('.delete-single-team').forEach(button => {
+        button.addEventListener('click', function() {
+            const teamId = this.getAttribute('data-team-id');
+            if (confirm('Delete this team?')) {
                 emptyTeamsSocket.send(JSON.stringify({
-                    'action': 'delete_empty_teams'
+                    'action': 'delete_single_team',
+                    'team_id': teamId
                 }));
             }
         });
     });
+});
 
-    // Function to update the empty teams list
-    function updateEmptyTeamsList(teams) {
-        const emptyTeamsUL = document.getElementById('emptyTeamsUL');
-        const placeholder = document.getElementById('emptyTeamsPlaceholder');
+// Function to update the empty teams list
+function updateEmptyTeamsList(teams) {
+    const emptyTeamsUL = document.getElementById('emptyTeamsUL');
+    const placeholder = document.getElementById('emptyTeamsPlaceholder');
 
-        // Clear current list
-        emptyTeamsUL.innerHTML = '';
+    // Clear current list
+    emptyTeamsUL.innerHTML = '';
 
-        if (teams.length === 0) {
-            placeholder.textContent = 'No empty teams found';
-            placeholder.style.display = 'block';
-            emptyTeamsUL.style.display = 'none';
-        } else {
-            placeholder.style.display = 'none';
-            emptyTeamsUL.style.display = 'block';
+    if (teams.length === 0) {
+        placeholder.textContent = 'No empty teams found';
+        placeholder.style.display = 'block';
+        emptyTeamsUL.style.display = 'none';
+    } else {
+        placeholder.style.display = 'none';
+        emptyTeamsUL.style.display = 'block';
 
-            // Add each team to the list
-            teams.forEach(function(team) {
-                const li = document.createElement('li');
-                li.className = 'list-group-item d-flex justify-content-between align-items-center';
+        // Add each team to the list
+        teams.forEach(function(team) {
+            const li = document.createElement('li');
+            li.className = 'list-group-item d-flex justify-content-between align-items-center';
 
-                // Format: Team name (Number) - Championship name
-                li.innerHTML = `
-                    <span>${team.team_name} (#${team.number}) - ${team.championship_name}</span>
-                    <button class="btn btn-sm btn-outline-danger delete-single-team"
-                            data-team-id="${team.id}">Delete</button>
-                `;
+            // Format: Team name (Number) - Championship name
+            li.innerHTML = `
+                <span>${team.team_name} (#${team.number}) - ${team.championship_name}</span>
+                <button class="btn btn-sm btn-outline-danger delete-single-team"
+                        data-team-id="${team.id}">Delete</button>
+            `;
 
-                emptyTeamsUL.appendChild(li);
+            emptyTeamsUL.appendChild(li);
+        });
+
+        // Add event listeners for individual team deletion
+        document.querySelectorAll('.delete-single-team').forEach(button => {
+            button.addEventListener('click', function() {
+                const teamId = this.getAttribute('data-team-id');
+                if (confirm('Delete this team?')) {
+                    const emptyTeamsSocket = new WebSocket(
+                        'ws://' + window.location.host + '/ws/empty_teams/'
+                    );
+
+                    emptyTeamsSocket.onopen = function() {
+                        emptyTeamsSocket.send(JSON.stringify({
+                            'action': 'delete_single_team',
+                            'team_id': teamId
+                        }));
+                    };
+                }
             });
+        });
+    }
+}
 
-            // Add event listeners for individual team deletion
-            document.querySelectorAll('.delete-single-team').forEach(button => {
-                button.addEventListener('click', function() {
-                    const teamId = this.getAttribute('data-team-id');
-                    if (confirm('Delete this team?')) {
-                        const emptyTeamsSocket = new WebSocket(
-                            'ws://' + window.location.host + '/ws/empty_teams/'
-                        );
+// Function to add a system message
+function addSystemMessage(message, tag) {
+    const messagesContainer = document.getElementById('messagesContainer');
 
-                        emptyTeamsSocket.onopen = function() {
-                            emptyTeamsSocket.send(JSON.stringify({
-                                'action': 'delete_single_team',
-                                'team_id': teamId
-                            }));
-                        };
-                    }
-                });
-            });
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${tag}`;
+    alertDiv.textContent = message;
+
+    // Add message to the top of the container
+    messagesContainer.insertBefore(alertDiv, messagesContainer.firstChild);
+
+    // Optional: Auto-dismiss after some time
+    setTimeout(function() {
+        alertDiv.style.opacity = '0';
+        setTimeout(function() {
+            alertDiv.remove();
+        }, 1000);
+    }, 10000);
+}
+
+// Function to get CSRF token for AJAX requests
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
         }
     }
-
-    // Function to add a system message
-    function addSystemMessage(message, tag) {
-        const messagesContainer = document.getElementById('messagesContainer');
-
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${tag}`;
-        alertDiv.textContent = message;
-
-        // Add message to the top of the container
-        messagesContainer.insertBefore(alertDiv, messagesContainer.firstChild);
-
-        // Optional: Auto-dismiss after some time
-        setTimeout(function() {
-            alertDiv.style.opacity = '0';
-            setTimeout(function() {
-                alertDiv.remove();
-            }, 1000);
-        }, 10000);
-    }
+    return cookieValue;
+}
 </script>
 {% endblock extra_js %}
