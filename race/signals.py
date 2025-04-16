@@ -4,7 +4,7 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from .models import ChangeLane, round_pause, team_member, round_team
 from django.template.loader import render_to_string
-
+from django.db.models import Count
 
 # Function to update all connected clients
 def update_empty_teams(round_id):
