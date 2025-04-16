@@ -716,7 +716,7 @@ class Session(models.Model):
         verbose_name_plural = _("Sessions")
 
     def __str__(self):
-        return f"{self.driver.nickname} in {self.round}"
+        return f"{self.driver.member.nickname} in {self.round}"
 
 
 class ChangeLane(models.Model):
