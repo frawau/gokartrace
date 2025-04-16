@@ -294,10 +294,10 @@ function connectToLaneSockets() {
         // Set up WebSockets for each lane
         laneData.lanes.forEach(function(lane) {
             // Find the existing lane element
-            const laneElement = document.getElementById(`lane-${lane.id}`);
+            const laneElement = document.getElementById(`lane-${lane.lane}`);
 
             if (!laneElement) {
-                console.warn(`Lane element lane-${lane.id} not found in DOM`);
+                console.warn(`Lane element lane-${lane.lane} not found in DOM`);
                 return;
             }
 
@@ -312,13 +312,13 @@ function connectToLaneSockets() {
                         console.log(`Received lane update for lane ${lane.lane}`);
 
                         // Find the lane element again in case it changed
-                        const currentLaneElement = document.getElementById(`lane-${lane.id}`);
+                        const currentLaneElement = document.getElementById(`lane-${lane.lane}`);
                         if (currentLaneElement) {
                             // Replace the entire element
                             currentLaneElement.outerHTML = data.lane_html;
                             console.log(`Updated lane ${lane.lane} with new HTML`);
                         } else {
-                            console.warn(`Lane element lane-${lane.id} not found for WebSocket update`);
+                            console.warn(`Lane element lane-${lane.lane} not found for WebSocket update`);
                         }
                     }
                 }
