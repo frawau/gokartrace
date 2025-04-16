@@ -87,6 +87,44 @@
 {% block extra_js %}
 <script>
 $(document).ready(function() {
+    function updateCountdown() {
+        const countdownEl = $('#roundCountdown');
+        const displayEl = $('#countdownDisplay');
+        const remainingSeconds = parseInt(countdownEl.attr('data-remaining'), 10);
+        const isPaused = countdownEl.attr('data-is-paused') === 'true';
+
+        if (isNaN(remainingSeconds)) {
+            displayEl.text('--:--:--');
+            return;
+        }
+
+        let remainingTime = remainingSeconds * 1000;
+        if (!isPaused) {
+            const now = new Date().getTime();
+            const elapsedSincePageLoad = now - pageLoadTime;
+            remainingTime = Math.max(0, remainingTime - elapsedSincePageLoad);
+        }
+
+        const hours = Math.floor(remainingTime / (1000 * 60 * 60));
+        const minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((remainingTime % (1000 * 60)) / 1000);
+
+        displayEl.text(
+            hours.toString().padStart(2, '0') + ':' +
+            minutes.toString().padStart(2, '0') + ':' +
+            seconds.toString().padStart(2, '0')
+        );
+
+        // Check if we're near the end of the round
+        if (remainingSeconds < 120 && !$('#raceButton').prop('disabled')) {
+            $('#raceButton').removeClass('btn-warning btn-success').addClass('btn-danger').text('End Race').css('color', 'white');
+        }
+    };
+
+    const pageLoadTime = new Date().getTime();
+    setInterval(updateCountdown, 1000);
+    updateCountdown();
+
     // Initial button state based on round properties
     function initializeRaceButton() {
         $.get('/get_round_status/', function(data) {
@@ -118,57 +156,6 @@ $(document).ready(function() {
 
     // Initialize button on page load
     initializeRaceButton();
-
-    // Update button when round status changes
-    const roundSocket = createWebSocketWithReconnect(
-        'ws://' + window.location.host + '/ws/roundpause/{{ round.id }}/',
-        function(e) {
-            const data = JSON.parse(e.data);
-            if (data.type === 'round_update') {
-                $('#roundCountdown').data('is-paused', data.is_paused);
-                if (data.remaining_seconds !== undefined) {
-                    $('#roundCountdown').attr('data-remaining', data.remaining_seconds);
-                }
-                window.pageLoadTime = new Date().getTime();
-
-                // Update button state when round is updated
-                initializeRaceButton();
-            }
-        }
-    );
-
-    function updateCountdown() {
-        const countdownEl = $('#roundCountdown');
-        const displayEl = $('#countdownDisplay');
-        const remainingSeconds = parseInt(countdownEl.attr('data-remaining'), 10);
-        const isPaused = countdownEl.attr('data-is-paused') === 'true';
-
-        if (isNaN(remainingSeconds)) {
-            displayEl.text('--:--:--');
-            return;
-        }
-
-        let remainingTime = remainingSeconds * 1000;
-        if (!isPaused) {
-            const now = new Date().getTime();
-            const elapsedSincePageLoad = now - pageLoadTime;
-            remainingTime = Math.max(0, remainingTime - elapsedSincePageLoad);
-        }
-
-        const hours = Math.floor(remainingTime / (1000 * 60 * 60));
-        const minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((remainingTime % (1000 * 60)) / 1000);
-
-        displayEl.text(
-            hours.toString().padStart(2, '0') + ':' +
-            minutes.toString().padStart(2, '0') + ':' +
-            seconds.toString().padStart(2, '0')
-        );
-    };
-
-    const pageLoadTime = new Date().getTime();
-    setInterval(updateCountdown, 1000);
-    updateCountdown();
 
     // Create WebSocket connection with reconnection logic
     function createWebSocketWithReconnect(url, messageHandler, openHandler, errorHandler) {
@@ -251,6 +238,9 @@ $(document).ready(function() {
                     $('#roundCountdown').attr('data-remaining', data.remaining_seconds);
                 }
                 window.pageLoadTime = new Date().getTime();
+
+                // Update button state when round is updated
+                initializeRaceButton();
             }
         }
     );
@@ -277,7 +267,7 @@ $(document).ready(function() {
     loadLane{{ lane.id }}(); // Load on page load
     {% endfor %}
 
-    // Button event handlers
+    // Button click handler
     $('#raceButton').click(function() {
         const button = $(this);
         $.ajaxSetup({
@@ -332,11 +322,6 @@ $(document).ready(function() {
             button.prop('disabled', true);
           });
         }
-
-        const remainingSeconds = parseInt($('#roundCountdown').attr('data-remaining'), 10);
-        if (remainingSeconds < 120) {
-          button.removeClass('btn-warning').removeClass('btn-success').addClass('btn-danger').text('End Race').css('color', 'white');
-        }
     });
 
     $('#stopGoButton').click(function() {
@@ -356,6 +341,22 @@ $(document).ready(function() {
         }
     });
 });
+
+// Function to get CSRF token for AJAX requests
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
 
 // Initialize empty teams WebSocket connection with reconnection
 document.addEventListener('DOMContentLoaded', function() {
@@ -457,19 +458,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }));
         }
     });
-
-    // For individual team deletion buttons
-    document.querySelectorAll('.delete-single-team').forEach(button => {
-        button.addEventListener('click', function() {
-            const teamId = this.getAttribute('data-team-id');
-            if (confirm('Delete this team?')) {
-                emptyTeamsSocket.send(JSON.stringify({
-                    'action': 'delete_single_team',
-                    'team_id': teamId
-                }));
-            }
-        });
-    });
 });
 
 // Function to update the empty teams list
@@ -542,22 +530,6 @@ function addSystemMessage(message, tag) {
             alertDiv.remove();
         }, 1000);
     }, 10000);
-}
-
-// Function to get CSRF token for AJAX requests
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
 }
 </script>
 {% endblock extra_js %}
