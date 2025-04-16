@@ -42,11 +42,12 @@
                                     <h5 class="mb-0">Teams</h5>
                                 </div>
                                 <div class="card-body overflow-auto">
-                                    <select class="form-select" id="teamSelect" style="font-size: 1.2rem;">
+                                    <select class="form-select mb-2" id="teamSelect" style="font-size: 1.2rem;">
                                         {% for team in round.round_team_set.all %}
                                             <option value="{{ team.id }}">{{ team.team.number }} {{ team.team.team.name }}</option>
                                         {% endfor %}
                                     </select>
+                                    <button class="btn btn-success w-100" id="stopGoButton">Stop&Go</button>
                                 </div>
                             </div>
                         </div>
@@ -81,10 +82,7 @@
         </div>
     </div>
     <div class="row" style="height: 20%;">
-        <div class="col-md-4 d-flex align-items-center justify-content-center">
-            <button class="btn btn-success" id="stopGoButton">Stop&Go</button>
-        </div>
-        <div class="col-md-8">
+        <div class="col-md-12">
             <!-- Replace racemsg with an empty div that can be used for other purposes if needed -->
             <div class="card h-100" style="background-color: transparent; overflow-y: auto;">
                 <!-- Additional content if needed -->
@@ -252,7 +250,7 @@
     $('#stopGoButton').click(function() {
         const teamId = $('#teamSelect').val();
         const button = $(this);
-        const card = button.closest('.row');
+        const card = button.closest('.card');
 
         if (button.text() === 'Stop&Go') {
             $.post('/serve_team/', { team_id: teamId }, function() {
