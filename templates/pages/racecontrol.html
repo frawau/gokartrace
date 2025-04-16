@@ -335,13 +335,13 @@ function connectToLaneSockets() {
                 console.log(`Received initial data for lane ${lane.lane}`);
 
                 // Find the lane element again in case it changed
-                const currentLaneElement = document.getElementById(`lane-${lane.id}`);
+                const currentLaneElement = document.getElementById(`lane-${lane.lane}`);
                 if (currentLaneElement) {
                     // Replace the entire element
                     currentLaneElement.outerHTML = data;
                     console.log(`Initialized lane ${lane.lane} with HTML data`);
                 } else {
-                    console.warn(`Lane element lane-${lane.id} not found for initial load`);
+                    console.warn(`Lane element lane-${lane.lane} not found for initial load`);
                 }
             }).fail(function(xhr, status, error) {
                 console.error(`Failed to load lane ${lane.lane}: ${status} - ${error}`);
