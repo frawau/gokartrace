@@ -546,3 +546,23 @@ def get_round_status(request):
         'ongoing': current_round.ongoing,
         'is_paused': current_round.is_paused
     })
+
+
+def get_race_lanes(request):
+    """Return the lanes for the current race"""
+    # Get the current active round (use your existing method)
+    end_date = dt.date.today()
+    start_date = end_date - dt.timedelta(days=1)
+    current_round = Round.objects.filter(
+        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
+    ).first()
+
+    if not current_round:
+        return JsonResponse({'lanes': []})
+
+    # Get lanes for this round
+    lanes = Lane.objects.filter(round=current_round).values('id', 'lane')
+
+    return JsonResponse({
+        'lanes': list(lanes)
+    })

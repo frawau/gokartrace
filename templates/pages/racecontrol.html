@@ -272,51 +272,90 @@ $(document).ready(function() {
 
         console.log("Connecting to pit lane sockets");
 
-        {% for lane in lanes %}
-        const laneNumber{{ lane.id }} = {{ lane.lane }};
-
-        const socketcl{{ lane.id }} = createWebSocketWithReconnect(
-            `ws://${window.location.host}/ws/pitlanes/${laneNumber{{ lane.id }}}/`,
-            function(event) {
-                const data = JSON.parse(event.data);
-                if (data.type === 'rclane.update') {
-                    // Important: Replace the entire lane element with the new HTML
-                    const laneElement = document.getElementById(`lane-{{ lane.id }}`);
-                    if (laneElement) {
-                        // Create a temporary container to hold the new HTML
-                        const tempContainer = document.createElement('div');
-                        tempContainer.innerHTML = data.lane_html;
-
-                        // Replace the old element with the new one
-                        laneElement.parentNode.replaceChild(tempContainer.firstChild, laneElement);
-                    } else {
-                        console.warn(`Lane element lane-{{ lane.id }} not found`);
-                    }
-                }
-            }
-        );
-
-        // Store socket references
-        window.laneSocketsArray.push(socketcl{{ lane.id }});
-
-        function loadLane{{ lane.id }}() {
-            $.get('/pitlanedetail/{{ lane.lane }}/', function(data) {
-                // Important: Properly update the lane element
-                const laneElement = document.getElementById(`lane-{{ lane.id }}`);
-                if (laneElement) {
-                    // Create a temporary container to hold the new HTML
-                    const tempContainer = document.createElement('div');
-                    tempContainer.innerHTML = data;
-
-                    // Replace the old element with the new one
-                    laneElement.parentNode.replaceChild(tempContainer.firstChild, laneElement);
-                } else {
-                    console.warn(`Lane element lane-{{ lane.id }} not found during initial load`);
-                }
-            });
+        // First, ensure the lane container exists in the DOM
+        const laneContainer = document.querySelector('.col-md-4.d-flex.flex-column');
+        if (!laneContainer) {
+            console.error("Lane container not found in DOM");
+            return;
         }
-        loadLane{{ lane.id }}(); // Load on lane connection
-        {% endfor %}
+
+        // Clear existing content in the lane container
+        // Keep only the queue element (last child)
+        const queueElement = document.getElementById('changequeue');
+        laneContainer.innerHTML = '';
+
+        // Get the list of lanes from the server
+        $.get('/get_race_lanes/', function(laneData) {
+            if (!laneData || !laneData.lanes || laneData.lanes.length === 0) {
+                console.warn("No lanes returned from server");
+                return;
+            }
+
+            // Create placeholders for each lane
+            laneData.lanes.forEach(function(lane) {
+                // Create a placeholder div for each lane
+                const laneDiv = document.createElement('div');
+                laneDiv.id = `lane-${lane.id}`;
+                laneDiv.className = 'card mb-2';
+                laneDiv.style.flexGrow = '1';
+                laneDiv.style.backgroundColor = 'transparent';
+                laneDiv.innerHTML = `Loading Lane ${lane.lane}...`;
+
+                // Add the placeholder to the container
+                laneContainer.appendChild(laneDiv);
+
+                // Create WebSocket connection for this lane
+                const laneSocket = createWebSocketWithReconnect(
+                    `ws://${window.location.host}/ws/pitlanes/${lane.lane}/`,
+                    function(event) {
+                        const data = JSON.parse(event.data);
+                        if (data.type === 'rclane.update') {
+                            // Update the lane element with the new HTML
+                            const laneElement = document.getElementById(`lane-${lane.id}`);
+                            if (laneElement) {
+                                // Create a temporary container to hold the new HTML
+                                const tempContainer = document.createElement('div');
+                                tempContainer.innerHTML = data.lane_html;
+
+                                // Replace the old element with the new one
+                                laneElement.parentNode.replaceChild(tempContainer.firstChild, laneElement);
+                            } else {
+                                console.warn(`Lane element lane-${lane.id} not found`);
+                            }
+                        }
+                    }
+                );
+
+                // Store socket reference
+                if (!window.laneSocketsArray) {
+                    window.laneSocketsArray = [];
+                }
+                window.laneSocketsArray.push(laneSocket);
+
+                // Load initial lane data
+                $.get(`/pitlanedetail/${lane.lane}/`, function(data) {
+                    const laneElement = document.getElementById(`lane-${lane.id}`);
+                    if (laneElement) {
+                        const tempContainer = document.createElement('div');
+                        tempContainer.innerHTML = data;
+                        laneElement.parentNode.replaceChild(tempContainer.firstChild, laneElement);
+                    }
+                });
+            });
+
+            // Add a queue div at the bottom
+            if (queueElement) {
+                laneContainer.appendChild(queueElement);
+            } else {
+                const queueDiv = document.createElement('div');
+                queueDiv.id = 'changequeue';
+                queueDiv.className = 'card mb-2';
+                queueDiv.style.flexGrow = '1';
+                queueDiv.style.backgroundColor = 'transparent';
+                queueDiv.innerHTML = 'Queue';
+                laneContainer.appendChild(queueDiv);
+            }
+        });
 
         window.lanesConnected = true;
     }
