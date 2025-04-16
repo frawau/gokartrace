@@ -674,7 +674,7 @@ class team_member(models.Model):
 
                 # Calculate paused time within the session duration
                 pauses = self.team.round.round_pause_set.filter(
-                    start__lte=session.end,
+                    start__lte=now,
                     end__gte=session.start,
                 )
 
