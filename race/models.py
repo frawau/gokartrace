@@ -237,6 +237,7 @@ class Round(models.Model):
     def start_race(self):
         now = dt.datetime.now()
         sessions = self.session_set.filter(
+            round=self,
             register__isnull=False, start__isnull=True, end__isnull=True
         )
         for session in sessions:
@@ -258,8 +259,32 @@ class Round(models.Model):
         ChangeLane.object.all().delete()
         return self.post_race_check()
 
+    def pause_race(self):
+        now = dt.datetime.now()
+        if self.round_pause_set.filter(round=self, end__isnull=True).exists():
+            # There is an open round_pause, so don't pause
+            return
+        pause = round_pause.objects.create(
+            start=now,
+            round=self,
+        )
+
+    def restart_race(self):
+        """
+        Resets the 'end' attribute of the latest round_pause only if there are no open round_pauses.
+        """
+        if self.round_pause_set.filter(round=self,end__isnull=True).exists():
+            # There is an open round_pause, so don't reset
+            return
+
+        latest_pause = self.round_pause_set.order_by("-start").first()
+
+        if latest_pause:
+            latest_pause.end = None
+            latest_pause.save()
+
     def false_start(self):
-        sessions = self.session_set.filter(
+        sessions = self.session_set.filter(round=self,
             register__isnull=False, start=self.started, end__isnull=True
         )
         for session in sessions:

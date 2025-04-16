@@ -194,27 +194,48 @@ def preracecheck(request):
 @user_passes_test(is_race_director)
 def race_start(request):
     # Your start race logic
+    end_date = dt.date.today()
+    start_date = end_date - dt.timedelta(days=1)
+    cround = Round.objects.filter(
+        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
+    ).first()
+    cround.start_race()
     return HttpResponse("OK")
 
 
 @login_required
 @user_passes_test(is_race_director)
 def falsestart(request):
-    # Your false start logic
+    end_date = dt.date.today()
+    start_date = end_date - dt.timedelta(days=1)
+    cround = Round.objects.filter(
+        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
+    ).first()
+    cround.false_start()
     return HttpResponse("OK")
 
 
 @login_required
 @user_passes_test(is_race_director)
 def racepaused(request):
-    # Your pause logic
+    end_date = dt.date.today()
+    start_date = end_date - dt.timedelta(days=1)
+    cround = Round.objects.filter(
+        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
+    ).first()
+    cround.pause_race()
     return HttpResponse("OK")
 
 
 @login_required
 @user_passes_test(is_race_director)
 def racerestart(request):
-    # Your restart logic
+    end_date = dt.date.today()
+    start_date = end_date - dt.timedelta(days=1)
+    cround = Round.objects.filter(
+        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
+    ).first()
+    cround.restart_race()
     return HttpResponse("OK")
 
 
@@ -222,12 +243,19 @@ def racerestart(request):
 @user_passes_test(is_race_director)
 def falserestart(request):
     # Your false restart logic
+    end_date = dt.date.today()
+    start_date = end_date - dt.timedelta(days=1)
+    cround = Round.objects.filter(
+        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
+    ).first()
+    cround.false_restart()
     return HttpResponse("OK")
 
 
 @login_required
 @user_passes_test(is_race_director)
 def endofrace(request):
+    errs = self.end_race()
     return HttpResponse("OK")
 
 
@@ -351,11 +379,6 @@ def change_kart_driver(request):
         )
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-def try_login(request):
-
-    return render(request, "pages/tryagentlogin.html")
 
 
 @login_required
