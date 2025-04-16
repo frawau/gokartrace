@@ -561,7 +561,7 @@ def get_race_lanes(request):
         return JsonResponse({'lanes': []})
 
     # Get lanes for this round
-    lanes = Lane.objects.filter(round=current_round).values('id', 'lane')
+    lanes = ChangeLane.objects.filter(round=current_round).values('id', 'lane')
 
     return JsonResponse({
         'lanes': list(lanes)
