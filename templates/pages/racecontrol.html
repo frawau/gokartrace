@@ -167,26 +167,6 @@
         {% endfor %}
     });
 
-    function addMessage(message) {
-        const contentDiv = document.getElementById('racemsg-content');
-        const messageElement = document.createElement('p');
-        messageElement.style.marginBottom = '5px';
-        messageElement.style.color = 'darkred'
-        messageElement.textContent = message;
-        if (contentDiv.firstChild) {
-            contentDiv.insertBefore(messageElement, contentDiv.firstChild); // Insert at the beginning
-        } else {
-            contentDiv.appendChild(messageElement); // If the contentDiv is empty
-        }
-        // Limit to 100 paragraphs
-        if (contentDiv.children.length > 100) {
-            contentDiv.removeChild(contentDiv.lastChild);
-        }
-
-        // Scroll to bottom
-        contentDiv.scrollTop = contentDiv.scrollHeight;
-    }
-
     $('#raceButton').click(function() {
         const button = $(this);
         $.ajaxSetup({
@@ -214,7 +194,7 @@
                     button.removeClass('btn-warning').addClass('btn-success').text('Start').css('color', 'white');
                 } else {
                     for (const item of response.error) {
-                        addMessage(item);
+                        addSystemMessage(item,"warning");
                     }
                 }
             });
