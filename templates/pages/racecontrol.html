@@ -280,7 +280,18 @@ $(document).ready(function() {
             function(event) {
                 const data = JSON.parse(event.data);
                 if (data.type === 'rclane.update') {
-                    document.getElementById(`lane-{{ lane.id }}`).outerHTML = data.lane_html;
+                    // Important: Replace the entire lane element with the new HTML
+                    const laneElement = document.getElementById(`lane-{{ lane.id }}`);
+                    if (laneElement) {
+                        // Create a temporary container to hold the new HTML
+                        const tempContainer = document.createElement('div');
+                        tempContainer.innerHTML = data.lane_html;
+
+                        // Replace the old element with the new one
+                        laneElement.parentNode.replaceChild(tempContainer.firstChild, laneElement);
+                    } else {
+                        console.warn(`Lane element lane-{{ lane.id }} not found`);
+                    }
                 }
             }
         );
@@ -290,7 +301,18 @@ $(document).ready(function() {
 
         function loadLane{{ lane.id }}() {
             $.get('/pitlanedetail/{{ lane.lane }}/', function(data) {
-                document.getElementById(`lane-{{ lane.id }}`).outerHTML = data;
+                // Important: Properly update the lane element
+                const laneElement = document.getElementById(`lane-{{ lane.id }}`);
+                if (laneElement) {
+                    // Create a temporary container to hold the new HTML
+                    const tempContainer = document.createElement('div');
+                    tempContainer.innerHTML = data;
+
+                    // Replace the old element with the new one
+                    laneElement.parentNode.replaceChild(tempContainer.firstChild, laneElement);
+                } else {
+                    console.warn(`Lane element lane-{{ lane.id }} not found during initial load`);
+                }
             });
         }
         loadLane{{ lane.id }}(); // Load on lane connection
