@@ -40,4 +40,5 @@ urlpatterns = [
     path("rounds/team/", TeamMembersView.as_view(), name='team_members'),
     path('driver/add/', views.create_driver, name='add_driver'),
     path('team/add/', views.create_team, name='add_team'),
+    path('get_round_status/', views.get_round_status, name='get_round_status'),
 ]

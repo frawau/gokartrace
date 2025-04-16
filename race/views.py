@@ -501,3 +501,25 @@ def create_team(request):
     else:
         form = TeamForm()
     return render(request, 'pages/add_team.html', {'form': form})
+
+def get_round_status(request):
+    """Return the current round status as JSON"""
+    # Get the current active round (you can use your existing method)
+    end_date = dt.date.today()
+    start_date = end_date - dt.timedelta(days=1)
+    current_round = Round.objects.filter(
+        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
+    ).first()
+
+    if not current_round:
+        return JsonResponse({
+            'ready': False,
+            'ongoing': False,
+            'is_paused': True
+        })
+
+    return JsonResponse({
+        'ready': current_round.ready,
+        'ongoing': current_round.ongoing,
+        'is_paused': current_round.is_paused
+    })

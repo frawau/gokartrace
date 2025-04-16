@@ -87,6 +87,56 @@
 {% block extra_js %}
 <script>
 $(document).ready(function() {
+    // Initial button state based on round properties
+    function initializeRaceButton() {
+        $.get('/get_round_status/', function(data) {
+            const button = $('#raceButton');
+
+            if (!data.ready) {
+                // Not ready - show Pre Race Check
+                button.removeClass('btn-success btn-danger').addClass('btn-warning').text('Pre Race Check').css('color', 'black');
+            } else if (!data.ongoing) {
+                // Ready but not ongoing - show Start
+                button.removeClass('btn-warning btn-danger').addClass('btn-success').text('Start').css('color', 'white');
+                $('#emptyTeamsCard').hide();
+                $('#teamSelectCard').show();
+            } else if (data.is_paused) {
+                // Ready, ongoing, and paused - show Restart
+                button.removeClass('btn-warning btn-danger').addClass('btn-success').text('Restart').css('color', 'white');
+            } else {
+                // Ready and ongoing but not paused - show Pause
+                button.removeClass('btn-success btn-danger').addClass('btn-warning').text('Pause').css('color', 'black');
+            }
+
+            // Check if we're near the end of the round
+            const remainingSeconds = parseInt($('#roundCountdown').attr('data-remaining'), 10);
+            if (remainingSeconds < 120 && data.ongoing) {
+                button.removeClass('btn-warning btn-success').addClass('btn-danger').text('End Race').css('color', 'white');
+            }
+        });
+    }
+
+    // Initialize button on page load
+    initializeRaceButton();
+
+    // Update button when round status changes
+    const roundSocket = createWebSocketWithReconnect(
+        'ws://' + window.location.host + '/ws/roundpause/{{ round.id }}/',
+        function(e) {
+            const data = JSON.parse(e.data);
+            if (data.type === 'round_update') {
+                $('#roundCountdown').data('is-paused', data.is_paused);
+                if (data.remaining_seconds !== undefined) {
+                    $('#roundCountdown').attr('data-remaining', data.remaining_seconds);
+                }
+                window.pageLoadTime = new Date().getTime();
+
+                // Update button state when round is updated
+                initializeRaceButton();
+            }
+        }
+    );
+
     function updateCountdown() {
         const countdownEl = $('#roundCountdown');
         const displayEl = $('#countdownDisplay');
