@@ -125,38 +125,6 @@ $(document).ready(function() {
     setInterval(updateCountdown, 1000);
     updateCountdown();
 
-    // Initial button state based on round properties
-    function initializeRaceButton() {
-        $.get('/get_round_status/', function(data) {
-            const button = $('#raceButton');
-
-            if (!data.ready) {
-                // Not ready - show Pre Race Check
-                button.removeClass('btn-success btn-danger').addClass('btn-warning').text('Pre Race Check').css('color', 'black');
-            } else if (!data.ongoing) {
-                // Ready but not ongoing - show Start
-                button.removeClass('btn-warning btn-danger').addClass('btn-success').text('Start').css('color', 'white');
-                $('#emptyTeamsCard').hide();
-                $('#teamSelectCard').show();
-            } else if (data.is_paused) {
-                // Ready, ongoing, and paused - show Restart
-                button.removeClass('btn-warning btn-danger').addClass('btn-success').text('Restart').css('color', 'white');
-            } else {
-                // Ready and ongoing but not paused - show Pause
-                button.removeClass('btn-success btn-danger').addClass('btn-warning').text('Pause').css('color', 'black');
-            }
-
-            // Check if we're near the end of the round
-            const remainingSeconds = parseInt($('#roundCountdown').attr('data-remaining'), 10);
-            if (remainingSeconds < 120 && data.ongoing) {
-                button.removeClass('btn-warning btn-success').addClass('btn-danger').text('End Race').css('color', 'white');
-            }
-        });
-    }
-
-    // Initialize button on page load
-    initializeRaceButton();
-
     // Create WebSocket connection with reconnection logic
     function createWebSocketWithReconnect(url, messageHandler, openHandler, errorHandler) {
         let socket;
@@ -227,7 +195,54 @@ $(document).ready(function() {
         };
     }
 
-    // Round socket with reconnection
+    // Initial button state based on round properties
+    function initializeRaceButton() {
+        $.get('/get_round_status/', function(data) {
+            const button = $('#raceButton');
+
+            if (!data.ready) {
+                // Not ready - show Pre Race Check
+                button.removeClass('btn-success btn-danger').addClass('btn-warning').text('Pre Race Check').css('color', 'black');
+            } else if (!data.ongoing) {
+                // Ready but not ongoing - show Start
+                button.removeClass('btn-warning btn-danger').addClass('btn-success').text('Start').css('color', 'white');
+                $('#emptyTeamsCard').hide();
+                $('#teamSelectCard').show();
+
+                // Connect to lane sockets if not already connected
+                if (!window.lanesConnected) {
+                    connectToLaneSockets();
+                }
+            } else if (data.is_paused) {
+                // Ready, ongoing, and paused - show Restart
+                button.removeClass('btn-warning btn-danger').addClass('btn-success').text('Restart').css('color', 'white');
+
+                // Connect to lane sockets if not already connected
+                if (!window.lanesConnected) {
+                    connectToLaneSockets();
+                }
+            } else {
+                // Ready and ongoing but not paused - show Pause
+                button.removeClass('btn-success btn-danger').addClass('btn-warning').text('Pause').css('color', 'black');
+
+                // Connect to lane sockets if not already connected
+                if (!window.lanesConnected) {
+                    connectToLaneSockets();
+                }
+            }
+
+            // Check if we're near the end of the round
+            const remainingSeconds = parseInt($('#roundCountdown').attr('data-remaining'), 10);
+            if (remainingSeconds < 120 && data.ongoing) {
+                button.removeClass('btn-warning btn-success').addClass('btn-danger').text('End Race').css('color', 'white');
+            }
+        });
+    }
+
+    // Initialize button on page load
+    initializeRaceButton();
+
+    // Round socket with reconnection - always connect to this one
     const roundSocket = createWebSocketWithReconnect(
         'ws://' + window.location.host + '/ws/roundpause/{{ round.id }}/',
         function(e) {
@@ -245,27 +260,44 @@ $(document).ready(function() {
         }
     );
 
-    // Lane sockets with reconnection
-    {% for lane in lanes %}
-    const laneNumber{{ lane.id }} = {{ lane.lane }};
+    // Track if lane sockets are connected
+    window.lanesConnected = false;
+    window.laneSocketsArray = [];
 
-    const socketcl{{ lane.id }} = createWebSocketWithReconnect(
-        `ws://${window.location.host}/ws/pitlanes/${laneNumber{{ lane.id }}}/`,
-        function(event) {
-            const data = JSON.parse(event.data);
-            if (data.type === 'rclane.update') {
-                document.getElementById(`lane-{{ lane.id }}`).outerHTML = data.lane_html;
-            }
+    // Function to connect to lane sockets
+    function connectToLaneSockets() {
+        if (window.lanesConnected) {
+            return; // Already connected
         }
-    );
 
-    function loadLane{{ lane.id }}() {
-        $.get('/pitlanedetail/{{ lane.lane }}/', function(data) {
-            document.getElementById(`lane-{{ lane.id }}`).outerHTML = data;
-        });
+        console.log("Connecting to pit lane sockets");
+
+        {% for lane in lanes %}
+        const laneNumber{{ lane.id }} = {{ lane.lane }};
+
+        const socketcl{{ lane.id }} = createWebSocketWithReconnect(
+            `ws://${window.location.host}/ws/pitlanes/${laneNumber{{ lane.id }}}/`,
+            function(event) {
+                const data = JSON.parse(event.data);
+                if (data.type === 'rclane.update') {
+                    document.getElementById(`lane-{{ lane.id }}`).outerHTML = data.lane_html;
+                }
+            }
+        );
+
+        // Store socket references
+        window.laneSocketsArray.push(socketcl{{ lane.id }});
+
+        function loadLane{{ lane.id }}() {
+            $.get('/pitlanedetail/{{ lane.lane }}/', function(data) {
+                document.getElementById(`lane-{{ lane.id }}`).outerHTML = data;
+            });
+        }
+        loadLane{{ lane.id }}(); // Load on lane connection
+        {% endfor %}
+
+        window.lanesConnected = true;
     }
-    loadLane{{ lane.id }}(); // Load on page load
-    {% endfor %}
 
     // Button click handler
     $('#raceButton').click(function() {
@@ -281,6 +313,9 @@ $(document).ready(function() {
                     // Show teamSelect in place of emptyTeams
                     $('#emptyTeamsCard').hide();
                     $('#teamSelectCard').show();
+
+                    // Now connect to lane sockets after successful pre-race check
+                    connectToLaneSockets();
                 } else {
                     for (const item of response.error) {
                         addSystemMessage(item,"warning");
@@ -341,22 +376,6 @@ $(document).ready(function() {
         }
     });
 });
-
-// Function to get CSRF token for AJAX requests
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
 
 // Initialize empty teams WebSocket connection with reconnection
 document.addEventListener('DOMContentLoaded', function() {
@@ -530,6 +549,22 @@ function addSystemMessage(message, tag) {
             alertDiv.remove();
         }, 1000);
     }, 10000);
+}
+
+// Function to get CSRF token for AJAX requests
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
 }
 </script>
 {% endblock extra_js %}
