@@ -308,10 +308,13 @@ def add_driver_to_queue(request):
         tmpk = datadecode(cround, payload["data"])
         tmember = team_member.objects.get(pk=tmpk)
         # Process the data and perform the desired actions
-        result = {
-            "message": f"Data received and processed successfully: {tmember.member.nickname}",
-            "status": "ok",
-        }
+        try:
+            result = cround.driver_register(tmember)
+        except Exception as e:
+            result = {
+                "message": f"Error for {tmember}: {e}",
+                "status": "error",
+            }
         # print(result)
         return Response(result, status=status.HTTP_200_OK)
 

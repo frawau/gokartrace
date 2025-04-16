@@ -361,25 +361,54 @@ class Round(models.Model):
             raise ValidationError("The pit lane is closed.")
 
         if not driver.driver:
-            raise ValidationError(f"{driver.nickname} is not a driver.")
+            raise ValidationError(f"{driver.member.nickname} is not a driver.")
 
         now = dt.datetime.now()
+        #
+        # Did we already register?
+        pending_sessions = self.session_set.filter(
+            register__isnull=False,
+            start__isnull=True,
+            end__isnull=True
+        ).order_by('register')
 
-        session = Session.objects.create(
-            driver=driver,
-            round=self,
-            register=now,
-        )
+        # Get the top self.change_lanes sessions
+        top_sessions = pending_sessions[:self.change_lanes]
 
-        alane = (
-            ChangeLane.objects.filter(round=self, driver__isnull=True)
-            .order_by("lane")
-            .first()
-        )
-        if alane:
-            alane.driver = driver
-            alane.save()
-        return session
+        session = self.session_set.filter(driver=driver,
+            register__isnull=False, start__isnull=True, end__isnull=True).first()
+        if session:
+            if session in top_sessions:
+                return {
+                    "message": f"Driver {driver.member.nickname} from team {driver.team.number} is due in pit lane. Cannot be removed.",
+                    "status": "error",
+                }
+            else:
+                session.delete()
+                return {
+                    "message": f"Driver {driver.member.nickname} from team {driver.team.number} was removed.",
+                    "status": "warning",
+                }
+        else:
+            session = Session.objects.create(
+                driver=driver,
+                round=self,
+                register=now,
+            )
+            retval = {
+                    "message": f"Driver {driver.member.nickname} from team {driver.team.number} registered.",
+                    "status": "ok",
+                }
+        if self.started:
+            alane = (
+                ChangeLane.objects.filter(round=self, driver__isnull=True)
+                .order_by("lane")
+                .first()
+            )
+            if alane:
+                alane.driver = driver
+                alane.save()
+        return retval
 
     def driver_endsession(self, driver):
         """
@@ -391,13 +420,14 @@ class Round(models.Model):
         try:
             current_session = driver.session_set.get(
                 round=self,
+                register__isnull=False,
                 start__isnull=False,
                 end__isnull=True,
             )
             current_session.end = now
             current_session.save()
         except ObjectDoesNotExist:
-            raise ValidationError(f"Driver {driver.nickname} has no current session.")
+            raise ValidationError(f"Driver {driver} has no current session.")
         except MultipleObjectsReturned:
             raise ValidationError(f"Driver {driver} has multiple current sessions.")
 
