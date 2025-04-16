@@ -663,7 +663,7 @@ class team_member(models.Model):
     @property
     def current_session(self):
         try:
-            sessions = self.session_set.get(
+            sessions = self.session_set.filter(
                 driver=self, start__isnull=False, end__isnull=True
             )
             total_time = dt.timedelta(0)
