@@ -2,7 +2,7 @@
 {% load duration_filters %}
 
 {% block content %}
-<div class="container-fluid" style="height: 100vh;">
+<div class="container-fluid" style="height: 100vh; overflow: hidden;">
     <div class="row" style="height: 10%;">
         <div class="col-12 text-center">
             <h2 class="countdown-timer" id="roundCountdown" data-remaining="{{ round|duration_difference_seconds|default:"0" }}" data-is-paused="{{ round|round_is_paused }}">Time remaining: <span id="countdownDisplay">--:--:--</span></h2>
@@ -20,8 +20,8 @@
                         </div>
 
                         <!-- Empty Teams List (remaining width) -->
-                        <div style="width: 50%;" class="p-2">
-                            <div class="card h-100">
+                        <div style="width: 50%;" class="p-2" id="teamsListContainer">
+                            <div class="card h-100" id="emptyTeamsCard">
                                 <div class="card-header d-flex justify-content-between align-items-center">
                                     <h5 class="mb-0">Teams with No Members</h5>
                                     <button class="btn btn-danger" id="deleteEmptyTeamsBtn">Delete All</button>
@@ -33,6 +33,20 @@
                                     <ul class="list-group" id="emptyTeamsUL">
                                         <!-- Teams will be added here -->
                                     </ul>
+                                </div>
+                            </div>
+
+                            <!-- Team Select styled like Empty Teams (initially hidden) -->
+                            <div class="card h-100" id="teamSelectCard" style="display: none;">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Teams</h5>
+                                </div>
+                                <div class="card-body overflow-auto">
+                                    <select class="form-select" id="teamSelect" style="font-size: 1.2rem;">
+                                        {% for team in round.round_team_set.all %}
+                                            <option value="{{ team.id }}">{{ team.team.number }} {{ team.team.team.name }}</option>
+                                        {% endfor %}
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -58,7 +72,7 @@
                     </div>
                 </div>
             </div>
-        </div>>
+        </div>
         <div class="col-md-4 d-flex flex-column" style="height: 100%;">
             {% for lane in lanes %}
                 <div id="lane-{{ lane.id }}" class="card mb-2" style="flex-grow: 1; background-color: transparent;">Lane {{ lane.lane }}</div>
@@ -67,25 +81,17 @@
         </div>
     </div>
     <div class="row" style="height: 20%;">
-        <div class="col-md-1">
-        </div>
-        <div class="col-md-3">
-            <select class="form-select" id="teamSelect" style="font-size: 1.2rem;">
-                {% for team in round.round_team_set.all %}
-                    <option value="{{ team.id }}">{{ team.team.number }} {{ team.team.team.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="col-md-1">
+        <div class="col-md-4 d-flex align-items-center justify-content-center">
             <button class="btn btn-success" id="stopGoButton">Stop&Go</button>
         </div>
-        <div id="racemsg" class="col-md-7 card" style="background-color: transparent; max-height: 200px; overflow-y: auto;">
-            <div id="racemsg-content">
+        <div class="col-md-8">
+            <!-- Replace racemsg with an empty div that can be used for other purposes if needed -->
+            <div class="card h-100" style="background-color: transparent; overflow-y: auto;">
+                <!-- Additional content if needed -->
             </div>
         </div>
     </div>
 </div>
-
 {% endblock content %}
 
 {% block extra_js %}
@@ -192,6 +198,9 @@
             $.post('/preracecheck/', function(response) {
                 if (response.result) {
                     button.removeClass('btn-warning').addClass('btn-success').text('Start').css('color', 'white');
+                    // Show teamSelect in place of emptyTeams
+                    $('#emptyTeamsCard').hide();
+                    $('#teamSelectCard').show();
                 } else {
                     for (const item of response.error) {
                         addSystemMessage(item,"warning");
