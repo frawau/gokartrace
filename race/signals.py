@@ -12,33 +12,29 @@ def update_empty_teams(round_id):
     channel_layer = get_channel_layer()
 
     # Get the current empty teams
-    teams_without_members = list(round_team.objects.filter(
-        round_id=round_id
-    ).annotate(
-        member_count=Count('team_member')
-    ).filter(
-        member_count=0
-    ).select_related('team__championship', 'team__team'))
+    teams_without_members = list(
+        round_team.objects.filter(round_id=round_id)
+        .annotate(member_count=Count("team_member"))
+        .filter(member_count=0)
+        .select_related("team__championship", "team__team")
+    )
 
     # Format the teams data
     empty_teams = [
         {
-            'id': rt.id,
-            'team_name': rt.team.team.name,
-            'number': rt.team.number,
-            'championship_name': rt.team.championship.name
+            "id": rt.id,
+            "team_name": rt.team.team.name,
+            "number": rt.team.number,
+            "championship_name": rt.team.championship.name,
         }
         for rt in teams_without_members
     ]
 
     # Send update to the room group
     async_to_sync(channel_layer.group_send)(
-        f'empty_teams_{round_id}',
-        {
-            'type': 'empty_teams_list',
-            'teams': empty_teams
-        }
+        f"empty_teams_{round_id}", {"type": "empty_teams_list", "teams": empty_teams}
     )
+
 
 # Listen for team member changes
 @receiver([post_save, post_delete], sender=team_member)
@@ -49,6 +45,7 @@ def team_member_changed(sender, instance, **kwargs):
 
     # Update empty teams for this round
     update_empty_teams(round_id)
+
 
 # Listen for round team changes
 @receiver([post_save, post_delete], sender=round_team)

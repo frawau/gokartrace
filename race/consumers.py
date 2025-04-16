@@ -2,12 +2,13 @@ import asyncio
 import json
 import datetime as dt
 from channels.generic.websocket import AsyncWebsocketConsumer
-from .models import ChangeLane,round_team, team_member, championship_team, Round
+from .models import ChangeLane, round_team, team_member, championship_team, Round
 from django.template.loader import render_to_string
 from channels.db import database_sync_to_async
 from django.db.models import Count, Q
 
 # Import your models
+
 
 class EmptyTeamsConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -20,36 +21,29 @@ class EmptyTeamsConsumer(AsyncWebsocketConsumer):
             return
 
         self.round_id = self.current_round.id
-        self.room_group_name = f'empty_teams_{self.round_id}'
+        self.room_group_name = f"empty_teams_{self.round_id}"
 
         # Join room group
-        await self.channel_layer.group_add(
-            self.room_group_name,
-            self.channel_name
-        )
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
 
         await self.accept()
 
         # Send initial empty teams list
         empty_teams = await self.get_empty_teams(self.round_id)
-        await self.send(text_data=json.dumps({
-            'type': 'empty_teams_list',
-            'teams': empty_teams
-        }))
+        await self.send(
+            text_data=json.dumps({"type": "empty_teams_list", "teams": empty_teams})
+        )
 
     async def disconnect(self, close_code):
         # Leave room group
-        await self.channel_layer.group_discard(
-            self.room_group_name,
-            self.channel_name
-        )
+        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
     # Receive message from WebSocket
     async def receive(self, text_data):
         data = json.loads(text_data)
-        action = data.get('action')
+        action = data.get("action")
 
-        if action == 'delete_empty_teams':
+        if action == "delete_empty_teams":
             # Delete all empty teams for current round
             deleted_count = await self.delete_empty_teams(self.round_id)
 
@@ -57,17 +51,17 @@ class EmptyTeamsConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
-                    'type': 'system_message',
-                    'message': f'Deleted {deleted_count} empty teams',
-                    'tag': 'success' if deleted_count > 0 else 'info'
-                }
+                    "type": "system_message",
+                    "message": f"Deleted {deleted_count} empty teams",
+                    "tag": "success" if deleted_count > 0 else "info",
+                },
             )
 
             # No need to broadcast empty teams list here
             # The signal handlers will automatically do it
 
-        elif action == 'delete_single_team':
-            team_id = data.get('team_id')
+        elif action == "delete_single_team":
+            team_id = data.get("team_id")
             if team_id:
                 success = await self.delete_single_team(team_id)
 
@@ -75,10 +69,12 @@ class EmptyTeamsConsumer(AsyncWebsocketConsumer):
                 await self.channel_layer.group_send(
                     self.room_group_name,
                     {
-                        'type': 'system_message',
-                        'message': 'Team deleted successfully' if success else 'Failed to delete team',
-                        'tag': 'success' if success else 'danger'
-                    }
+                        "type": "system_message",
+                        "message": "Team deleted successfully"
+                        if success
+                        else "Failed to delete team",
+                        "tag": "success" if success else "danger",
+                    },
                 )
 
                 # No need to broadcast empty teams list here
@@ -87,19 +83,22 @@ class EmptyTeamsConsumer(AsyncWebsocketConsumer):
     # Receive message from room group
     async def empty_teams_list(self, event):
         # Send teams list to WebSocket
-        await self.send(text_data=json.dumps({
-            'type': 'empty_teams_list',
-            'teams': event['teams']
-        }))
+        await self.send(
+            text_data=json.dumps({"type": "empty_teams_list", "teams": event["teams"]})
+        )
 
     # Send system message
     async def system_message(self, event):
         # Send message to WebSocket
-        await self.send(text_data=json.dumps({
-            'type': 'system_message',
-            'message': event['message'],
-            'tag': event['tag']
-        }))
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "system_message",
+                    "message": event["message"],
+                    "tag": event["tag"],
+                }
+            )
+        )
 
     # Database operations
     @database_sync_to_async
@@ -112,33 +111,31 @@ class EmptyTeamsConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def get_empty_teams(self, round_id):
-        teams_without_members = list(round_team.objects.filter(
-            round_id=round_id
-        ).annotate(
-            member_count=Count('team_member')
-        ).filter(
-            member_count=0
-        ).select_related('team__championship', 'team__team'))
+        teams_without_members = list(
+            round_team.objects.filter(round_id=round_id)
+            .annotate(member_count=Count("team_member"))
+            .filter(member_count=0)
+            .select_related("team__championship", "team__team")
+        )
 
         return [
             {
-                'id': rt.id,
-                'team_name': rt.team.team.name,
-                'number': rt.team.number,
-                'championship_name': rt.team.championship.name
+                "id": rt.id,
+                "team_name": rt.team.team.name,
+                "number": rt.team.number,
+                "championship_name": rt.team.championship.name,
             }
             for rt in teams_without_members
         ]
 
     @database_sync_to_async
     def delete_empty_teams(self, round_id):
-        result = round_team.objects.filter(
-            round_id=round_id
-        ).annotate(
-            member_count=Count('team_member')
-        ).filter(
-            member_count=0
-        ).delete()
+        result = (
+            round_team.objects.filter(round_id=round_id)
+            .annotate(member_count=Count("team_member"))
+            .filter(member_count=0)
+            .delete()
+        )
 
         # Return the count of deleted teams
         return result[0] if result else 0

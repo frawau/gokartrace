@@ -26,7 +26,14 @@ DEBUG = os.environ.get("DEBUG", True)
 APP_DOMAIN = os.getenv("APP_DOMAIN", "wautier.eu")
 
 # HOSTs List
-ALLOWED_HOSTS = ["127.0.0.1", "192.168.77.8", "192.168.77.97", "localhost", APP_DOMAIN, ".wautier.eu"]
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "192.168.77.8",
+    "192.168.77.97",
+    "localhost",
+    APP_DOMAIN,
+    ".wautier.eu",
+]
 
 # Add here your deployment HOSTS
 CSRF_TRUSTED_ORIGINS = [
@@ -58,7 +65,7 @@ INSTALLED_APPS = [
     "django_dyn_api",
     "rest_framework",
     "rest_framework.authtoken",
-    'fontawesomefree',
+    "fontawesomefree",
     "debug_toolbar",
 ]
 
@@ -177,7 +184,7 @@ STATICFILES_DIRS = (os.path.join(BASE_DIR, "static"),)
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_REDIRECT_URL = "Home"
-LOGOUT_REDIRECT_URL = 'Home'  # Where to redirect after logout
+LOGOUT_REDIRECT_URL = "Home"  # Where to redirect after logout
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
@@ -216,22 +223,22 @@ CORS_ALLOW_CREDENTIALS = True
 # ]
 # Allow specific HTTP methods
 CORS_ALLOW_METHODS = [
-    'GET',
-    'OPTIONS',
-    'POST',
+    "GET",
+    "OPTIONS",
+    "POST",
 ]
 
 # Allow specific headers
 CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
 ]
 # __API_GENERATOR__END
 # Web sockets

@@ -237,8 +237,7 @@ class Round(models.Model):
     def start_race(self):
         now = dt.datetime.now()
         sessions = self.session_set.filter(
-            round=self,
-            register__isnull=False, start__isnull=True, end__isnull=True
+            round=self, register__isnull=False, start__isnull=True, end__isnull=True
         )
         for session in sessions:
             session.start = now
@@ -273,7 +272,7 @@ class Round(models.Model):
         """
         Resets the 'end' attribute of the latest round_pause only if there are no open round_pauses.
         """
-        if self.round_pause_set.filter(round=self,end__isnull=True).exists():
+        if self.round_pause_set.filter(round=self, end__isnull=True).exists():
             # There is an open round_pause, so don't reset
             return
 
@@ -284,8 +283,8 @@ class Round(models.Model):
             latest_pause.save()
 
     def false_start(self):
-        sessions = self.session_set.filter(round=self,
-            register__isnull=False, start=self.started, end__isnull=True
+        sessions = self.session_set.filter(
+            round=self, register__isnull=False, start=self.started, end__isnull=True
         )
         for session in sessions:
             session.start = None
@@ -391,16 +390,15 @@ class Round(models.Model):
         #
         # Did we already register?
         pending_sessions = self.session_set.filter(
-            register__isnull=False,
-            start__isnull=True,
-            end__isnull=True
-        ).order_by('register')
+            register__isnull=False, start__isnull=True, end__isnull=True
+        ).order_by("register")
 
         # Get the top self.change_lanes sessions
-        top_sessions = pending_sessions[:self.change_lanes]
+        top_sessions = pending_sessions[: self.change_lanes]
 
-        session = self.session_set.filter(driver=driver,
-            register__isnull=False, start__isnull=True, end__isnull=True).first()
+        session = self.session_set.filter(
+            driver=driver, register__isnull=False, start__isnull=True, end__isnull=True
+        ).first()
         if session:
             if session in top_sessions:
                 return {
@@ -420,9 +418,9 @@ class Round(models.Model):
                 register=now,
             )
             retval = {
-                    "message": f"Driver {driver.member.nickname} from team {driver.team.number} registered.",
-                    "status": "ok",
-                }
+                "message": f"Driver {driver.member.nickname} from team {driver.team.number} registered.",
+                "status": "ok",
+            }
         if self.started:
             alane = (
                 ChangeLane.objects.filter(round=self, driver__isnull=True)

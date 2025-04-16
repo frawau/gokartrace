@@ -7,70 +7,72 @@ from django.contrib import messages
 from django.db.models import Exists, OuterRef
 
 
-
 class TeamChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
         # This will add a FontAwesome checkmark after the team name if is_round_team is True
-        checkmark = " ⭐" if getattr(obj, 'is_round_team', False) else ""
+        checkmark = " ⭐" if getattr(obj, "is_round_team", False) else ""
         return f"{str(obj)}{checkmark}"
 
 
 class TeamSelectionForm(forms.Form):
     team = TeamChoiceField(
-        queryset=championship_team.objects.none(),
-        label="Select Team"
+        queryset=championship_team.objects.none(), label="Select Team"
     )
 
     def __init__(self, *args, **kwargs):
-        current_round = kwargs.pop('current_round', None)
+        current_round = kwargs.pop("current_round", None)
         super().__init__(*args, **kwargs)
         if current_round:
-            self.fields['team'].queryset = championship_team.objects.filter(
-                championship=current_round.championship
-            ).annotate(
-                is_round_team=Exists(
-                    round_team.objects.filter(
-                        round=current_round,
-                        team_id=OuterRef('pk')
+            self.fields["team"].queryset = (
+                championship_team.objects.filter(
+                    championship=current_round.championship
+                )
+                .annotate(
+                    is_round_team=Exists(
+                        round_team.objects.filter(
+                            round=current_round, team_id=OuterRef("pk")
+                        )
                     )
                 )
-            ).order_by('number')
+                .order_by("number")
+            )
+
 
 class TeamMemberForm(forms.ModelForm):
     class Meta:
         model = team_member
-        fields = ['driver', 'manager', 'weight']
+        fields = ["driver", "manager", "weight"]
         widgets = {
-            'driver': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'manager': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'weight': forms.NumberInput(attrs={'class': 'form-control'}),
+            "driver": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "manager": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "weight": forms.NumberInput(attrs={"class": "form-control"}),
         }
+
 
 class AddMemberForm(forms.Form):
     person = forms.ModelChoiceField(
-        queryset=Person.objects.none(),
-        label="Add New Member"
+        queryset=Person.objects.none(), label="Add New Member"
     )
 
     def __init__(self, *args, **kwargs):
-        current_round = kwargs.pop('current_round', None)
-        selected_team = kwargs.pop('selected_team', None)
+        current_round = kwargs.pop("current_round", None)
+        selected_team = kwargs.pop("selected_team", None)
         super().__init__(*args, **kwargs)
 
         if current_round and selected_team:
             # Get existing team members for this round and team
             existing_members = team_member.objects.filter(
                 team__round=current_round,
-            ).values_list('member_id', flat=True)
+            ).values_list("member_id", flat=True)
 
             # Exclude people who are already team members
-            self.fields['person'].queryset = Person.objects.exclude(
+            self.fields["person"].queryset = Person.objects.exclude(
                 id__in=existing_members
-            ).order_by('nickname')
+            ).order_by("nickname")
 
 
 class TeamMembersView(View):
-    template_name = 'pages/team_members.html'
+    template_name = "pages/team_members.html"
 
     def get_current_round(self):
         # Get the current round (the next one starting today or later)
@@ -80,15 +82,15 @@ class TeamMembersView(View):
         current_round = self.get_current_round()
         if not current_round:
             messages.error(request, "No current championship round found.")
-            return redirect('Home')
+            return redirect("Home")
 
         team_form = TeamSelectionForm(current_round=current_round)
         add_member_form = AddMemberForm(current_round=current_round)
 
         context = {
-            'current_round': current_round,
-            'team_form': team_form,
-            'add_member_form': add_member_form,
+            "current_round": current_round,
+            "team_form": team_form,
+            "add_member_form": add_member_form,
         }
         return render(request, self.template_name, context)
 
@@ -96,27 +98,27 @@ class TeamMembersView(View):
         current_round = self.get_current_round()
         if not current_round:
             messages.error(request, "No current championship round found.")
-            return redirect('Home')
+            return redirect("Home")
 
-        if 'select_team' in request.POST:
+        if "select_team" in request.POST:
             # First clean up empty round_team records
             empty_round_teams = round_team.objects.filter(
-                round=current_round,
-                team_member__isnull=True
+                round=current_round, team_member__isnull=True
             )
             deleted_count = empty_round_teams.delete()[0]
             if deleted_count:
-                messages.info(request, f"Cleaned up {deleted_count} empty team records.")
+                messages.info(
+                    request, f"Cleaned up {deleted_count} empty team records."
+                )
 
-
-        if 'select_team' in request.POST:
+        if "select_team" in request.POST:
             team_form = TeamSelectionForm(request.POST, current_round=current_round)
             if team_form.is_valid():
-                selected_team = team_form.cleaned_data['team']
+                selected_team = team_form.cleaned_data["team"]
                 return self.handle_team_selection(request, current_round, selected_team)
 
-        elif 'save_members' in request.POST:
-            selected_team_id = request.POST.get('selected_team')
+        elif "save_members" in request.POST:
+            selected_team_id = request.POST.get("selected_team")
             if not selected_team_id:
                 messages.error(request, "No team selected.")
                 return redirect(request.path)
@@ -128,8 +130,8 @@ class TeamMembersView(View):
                 messages.error(request, "Invalid team selected.")
                 return redirect(request.path)
 
-        elif 'add_member' in request.POST:
-            selected_team_id = request.POST.get('selected_team')
+        elif "add_member" in request.POST:
+            selected_team_id = request.POST.get("selected_team")
             if not selected_team_id:
                 messages.error(request, "No team selected.")
                 return redirect(request.path)
@@ -140,9 +142,9 @@ class TeamMembersView(View):
             except championship_team.DoesNotExist:
                 messages.error(request, "Invalid team selected.")
                 return redirect(request.path)
-        elif 'remove_member' in request.POST:
-            selected_team_id = request.POST.get('selected_team')
-            member_id = request.POST.get('member_id')
+        elif "remove_member" in request.POST:
+            selected_team_id = request.POST.get("selected_team")
+            member_id = request.POST.get("member_id")
 
             if not selected_team_id or not member_id:
                 messages.error(request, "Invalid request.")
@@ -163,8 +165,7 @@ class TeamMembersView(View):
     def handle_team_selection(self, request, current_round, selected_team):
         # Get or create round_team for the selected team
         round_team_obj, created = round_team.objects.get_or_create(
-            round=current_round,
-            team=selected_team
+            round=current_round, team=selected_team
         )
 
         # Get existing team members
@@ -172,31 +173,26 @@ class TeamMembersView(View):
 
         # Create forms for each member
         member_forms = [
-            TeamMemberForm(instance=member, prefix=f'member_{member.id}')
+            TeamMemberForm(instance=member, prefix=f"member_{member.id}")
             for member in members
         ]
 
         # Create add member form with filtered queryset
         add_member_form = AddMemberForm(
-            current_round=current_round,
-            selected_team=selected_team
+            current_round=current_round, selected_team=selected_team
         )
         member_data = []
         for member, form in zip(members, member_forms):
-            member_data.append({
-                'member': member,
-                'form': form
-            })
+            member_data.append({"member": member, "form": form})
 
         context = {
-            'current_round': current_round,
-            'selected_team': selected_team,
-            'round_team_obj': round_team_obj,
-            'member_data': member_data,
-            'add_member_form': add_member_form,
-            'team_form': TeamSelectionForm(
-                initial={'team': selected_team.id},
-                current_round=current_round
+            "current_round": current_round,
+            "selected_team": selected_team,
+            "round_team_obj": round_team_obj,
+            "member_data": member_data,
+            "add_member_form": add_member_form,
+            "team_form": TeamSelectionForm(
+                initial={"team": selected_team.id}, current_round=current_round
             ),
         }
         return render(request, self.template_name, context)
@@ -204,8 +200,7 @@ class TeamMembersView(View):
     def handle_member_updates(self, request, current_round, selected_team):
         try:
             round_team_obj = round_team.objects.get(
-                round=current_round,
-                team=selected_team
+                round=current_round, team=selected_team
             )
         except round_team.DoesNotExist:
             messages.error(request, "Team not found in this round.")
@@ -217,9 +212,7 @@ class TeamMembersView(View):
         # Process each member form
         for member in members:
             form = TeamMemberForm(
-                request.POST,
-                instance=member,
-                prefix=f'member_{member.id}'
+                request.POST, instance=member, prefix=f"member_{member.id}"
             )
             if form.is_valid():
                 form.save()
@@ -235,27 +228,20 @@ class TeamMembersView(View):
 
     def handle_add_member(self, request, current_round, selected_team):
         add_member_form = AddMemberForm(
-            request.POST,
-            current_round=current_round,
-            selected_team=selected_team
+            request.POST, current_round=current_round, selected_team=selected_team
         )
 
         if add_member_form.is_valid():
-            person = add_member_form.cleaned_data['person']
+            person = add_member_form.cleaned_data["person"]
 
             # Get or create round_team for the selected team
             round_team_obj, created = round_team.objects.get_or_create(
-                round=current_round,
-                team=selected_team
+                round=current_round, team=selected_team
             )
 
             # Create new team member
             team_member.objects.create(
-                team=round_team_obj,
-                member=person,
-                driver=True,
-                manager=False,
-                weight=0
+                team=round_team_obj, member=person, driver=True, manager=False, weight=0
             )
 
             messages.success(request, f"{person.nickname} added to the team.")

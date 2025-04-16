@@ -330,26 +330,26 @@ class GenerateCardPDF(View):
 
         # Initialize card position tracking
         card_pos = {
-            'currow': 0,
-            'curcol': 0,
-            'cards_per_row': cards_per_row,
-            'cards_per_col': cards_per_col
+            "currow": 0,
+            "curcol": 0,
+            "cards_per_row": cards_per_row,
+            "cards_per_col": cards_per_col,
         }
 
         # Handle different input types
-        if 'round_team_id' in data:
+        if "round_team_id" in data:
             # Single round_team
             try:
-                round_team_obj = round_team.objects.get(id=data['round_team_id'])
+                round_team_obj = round_team.objects.get(id=data["round_team_id"])
                 team_members = team_member.objects.filter(team=round_team_obj)
                 for tm in team_members:
                     card_pos = self._draw_card(p, tm, card_pos)
             except round_team.DoesNotExist:
                 return JsonResponse({"error": "Team not found"}, status=404)
 
-        elif 'round_team_ids' in data:
+        elif "round_team_ids" in data:
             # List of round_teams
-            for rt_id in data['round_team_ids']:
+            for rt_id in data["round_team_ids"]:
                 try:
                     round_team_obj = round_team.objects.get(id=rt_id)
                     team_members = team_member.objects.filter(team=round_team_obj)
@@ -358,16 +358,18 @@ class GenerateCardPDF(View):
                 except round_team.DoesNotExist:
                     continue  # Skip invalid teams
 
-        elif 'person_id' in data:
+        elif "person_id" in data:
             # Single person
             try:
-                person = Person.objects.get(id=data['person_id'])
+                person = Person.objects.get(id=data["person_id"])
                 tm = team_member.objects.get(member=person, team__round=cround)
                 card_pos = self._draw_card(p, tm, card_pos)
             except Person.DoesNotExist:
                 return JsonResponse({"error": "Person not found"}, status=404)
             except team_member.DoesNotExist:
-                return JsonResponse({"error": "Person not in current round"}, status=400)
+                return JsonResponse(
+                    {"error": "Person not in current round"}, status=400
+                )
 
         else:
             return JsonResponse({"error": "Invalid request format"}, status=400)
@@ -381,19 +383,19 @@ class GenerateCardPDF(View):
     def _draw_card(self, p, tm, card_pos):
         """Helper method to handle card drawing logic"""
         if self.rotate:
-            x_offset = self.card_height * card_pos['curcol']
-            y_offset = self.card_width * card_pos['currow']
+            x_offset = self.card_height * card_pos["curcol"]
+            y_offset = self.card_width * card_pos["currow"]
         else:
-            x_offset = self.card_width * card_pos['curcol']
-            y_offset = self.card_height * card_pos['currow']
+            x_offset = self.card_width * card_pos["curcol"]
+            y_offset = self.card_height * card_pos["currow"]
 
         self.draw_drivercard(p, tm, x_offset, y_offset)
 
         # Update position tracking
-        card_pos['curcol'] = (card_pos['curcol'] + 1) % card_pos['cards_per_col']
-        if card_pos['curcol'] == 0:
-            card_pos['currow'] = (card_pos['currow'] + 1) % card_pos['cards_per_row']
-            if card_pos['currow'] == 0:
+        card_pos["curcol"] = (card_pos["curcol"] + 1) % card_pos["cards_per_col"]
+        if card_pos["curcol"] == 0:
+            card_pos["currow"] = (card_pos["currow"] + 1) % card_pos["cards_per_row"]
+            if card_pos["currow"] == 0:
                 p.showPage()
 
         return card_pos

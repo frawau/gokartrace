@@ -76,7 +76,9 @@ class Command(BaseCommand):
                     championship_teams, min(num_round_teams, len(championship_teams))
                 )
                 for championship_team_obj in selected_championship_teams:
-                    round_team.objects.create(round=round_obj, team=championship_team_obj)
+                    round_team.objects.create(
+                        round=round_obj, team=championship_team_obj
+                    )
                 self.stdout.write(
                     self.style.SUCCESS(
                         f'{num_round_teams} round teams added to "{round_obj.name}".'
@@ -144,8 +146,8 @@ class Command(BaseCommand):
             Group.objects.get_or_create(name=group_name)
             self.stdout.write(self.style.SUCCESS(f'Group "{group_name}" created.'))
 
-        configs = [("page size", "A4"), ("card size", "A6"), ("display timeout","5")]
-        for key, val  in configs.items():
+        configs = [("page size", "A4"), ("card size", "A6"), ("display timeout", "5")]
+        for key, val in configs.items():
             Config.objects.get_or_create(name=val, value=val)
             self.stdout.write(self.style.SUCCESS(f'Config "{key}" = "{val}" created.'))
 

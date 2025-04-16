@@ -498,32 +498,33 @@ def update_round(request, round_id):
     return redirect("rounds_list")
 
 
-
 @login_required
 @user_passes_test(is_admin_user)
 def create_driver(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         form = DriverForm(request.POST, request.FILES)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Driver added successfully!')
-            return redirect('add_driver')  # Redirect to a page listing persons
+            messages.success(request, "Driver added successfully!")
+            return redirect("add_driver")  # Redirect to a page listing persons
     else:
         form = DriverForm()
-    return render(request, 'pages/add_driver.html', {'form': form})
+    return render(request, "pages/add_driver.html", {"form": form})
+
 
 @login_required
 @user_passes_test(is_admin_user)
 def create_team(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         form = TeamForm(request.POST, request.FILES)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Team added successfully!')
-            return redirect('add_team')  # Redirect to a page listing persons
+            messages.success(request, "Team added successfully!")
+            return redirect("add_team")  # Redirect to a page listing persons
     else:
         form = TeamForm()
-    return render(request, 'pages/add_team.html', {'form': form})
+    return render(request, "pages/add_team.html", {"form": form})
+
 
 def get_round_status(request):
     """Return the current round status as JSON"""
@@ -535,17 +536,15 @@ def get_round_status(request):
     ).first()
 
     if not current_round:
-        return JsonResponse({
-            'ready': False,
-            'ongoing': False,
-            'is_paused': True
-        })
+        return JsonResponse({"ready": False, "ongoing": False, "is_paused": True})
 
-    return JsonResponse({
-        'ready': current_round.ready,
-        'ongoing': current_round.ongoing,
-        'is_paused': current_round.is_paused
-    })
+    return JsonResponse(
+        {
+            "ready": current_round.ready,
+            "ongoing": current_round.ongoing,
+            "is_paused": current_round.is_paused,
+        }
+    )
 
 
 def get_race_lanes(request):
@@ -558,11 +557,9 @@ def get_race_lanes(request):
     ).first()
 
     if not current_round:
-        return JsonResponse({'lanes': []})
+        return JsonResponse({"lanes": []})
 
     # Get lanes for this round
-    lanes = ChangeLane.objects.filter(round=current_round).values('id', 'lane')
+    lanes = ChangeLane.objects.filter(round=current_round).values("id", "lane")
 
-    return JsonResponse({
-        'lanes': list(lanes)
-    })
+    return JsonResponse({"lanes": list(lanes)})
