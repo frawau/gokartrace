@@ -167,7 +167,7 @@ def racecontrol(request):
         cround = Round.objects.filter(
             Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
         ).first()
-        lanes = cround.changelane_set.all().order_by("lane")
+        lanes = cround.change_lanes
         return render(
             request, "pages/racecontrol.html", {"round": cround, "lanes": lanes}
         )

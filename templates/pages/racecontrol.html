@@ -75,8 +75,8 @@
             </div>
         </div>
         <div class="col-md-4 d-flex flex-column" style="height: 100%;">
-            {% for lane in lanes %}
-                <div id="lane-{{ lane.id }}" class="card mb-2" style="flex-grow: 1; background-color: transparent;">Lane {{ lane.lane }}</div>
+            {% for i in "x"|ljust:lanes %}
+                <div id="lane-{{ forloop.counter }}" class="card mb-2" style="flex-grow: 1; background-color: transparent;">Lane {{ forloop.counter }}</div>
             {% endfor %}
             <div id="changequeue" class="card mb-2" style="flex-grow: 1; background-color: transparent;">Queue</div>
         </div>
