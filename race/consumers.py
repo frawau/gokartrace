@@ -1,3 +1,4 @@
+import asyncio
 import json
 import datetime as dt
 from channels.generic.websocket import AsyncWebsocketConsumer
@@ -7,7 +8,6 @@ from channels.db import database_sync_to_async
 from django.db.models import Count, Q
 
 # Import your models
-
 
 class EmptyTeamsConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -63,15 +63,8 @@ class EmptyTeamsConsumer(AsyncWebsocketConsumer):
                 }
             )
 
-            # Send updated list
-            empty_teams = await self.get_empty_teams(self.round_id)
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    'type': 'empty_teams_list',
-                    'teams': empty_teams
-                }
-            )
+            # No need to broadcast empty teams list here
+            # The signal handlers will automatically do it
 
         elif action == 'delete_single_team':
             team_id = data.get('team_id')
@@ -88,15 +81,8 @@ class EmptyTeamsConsumer(AsyncWebsocketConsumer):
                     }
                 )
 
-                # Send updated list
-                empty_teams = await self.get_empty_teams(self.round_id)
-                await self.channel_layer.group_send(
-                    self.room_group_name,
-                    {
-                        'type': 'empty_teams_list',
-                        'teams': empty_teams
-                    }
-                )
+                # No need to broadcast empty teams list here
+                # The signal handlers will automatically do it
 
     # Receive message from room group
     async def empty_teams_list(self, event):
@@ -167,6 +153,7 @@ class EmptyTeamsConsumer(AsyncWebsocketConsumer):
             return False
         except round_team.DoesNotExist:
             return False
+
 
 class ChangeLaneConsumer(AsyncWebsocketConsumer):
     async def connect(self):

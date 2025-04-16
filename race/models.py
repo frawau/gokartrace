@@ -158,7 +158,6 @@ class Round(models.Model):
     ready = models.BooleanField(default=False)
     started = models.DateTimeField(null=True, blank=True)
     ended = models.DateTimeField(null=True, blank=True)
-    paused = models.BooleanField(default=False)
     qr_fernet = models.BinaryField(
         max_length=64, default=Fernet.generate_key(), editable=False
     )
