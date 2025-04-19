@@ -650,7 +650,7 @@ class team_member(models.Model):
             paused_time = dt.timedelta(0)
 
             # Calculate paused time within the session duration
-            pauses = self.round.round_pause_set.filter(
+            pauses = self.team.round.round_pause_set.filter(
                 start__lte=session.end,
                 end__gte=session.start,
             )
@@ -663,6 +663,7 @@ class team_member(models.Model):
                 paused_time += pause_end - pause_start
 
             total_time += session_time - paused_time
+        return total_time
 
     @property
     def current_session(self):
@@ -688,7 +689,7 @@ class team_member(models.Model):
                     paused_time += pause_end - pause_start
 
                 total_time += session_time - paused_time
-            return total_time
+                return total_time
         except ObjectDoesNotExist:
             # Handle the case where no session is found
             return None
