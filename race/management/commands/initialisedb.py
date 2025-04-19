@@ -42,7 +42,7 @@ class Command(BaseCommand):
                 championship=championship,
                 start=start_date,
                 duration=duration,
-                ready=True,
+                ready=False,
                 change_lanes=random.randint(1, 4),
                 pitlane_open_after=dt.timedelta(minutes=random.randint(5, 15)),
                 pitlane_close_before=dt.timedelta(minutes=random.randint(5, 15)),
@@ -141,13 +141,13 @@ class Command(BaseCommand):
                     )
 
         # 6. Create User Groups
-        groups = ["Driver Scanner", "Queue Scanner", "Race Director", "admin"]
+        groups = ["Driver Scanner", "Queue Scanner", "Race Director", "Admin"]
         for group_name in groups:
             Group.objects.get_or_create(name=group_name)
             self.stdout.write(self.style.SUCCESS(f'Group "{group_name}" created.'))
 
         configs = [("page size", "A4"), ("card size", "A6"), ("display timeout", "5")]
-        for key, val in configs.items():
+        for key, val in configs:
             Config.objects.get_or_create(name=val, value=val)
             self.stdout.write(self.style.SUCCESS(f'Config "{key}" = "{val}" created.'))
 

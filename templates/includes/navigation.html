@@ -55,25 +55,18 @@
                             <span class="text-sm">Configure teams.</span>
                           </a>
                         </li>
+                        {% if user|has_group:"Race Director" %}
+                        <li class="nav-item list-group-item border-0 p-0">
+                          <a class="dropdown-item py-2 ps-3 border-radius-md"
+                          href="/rtacecontrol/">
+                            <h6
+                            class="dropdown-header text-dark font-weight-bolder d-flex justify-content-cente align-items-center p-0">
+                            Race Control</h6>
+                            <span class="text-sm">Controlling the current Round..</span>
+                          </a>
+                        </li>
+                        {% endif %}
                       </ul>
-                    </div>
-
-                    <div class="row d-lg-none">
-                      <div class="col-md-12 g-0">
-                        <a class="dropdown-item py-2 ps-3 border-radius-md" href="/oneteam/">
-                          <h6
-                            class="dropdown-header text-dark font-weight-bolder d-flex justify-content-cente align-items-center p-0">
-                            Setup Championship</h6>
-                          <span class="text-sm">Check a team current status</span>
-                        </a>
-
-                        <a class="dropdown-item py-2 ps-3 border-radius-md" href="/teamcarousel/">
-                          <h6
-                            class="dropdown-header text-dark font-weight-bolder d-flex justify-content-cente align-items-center p-0">
-                            Team Carousel</h6>
-                          <span class="text-sm">Display all team status sequentially.</span>
-                        </a>
-                      </div>
                     </div>
 
                   </ul>
