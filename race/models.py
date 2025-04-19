@@ -272,9 +272,6 @@ class Round(models.Model):
         """
         Resets the 'end' attribute of the latest round_pause only if there are no open round_pauses.
         """
-        if  self.round_pause_set.filter(round=self, end__isnull=True).exists():
-            # There is an open round_pause, so don't reset
-            return
 
         latest_pause = self.round_pause_set.filter(round=self, end__isnull=True).order_by("-start").first()
 
