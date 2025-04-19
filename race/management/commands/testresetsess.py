@@ -20,8 +20,8 @@ class Command(BaseCommand):
                 if asess.start:
                     seenteam.append(asess.driver.team)
                     todel = False
-        if todel:
-            asess.delete()
-        else:
-            asess.start=None
-            asess.save()
+            if todel:
+                asess.delete()
+            else:
+                asess.start=None
+                asess.save()
