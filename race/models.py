@@ -272,14 +272,14 @@ class Round(models.Model):
         """
         Resets the 'end' attribute of the latest round_pause only if there are no open round_pauses.
         """
-        if self.round_pause_set.filter(round=self, end__isnull=True).exists():
+        if  self.round_pause_set.filter(round=self, end__isnull=True).exists():
             # There is an open round_pause, so don't reset
             return
 
-        latest_pause = self.round_pause_set.order_by("-start").first()
+        latest_pause = self.round_pause_set.filter(round=self, end__isnull=True).order_by("-start").first()
 
         if latest_pause:
-            latest_pause.end = None
+            latest_pause.end = dt.datetime.now()
             latest_pause.save()
 
     def false_start(self):
