@@ -64,15 +64,18 @@
 {% block extra_js %}
 <script>
 {% if round is not None %}
+    // Store page load time globally to calculate elapsed time
+    let pageLoadTime = new Date().getTime();
+    let driverStartTimes = {};
+
     $(document).ready(function() {
         // Set the interval for auto-sliding (7 seconds)
         $('#teamCarousel').carousel({
             interval: 7000,
-            pause:false
+            pause: false
         });
 
         $('#teamCarousel').carousel('cycle');
-
 
         // Function to refresh the team card on slide change
         function refreshTeamCard(e) {
@@ -91,7 +94,7 @@
                     data: { team_id: teamId },
                     success: function(data) {
                         cardBody.html(data.html);
-                        startTimers();
+                        initializeDriverTimers();
                     },
                     error: function() {
                         cardBody.html('<p>Error loading team info.</p>');
@@ -108,19 +111,69 @@
         // Load the first card on page load
         $('#teamCarousel').trigger('slid.bs.carousel');
 
-        function startTimers() {
-            $('.timer').each(function() {
-                var startTime = $(this).data('start-time');
-                var timerElement = $(this);
+        function initializeDriverTimers() {
+            // Find driver rows with current_session data
+            $('.card-body table tbody tr').each(function() {
+                const row = $(this);
+                const driverName = row.find('td:first-child').text().trim();
+                const timeSpentCell = row.find('td:nth-child(2)');
+                const currentSessionText = row.find('td:nth-child(3)').text().trim();
 
-                if (startTime) {
-                    setInterval(function() {
-                        var now = new Date().getTime() / 1000;
-                        var diff = now - startTime;
-                        timerElement.text(formatTime(diff));
-                    }, 1000);
+                if (currentSessionText && currentSessionText !== '') {
+                    // Store the original time spent for the active driver
+                    const timeSpentText = timeSpentCell.text().trim();
+                    const [hours, minutes, seconds] = timeSpentText.split(':').map(Number);
+                    const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+
+                    // Store start time relative to page load for active drivers
+                    driverStartTimes[driverName] = {
+                        baseSeconds: totalSeconds,
+                        startTime: new Date().getTime()
+                    };
+
+                    // Set data attribute for mobile view
+                    timeSpentCell.attr('data-current-session', currentSessionText);
                 }
             });
+
+            // Start updating active driver times
+            updateDriverTimes();
+        }
+
+        function updateDriverTimes() {
+            // Update all active driver times
+            for (const [driverName, timeData] of Object.entries(driverStartTimes)) {
+                const row = $(`.card-body table tbody tr td:contains('${driverName}')`).closest('tr');
+                if (row.length) {
+                    const timeSpentCell = row.find('td:nth-child(2)');
+                    const now = new Date().getTime();
+                    const elapsedSeconds = Math.floor((now - timeData.startTime) / 1000);
+                    const totalSeconds = timeData.baseSeconds + elapsedSeconds;
+
+                    // Format time
+                    const hours = Math.floor(totalSeconds / 3600);
+                    const minutes = Math.floor((totalSeconds % 3600) / 60);
+                    const seconds = totalSeconds % 60;
+                    const formattedTime =
+                        hours.toString().padStart(2, '0') + ':' +
+                        minutes.toString().padStart(2, '0') + ':' +
+                        seconds.toString().padStart(2, '0');
+
+                    timeSpentCell.text(formattedTime);
+                }
+            }
+
+            // Update every second
+            setTimeout(updateDriverTimes, 1000);
+        }
+
+        function formatTime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = Math.floor(seconds % 60);
+            return hours.toString().padStart(2, '0') + ':' +
+                   minutes.toString().padStart(2, '0') + ':' +
+                   secs.toString().padStart(2, '0');
         }
 
         function updateCountdown() {
@@ -128,19 +181,21 @@
             const displayEl = $('#countdownDisplay');
             const remainingSeconds = parseInt(countdownEl.attr('data-remaining'), 10);
             const isPaused = countdownEl.attr('data-is-paused') === 'true';
+
             // Check if we have a valid number
             if (isNaN(remainingSeconds)) {
                 displayEl.text('--:--:--');
                 return;
-
             }
+
             let remainingTime = remainingSeconds * 1000; // Convert to ms
+
             if (!isPaused) {
                 // Only count down if not paused
                 const now = new Date().getTime();
                 const elapsedSincePageLoad = now - pageLoadTime;
                 remainingTime = Math.max(0, remainingTime - elapsedSincePageLoad);
-                }
+            }
 
             // Format time
             const hours = Math.floor(remainingTime / (1000 * 60 * 60));
@@ -151,15 +206,15 @@
                 hours.toString().padStart(2, '0') + ':' +
                 minutes.toString().padStart(2, '0') + ':' +
                 seconds.toString().padStart(2, '0')
-                );
-            }
+            );
+        }
 
-        // Store page load time to calculate elapsed time
-        const pageLoadTime = new Date().getTime();
-        setInterval(updateCountdown, 1000);
+        // Start countdown immediately
         updateCountdown();
+        // Update countdown every second
+        setInterval(updateCountdown, 1000);
 
-        // Setup WebSocket to listen for pause events
+        // Setup WebSocket to listen for pause events and driver updates
         const roundSocket = new WebSocket(
             'ws://' + window.location.host + '/ws/roundpause/{{ round.id }}/'
         );
@@ -168,17 +223,23 @@
             const data = JSON.parse(e.data);
             if (data.type === 'round_update') {
                 // Update pause status
-                $('#roundCountdown').data('is-paused', data.is_paused);
+                $('#roundCountdown').attr('data-is-paused', data.is_paused);
+
                 // Update remaining time if provided
                 if (data.remaining_seconds !== undefined) {
                     $('#roundCountdown').attr('data-remaining', data.remaining_seconds);
-                    }
+                }
 
                 // Reset page load time so countdown calculations are correct
-                window.pageLoadTime = new Date().getTime();
+                pageLoadTime = new Date().getTime();
+            }
+            else if (data.type === 'driver_update') {
+                // Refresh the team card if there's a driver update
+                $('#teamCarousel').trigger('slid.bs.carousel');
             }
         };
     });
+
     document.addEventListener('DOMContentLoaded', () => {
         const cells = document.querySelectorAll('table tbody tr td:nth-child(3)');
         cells.forEach(cell => {
