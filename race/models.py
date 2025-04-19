@@ -654,8 +654,8 @@ class team_member(models.Model):
                 )
             else:
                 pauses = self.team.round.round_pause_set.filter(
-                    start__lte=now,
-                    end__isnull=True,
+                    Q(start__lte=now),
+                    Q(end__gte=session.start) | Q(end__isnull=True)
                 )
 
 
