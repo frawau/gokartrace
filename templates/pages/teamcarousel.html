@@ -66,7 +66,7 @@
 {% if round is not None %}
     // Store page load time globally to calculate elapsed time
     let pageLoadTime = new Date().getTime();
-    let driverStartTimes = {};
+    let activeDrivers = {};
 
     $(document).ready(function() {
         // Set the interval for auto-sliding (7 seconds)
@@ -112,27 +112,35 @@
         $('#teamCarousel').trigger('slid.bs.carousel');
 
         function initializeDriverTimers() {
-            // Find driver rows with current_session data
+            // Clear previous active drivers when changing slides
+            activeDrivers = {};
+
+            // Find session and total time elements
             $('.card-body table tbody tr').each(function() {
                 const row = $(this);
                 const driverName = row.find('td:first-child').text().trim();
-                const timeSpentCell = row.find('td:nth-child(2)');
-                const currentSessionText = row.find('td:nth-child(3)').text().trim();
+                const sessionTimeCell = row.find('#sessiontime');
+                const totalTimeCell = row.find('#totaltime');
 
-                if (currentSessionText && currentSessionText !== '') {
-                    // Store the original time spent for the active driver
-                    const timeSpentText = timeSpentCell.text().trim();
-                    const [hours, minutes, seconds] = timeSpentText.split(':').map(Number);
-                    const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+                // Only process rows with the active IDs
+                if (sessionTimeCell.length && totalTimeCell.length) {
+                    // Store initial times (convert from "HH:MM:SS" to seconds)
+                    const sessionTimeText = sessionTimeCell.text().trim();
+                    const totalTimeText = totalTimeCell.text().trim();
+
+                    // Parse initial times into seconds
+                    const sessionSeconds = parseTimeToSeconds(sessionTimeText);
+                    const totalSeconds = parseTimeToSeconds(totalTimeText);
 
                     // Store start time relative to page load for active drivers
-                    driverStartTimes[driverName] = {
-                        baseSeconds: totalSeconds,
+                    activeDrivers[driverName] = {
+                        sessionSeconds,
+                        totalSeconds,
                         startTime: new Date().getTime()
                     };
 
                     // Set data attribute for mobile view
-                    timeSpentCell.attr('data-current-session', currentSessionText);
+                    totalTimeCell.attr('data-current-session', sessionTimeText);
                 }
             });
 
@@ -140,31 +148,14 @@
             updateDriverTimes();
         }
 
-        function updateDriverTimes() {
-            // Update all active driver times
-            for (const [driverName, timeData] of Object.entries(driverStartTimes)) {
-                const row = $(`.card-body table tbody tr td:contains('${driverName}')`).closest('tr');
-                if (row.length) {
-                    const timeSpentCell = row.find('td:nth-child(2)');
-                    const now = new Date().getTime();
-                    const elapsedSeconds = Math.floor((now - timeData.startTime) / 1000);
-                    const totalSeconds = timeData.baseSeconds + elapsedSeconds;
+        function parseTimeToSeconds(timeStr) {
+            if (!timeStr || timeStr === '') return 0;
 
-                    // Format time
-                    const hours = Math.floor(totalSeconds / 3600);
-                    const minutes = Math.floor((totalSeconds % 3600) / 60);
-                    const seconds = totalSeconds % 60;
-                    const formattedTime =
-                        hours.toString().padStart(2, '0') + ':' +
-                        minutes.toString().padStart(2, '0') + ':' +
-                        seconds.toString().padStart(2, '0');
-
-                    timeSpentCell.text(formattedTime);
-                }
+            const parts = timeStr.split(':').map(Number);
+            if (parts.length === 3) {
+                return parts[0] * 3600 + parts[1] * 60 + parts[2];
             }
-
-            // Update every second
-            setTimeout(updateDriverTimes, 1000);
+            return 0;
         }
 
         function formatTime(seconds) {
@@ -174,6 +165,38 @@
             return hours.toString().padStart(2, '0') + ':' +
                    minutes.toString().padStart(2, '0') + ':' +
                    secs.toString().padStart(2, '0');
+        }
+
+        function updateDriverTimes() {
+            // Update all active driver times
+            const now = new Date().getTime();
+
+            $('.card-body table tbody tr').each(function() {
+                const row = $(this);
+                const driverName = row.find('td:first-child').text().trim();
+                const sessionTimeCell = row.find('#sessiontime');
+                const totalTimeCell = row.find('#totaltime');
+
+                // Only update cells with the specific IDs
+                if (sessionTimeCell.length && totalTimeCell.length && activeDrivers[driverName]) {
+                    const driverData = activeDrivers[driverName];
+                    const elapsedSeconds = Math.floor((now - driverData.startTime) / 1000);
+
+                    // Update session time with seconds precision
+                    const newSessionSeconds = driverData.sessionSeconds + elapsedSeconds;
+                    sessionTimeCell.text(formatTime(newSessionSeconds));
+
+                    // Update total time with seconds precision
+                    const newTotalSeconds = driverData.totalSeconds + elapsedSeconds;
+                    totalTimeCell.text(formatTime(newTotalSeconds));
+
+                    // Update data attribute for mobile view
+                    totalTimeCell.attr('data-current-session', formatTime(newSessionSeconds));
+                }
+            });
+
+            // Update every second
+            setTimeout(updateDriverTimes, 1000);
         }
 
         function updateCountdown() {
