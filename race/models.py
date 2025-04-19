@@ -650,10 +650,17 @@ class team_member(models.Model):
             paused_time = dt.timedelta(0)
 
             # Calculate paused time within the session duration
-            pauses = self.team.round.round_pause_set.filter(
-                start__lte=session.end,
-                end__gte=session.start,
-            )
+            if session.end:
+                pauses = self.team.round.round_pause_set.filter(
+                    start__lte=session.end,
+                    end__gte=session.start,
+                )
+            else:
+                pauses = self.team.round.round_pause_set.filter(
+                    start__lte=now,
+                    end__isnull=True,
+                )
+
 
             for pause in pauses:
                 pause_start = max(pause.start, session.start)
