@@ -638,11 +638,15 @@ class team_member(models.Model):
     @property
     def time_spent(self):
         sessions = self.session_set.filter(
-            driver=self, start__isnull=False, end__isnull=False
+            driver=self, start__isnull=False
         )
         total_time = dt.timedelta(0)
+        now = dt.datetime.now()
         for session in sessions:
-            session_time = session.end - session.start
+            if session.end:
+                session_time = session.end - session.start
+            else:
+                session_time = now - session.start
             paused_time = dt.timedelta(0)
 
             # Calculate paused time within the session duration
@@ -654,7 +658,7 @@ class team_member(models.Model):
             for pause in pauses:
                 pause_start = max(pause.start, session.start)
                 pause_end = min(
-                    pause.end or dt.datetime.now(), session.end
+                    pause.end or now, session.end
                 )  # if pause.end is null, use now.
                 paused_time += pause_end - pause_start
 
@@ -684,7 +688,7 @@ class team_member(models.Model):
                     paused_time += pause_end - pause_start
 
                 total_time += session_time - paused_time
-                return total_time
+            return total_time
         except ObjectDoesNotExist:
             # Handle the case where no session is found
             return None
@@ -692,6 +696,12 @@ class team_member(models.Model):
         except MultipleObjectsReturned:
             _log.critical("There should be only one active session per team/driver")
             return "Contact Race Management!"
+
+    @property
+    def ontrack(self):
+        return self.session_set.filter(
+                driver=self, start__isnull=False, end__isnull=True
+            ).exists()
 
     def save(self, *args, **kwargs):
         self.clean()
