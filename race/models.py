@@ -665,7 +665,7 @@ class team_member(models.Model):
             for pause in pauses:
                 pause_start = max(pause.start, session.start)
                 pause_end = min(
-                    pause.end or now, session.end
+                    pause.end or now, session.end or now
                 )  # if pause.end is null, use now.
                 paused_time += pause_end - pause_start
 
