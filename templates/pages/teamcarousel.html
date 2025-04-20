@@ -208,7 +208,7 @@
         function updateCountdown() {
             const countdownEl = $('#roundCountdown');
             if (countdownEl.length) {
-                countdownEl.attr('data-is-paused', data.is_paused);
+                countdownEl.attr('data-is-paused', true);
             }
             const displayEl = $('#countdownDisplay');
             const remainingSeconds = parseInt(countdownEl.attr('data-remaining'), 10);
