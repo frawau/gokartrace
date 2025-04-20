@@ -54,7 +54,7 @@
             <div class="carousel-inner">
                 {% for round_team in round.round_team_set.all %}
                     <div class="carousel-item {% if forloop.first %}active{% endif %}" id="team-slide-{{ round_team.id }}">
-                        {% include "layout/teamcard.html" with round_team=round_team %}
+                        {% include "teamcard.html" with round_team=round_team %}
                     </div>
                 {% endfor %}
             </div>
@@ -75,6 +75,27 @@
 // This script will handle refreshing session displays when a driver's status changes
 document.addEventListener('DOMContentLoaded', function() {
     {% if round is not None %}
+    // Initialize Bootstrap Carousel
+    const carousel = document.getElementById('teamCarousel');
+    if (carousel) {
+        // Check if we're using Bootstrap 5
+        if (typeof bootstrap !== 'undefined') {
+            // Bootstrap 5
+            const carouselInstance = new bootstrap.Carousel(carousel, {
+                interval: 5000, // 5 seconds between slides
+                wrap: true,     // Cycle continuously
+                pause: false    // Don't pause on hover
+            });
+        } else {
+            // Bootstrap 4 (fallback)
+            $(carousel).carousel({
+                interval: 5000,
+                wrap: true,
+                pause: false
+            });
+        }
+    }
+
     // Connect to WebSocket for round updates
     const roundId = {{ round.id }};
     let socket = null;
