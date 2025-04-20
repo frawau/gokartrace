@@ -1,3 +1,5 @@
+{% load timer_tags %}
+
 <div class="card" style="background-color: transparent;">
     <div class="card-body">
         <h5 class="card-title" style="font-size: 4rem;">{{ round_team.team.number }} -- {{ round_team.team.team.name }}</h5>
@@ -13,15 +15,18 @@
                 <tbody>
                     {% for member in round_team.team_member_set.all %}
                         {% if member.driver %}
-                            <tr>
+                            <tr id="driver-row-{{ member.id }}" data-driver-id="{{ member.id }}" data-ontrack="{{ member.ontrack|yesno:'true,false' }}" data-team-id="{{ round_team.id }}">
                                 <td style="border: 10px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">{{ member.member.nickname }}</td>
-                                {% if member.ontrack %}
-                                <td id="totaltime" style="border: 10px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">{{ member.time_spent | default_if_none:"00:00:00" }}</td>
-                                <td id="sessiontime" style="border: 10px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">{{ member.current_session | default_if_none:"" }}</td>
-                                {% else %}
-                                <td style="border: 10px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">{{ member.time_spent | default_if_none:"00:00:00" }}</td>
-                                <td style="border: 10px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">{{ member.current_session | default_if_none:"" }}</td>
-                                {% endif %}
+                                <td style="border: 10px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">
+                                    {% timer_widget "total-time-"|add:member.id|stringformat:"s" "totaltime" member %}
+                                </td>
+                                <td style="border: 10px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;" id="session-cell-{{ member.id }}">
+                                    {% if member.ontrack %}
+                                        {% timer_widget "session-time-"|add:member.id|stringformat:"s" "sessiontime" member %}
+                                    {% else %}
+                                        <span class="no-session">--:--:--</span>
+                                    {% endif %}
+                                </td>
                             </tr>
                         {% endif %}
                     {% endfor %}

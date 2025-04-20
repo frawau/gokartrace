@@ -1,5 +1,5 @@
-{% extends "layout/fscontent.html" %}
-{% load duration_filters %}
+{% load timer_tags %}
+
 {% block extra_style %}
     @media (max-width: 768px) {
         .card-title {
@@ -26,285 +26,152 @@
         }
     }
 {% endblock extra_style %}
-{% block main_content %}
-<div class="section container">
-        {% if round is None %}
-            <h2> Hu?</h2>
-                <div id="teamCarousel" class="carousel slide" data-ride="carousel" >
-                    <div class="carousel-inner">
-                        <div class="carousel-item active">
-                            <div class="card" style="background-color: transparent;" >
-                                <div class="card-body">
-                                    <h1>No race today</h1>
-                                </div>
-                            </div>
+
+<div class="container-fluid">
+    {% if round is None %}
+        <h2>Hu?</h2>
+        <div id="teamCarousel" class="carousel slide" data-ride="carousel">
+            <div class="carousel-inner">
+                <div class="carousel-item active">
+                    <div class="card" style="background-color: transparent;">
+                        <div class="card-body">
+                            <h1>No race today</h1>
                         </div>
                     </div>
                 </div>
-        {% else %}
-            <h2 class="countdown-timer" id="roundCountdown" data-remaining="{{ round|duration_difference_seconds|default:"0" }}" data-is-paused="{{ round|round_is_paused }}">Round: {{ round.name }} &nbsp;&nbsp;Time remaining: <span id="countdownDisplay">--:--:--</span></h2>
+            </div>
+        </div>
+    {% else %}
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                <h1>Race Time: {% timer_widget "race-countdown" "countdownDisplay" round %}</h1>
+            </div>
+        </div>
 
-                <div id="teamCarousel" class="carousel slide" data-ride="carousel" >
-                    <div class="carousel-inner">
-                        {% for team in round.round_team_set.all %}
-                            <div class="carousel-item {% if forloop.first %}active{% endif %}" data-team-id="{{ team.pk }}">
-                                <div class="card" style="background-color: transparent;" >
-                                    <div class="card-body">
-                                        <p>Loading...</p>
-                                    </div>
-                                </div>
-                            </div>
-                        {% endfor %}
+        <div id="teamCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="10000">
+            <div class="carousel-inner">
+                {% for round_team in round.round_team_set.all %}
+                    <div class="carousel-item {% if forloop.first %}active{% endif %}" id="team-slide-{{ round_team.id }}">
+                        {% include "teamcard.html" with round_team=round_team %}
                     </div>
-                </div>
-        {% endif %}
+                {% endfor %}
+            </div>
+
+            <button class="carousel-control-prev" type="button" data-bs-target="#teamCarousel" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Previous</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#teamCarousel" data-bs-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Next</span>
+            </button>
+        </div>
+    {% endif %}
 </div>
-{% endblock main_content %}
 
-{% block extra_js %}
 <script>
-{% if round is not None %}
+// This script will handle refreshing session displays when a driver's status changes
+document.addEventListener('DOMContentLoaded', function() {
+    {% if round is not None %}
+    // Connect to WebSocket for round updates
+    const roundId = {{ round.id }};
+    let socket = null;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 50; // Maximum number of reconnection attempts
+    const reconnectDelay = 3000; // Initial delay in milliseconds
 
-    // Store page load time globally to calculate elapsed time
-    let pageLoadTime = new Date().getTime();
-    let activeDrivers = {};
-    let isPaused = {{ round|round_is_paused|lower }};  // Get initial pause state
-    let pauseStartTime = null;
-    let totalPausedTime = 0;
+    function connectWebSocket() {
+        const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const wsPath = `${wsScheme}://${window.location.host}/ws/round/${roundId}/`;
 
-    $(document).ready(function() {
-        // Set the interval for auto-sliding (7 seconds)
-        $('#teamCarousel').carousel({
-            interval: 7000,
-            pause: false
-        });
+        // Close previous socket if it exists
+        if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+            socket.close();
+        }
 
-        $('#teamCarousel').carousel('cycle');
+        socket = new WebSocket(wsPath);
 
-        // Function to refresh the team card on slide change
-        function refreshTeamCard(e) {
-            var teamId = $(e.relatedTarget).data('team-id');
-            var cardBody = $(e.relatedTarget).find('.card-body');
+        socket.onopen = function() {
+            console.log('WebSocket connection established');
+            reconnectAttempts = 0; // Reset reconnect attempts on successful connection
+        };
 
-            //Check if teamId is undefined, if so, get it from the active element.
-            if(teamId === undefined){
-                teamId = $('.carousel-item.active').data('team-id');
-                cardBody = $('.carousel-item.active').find('.card-body');
-            }
+        socket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
 
-            if (teamId !== undefined) {
-                $.ajax({
-                    url: '/get_team_card/',
-                    data: { team_id: teamId },
-                    success: function(data) {
-                        cardBody.html(data.html);
-                        initializeDriverTimers();
-                    },
-                    error: function() {
-                        cardBody.html('<p>Error loading team info.</p>');
+            // If this is a session update
+            if (data.type === 'round_update' && data.session_update && data.driver_id) {
+                // Find the driver row
+                const driverRow = document.getElementById(`driver-row-${data.driver_id}`);
+                if (!driverRow) return;
+
+                // Get the session cell for this driver
+                const sessionCell = document.getElementById(`session-cell-${data.driver_id}`);
+                if (!sessionCell) return;
+
+                const currentOntrack = driverRow.getAttribute('data-ontrack') === 'true';
+                const newOntrack = data.driver_active;
+
+                // If ontrack status changed
+                if (currentOntrack !== newOntrack) {
+                    // Update the row attribute
+                    driverRow.setAttribute('data-ontrack', newOntrack ? 'true' : 'false');
+
+                    // Update the session cell content
+                    if (newOntrack) {
+                        // Driver now on track - add timer
+                        fetch(`/api/driver/${data.driver_id}/session-timer/`)
+                            .then(response => response.text())
+                            .then(html => {
+                                sessionCell.innerHTML = html;
+                                // Force timer initialization
+                                const event = new CustomEvent('refreshTeamTimers', {
+                                    detail: {
+                                        teamId: driverRow.getAttribute('data-team-id')
+                                    }
+                                });
+                                document.dispatchEvent(event);
+                            })
+                            .catch(error => {
+                                console.error('Error fetching session timer:', error);
+                                sessionCell.innerHTML = '<span class="no-session error">Error</span>';
+                            });
+                    } else {
+                        // Driver not on track - remove timer
+                        sessionCell.innerHTML = '<span class="no-session">--:--:--</span>';
                     }
-                });
-            } else {
-                console.error("teamId is undefined.");
-            }
-        }
-
-        // Attach the refresh function to the 'slid.bs.carousel' event
-        $('#teamCarousel').on('slid.bs.carousel', refreshTeamCard);
-
-        // Load the first card on page load
-        $('#teamCarousel').trigger('slid.bs.carousel');
-
-        function initializeDriverTimers() {
-            // Clear previous active drivers when changing slides
-            activeDrivers = {};
-
-            // Find session and total time elements
-            $('.card-body table tbody tr').each(function() {
-                const row = $(this);
-                const driverName = row.find('td:first-child').text().trim();
-                const sessionTimeCell = row.find('#sessiontime');
-                const totalTimeCell = row.find('#totaltime');
-
-                // Only process rows with the active IDs
-                if (sessionTimeCell.length && totalTimeCell.length) {
-                    // Store initial times (convert from "HH:MM:SS" to seconds)
-                    const sessionTimeText = sessionTimeCell.text().trim();
-                    const totalTimeText = totalTimeCell.text().trim();
-
-                    // Parse initial times into seconds
-                    const sessionSeconds = parseTimeToSeconds(sessionTimeText);
-                    const totalSeconds = parseTimeToSeconds(totalTimeText);
-
-                    // Store start time relative to page load for active drivers
-                    activeDrivers[driverName] = {
-                        sessionSeconds,
-                        totalSeconds,
-                        startTime: new Date().getTime()
-                    };
-
-                    // Set data attribute for mobile view
-                    totalTimeCell.attr('data-current-session', sessionTimeText);
                 }
-            });
-
-            // Start updating active driver times
-            updateDriverTimes();
-        }
-
-        function parseTimeToSeconds(timeStr) {
-            if (!timeStr || timeStr === '') return 0;
-
-            const parts = timeStr.split(':').map(Number);
-            if (parts.length === 3) {
-                return parts[0] * 3600 + parts[1] * 60 + parts[2];
             }
-            return 0;
-        }
+        };
 
-        function formatTime(seconds) {
-            const hours = Math.floor(seconds / 3600);
-            const minutes = Math.floor((seconds % 3600) / 60);
-            const secs = Math.floor(seconds % 60);
-            return hours.toString().padStart(2, '0') + ':' +
-                   minutes.toString().padStart(2, '0') + ':' +
-                   secs.toString().padStart(2, '0');
-        }
-
-        function updateDriverTimes() {
-            // Only update if not paused
-            if (!isPaused) {
-                const now = new Date().getTime();
-
-                $('.card-body table tbody tr').each(function() {
-                    const row = $(this);
-                    const driverName = row.find('td:first-child').text().trim();
-                    const sessionTimeCell = row.find('#sessiontime');
-                    const totalTimeCell = row.find('#totaltime');
-
-                    // Only update cells with the specific IDs
-                    if (sessionTimeCell.length && totalTimeCell.length && activeDrivers[driverName]) {
-                        const driverData = activeDrivers[driverName];
-                        const elapsedSeconds = Math.floor((now - driverData.startTime - totalPausedTime) / 1000);
-
-                        // Update session time with seconds precision
-                        const newSessionSeconds = driverData.sessionSeconds + elapsedSeconds;
-                        sessionTimeCell.text(formatTime(newSessionSeconds));
-
-                        // Update total time with seconds precision
-                        const newTotalSeconds = driverData.totalSeconds + elapsedSeconds;
-                        totalTimeCell.text(formatTime(newTotalSeconds));
-
-                        // Update data attribute for mobile view
-                        totalTimeCell.attr('data-current-session', formatTime(newSessionSeconds));
-                        }
-                    });
-                }
-
-            // Update every second
-            setTimeout(updateDriverTimes, 1000);
-        }
-
-        function updateCountdown() {
-            const countdownEl = $('#roundCountdown');
-            if (countdownEl.length) {
-                countdownEl.attr('data-is-paused', true);
-            }
-            const displayEl = $('#countdownDisplay');
-            const remainingSeconds = parseInt(countdownEl.attr('data-remaining'), 10);
-            const isPaused = countdownEl.attr('data-is-paused') === 'true';
-
-            // Check if we have a valid number
-            if (isNaN(remainingSeconds)) {
-                displayEl.text('--:--:--');
+        socket.onclose = function(event) {
+            // Don't attempt to reconnect if the closure was clean/intentional
+            if (event.wasClean) {
+                console.log(`WebSocket connection closed cleanly, code=${event.code}, reason=${event.reason}`);
                 return;
             }
 
-            let remainingTime = remainingSeconds * 1000; // Convert to ms
+            console.warn('WebSocket connection lost, attempting to reconnect...');
 
-            if (!isPaused) {
-                // Only count down if not paused
-                const now = new Date().getTime();
-                const elapsedSincePageLoad = now - pageLoadTime;
-                remainingTime = Math.max(0, remainingTime - elapsedSincePageLoad);
-            }
+            // Implement exponential backoff for reconnection attempts
+            if (reconnectAttempts < maxReconnectAttempts) {
+                const delay = Math.min(reconnectDelay * Math.pow(1.5, reconnectAttempts), 30000); // Cap at 30 seconds
+                reconnectAttempts++;
 
-            // Format time
-            const hours = Math.floor(remainingTime / (1000 * 60 * 60));
-            const minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((remainingTime % (1000 * 60)) / 1000);
-
-            displayEl.text(
-                hours.toString().padStart(2, '0') + ':' +
-                minutes.toString().padStart(2, '0') + ':' +
-                seconds.toString().padStart(2, '0')
-            );
-        }
-
-        // Start countdown immediately
-        updateCountdown();
-        // Update countdown every second
-        setInterval(updateCountdown, 1000);
-
-        // Setup WebSocket to listen for pause events and driver updates
-        const roundSocket = new WebSocket(
-            'ws://' + window.location.host + '/ws/roundpause/{{ round.id }}/'
-        );
-
-        roundSocket.onmessage = function(e) {
-            try {
-                const data = JSON.parse(e.data);
-                if (data.type === 'round_update') {
-                    // Update round pause status in the countdown element
-                    $('#roundCountdown').attr('data-is-paused', data.is_paused);
-
-                    const now = new Date().getTime();
-
-                    // Handle pause state changes
-                    if (data.is_paused && !isPaused) {
-                        // Race just got paused
-                        console.log("Race paused - timers stopped");
-                        pauseStartTime = now;
-                    }
-                    else if (!data.is_paused && isPaused) {
-                        // Race just resumed
-                        console.log("Race resumed - timers continue");
-
-                        // Calculate how long we were paused
-                        if (pauseStartTime !== null) {
-                            const pauseDuration = now - pauseStartTime;
-                            totalPausedTime += pauseDuration;
-                            pauseStartTime = null;
-                        }
-                    }
-
-                    // Update the pause state
-                    isPaused = data.is_paused;
-
-                    // Update remaining time if provided
-                    if (data.remaining_seconds !== undefined) {
-                        $('#roundCountdown').attr('data-remaining', data.remaining_seconds);
-                    }
-                }
-                else if (data.type === 'driver_update') {
-                    // Refresh the team card if there's a driver update
-                    $('#teamCarousel').trigger('slid.bs.carousel');
-                }
-            } catch (error) {
-                console.error("Error handling WebSocket message:", error);
+                console.log(`Reconnecting in ${delay/1000} seconds... (attempt ${reconnectAttempts}/${maxReconnectAttempts})`);
+                setTimeout(connectWebSocket, delay);
+            } else {
+                console.error('Maximum reconnection attempts reached. Please refresh the page.');
             }
         };
-    });
 
-    document.addEventListener('DOMContentLoaded', () => {
-        const cells = document.querySelectorAll('table tbody tr td:nth-child(3)');
-        cells.forEach(cell => {
-            const previousCell = cell.previousElementSibling;
-            if (previousCell) {
-                previousCell.setAttribute('data-current-session', cell.textContent);
-            }
-        });
-    });
-{% endif %}
+        socket.onerror = function(error) {
+            console.error('WebSocket error:', error);
+        };
+    }
+
+    // Initial connection
+    connectWebSocket();
+    {% endif %}
+});
 </script>
-{% endblock extra_js %}

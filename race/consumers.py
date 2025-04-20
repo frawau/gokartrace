@@ -214,3 +214,40 @@ class RoundPauseConsumer(AsyncWebsocketConsumer):
                 }
             )
         )
+
+
+class RoundConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.round_id = self.scope["url_route"]["kwargs"]["round_id"]
+        self.round_group_name = f"round_{self.round_id}"
+
+        # Join room group
+        await self.channel_layer.group_add(
+            self.round_group_name,
+            self.channel_name
+        )
+
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        # Leave room group
+        await self.channel_layer.group_discard(
+            self.round_group_name,
+            self.channel_name
+        )
+
+    # Receive message from WebSocket
+    async def receive(self, text_data):
+        # We can handle client-to-server messages here if needed
+        pass
+
+    # Receive message from room group
+    async def round_update(self, event):
+        # Send message to WebSocket
+        await self.send(text_data=json.dumps({
+            'type': 'round_update',
+            'is_paused': event['is_paused'],
+            'remaining_seconds': event['remaining_seconds'],
+            'session_update': event.get('session_update', False),
+            'driver_id': event.get('driver_id', None)
+        }))

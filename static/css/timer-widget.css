@@ -1,0 +1,21 @@
+/* timer-widget.css */
+.timer {
+    font-family: monospace;
+    font-size: 1.2rem;
+    font-weight: bold;
+    }
+
+.timer.timer-paused {
+    color: #f59e0b; /* Amber color for paused state */
+    animation: blink 1s infinite;
+    }
+
+.timer.timer-ended {
+    color: #ef4444; /* Red color for ended state */
+    }
+
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+    }
