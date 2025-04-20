@@ -1,5 +1,7 @@
 // static/js/racecontrol.js
-
+let falseStartTimeoutId = null;
+let falseRestartTimeoutId = null;
+let emptyTeamsSocketInstance = null;
 /**
  * Creates a WebSocket connection with automatic reconnection logic.
  * (Keep function definition as is)
