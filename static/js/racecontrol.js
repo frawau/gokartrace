@@ -249,12 +249,50 @@ function updateEmptyTeamsList(teams) {
     const placeholder = document.getElementById('emptyTeamsPlaceholder');
     const emptyTeamsSocket = window.emptyTeamsSocket;
     if (!emptyTeamsUL || !placeholder) return;
+    // Clear current list
     emptyTeamsUL.innerHTML = '';
-    if (!teams || teams.length === 0) { /* ... handle empty ... */ }
-    else { /* ... handle non-empty, add listeners ... */
-        placeholder.style.display = 'none'; emptyTeamsUL.style.display = 'block';
-        teams.forEach(function(team) { /* ... create li ... */ });
-        document.querySelectorAll('.delete-single-team').forEach(button => { /* ... add listener ... */ });
+
+    if (teams.length === 0) {
+        placeholder.textContent = 'No empty teams found';
+        placeholder.style.display = 'block';
+        emptyTeamsUL.style.display = 'none';
+    } else {
+        placeholder.style.display = 'none';
+        emptyTeamsUL.style.display = 'block';
+
+        // Add each team to the list
+        teams.forEach(function(team) {
+            const li = document.createElement('li');
+            li.className = 'list-group-item d-flex justify-content-between align-items-center';
+
+            // Format: Team name (Number) - Championship name
+            li.innerHTML = `
+            <span>${team.team_name} (#${team.number}) - ${team.championship_name}</span>
+            <button class="btn btn-sm btn-outline-danger delete-single-team"
+            data-team-id="${team.id}">Delete</button>
+            `;
+
+            emptyTeamsUL.appendChild(li);
+        });
+
+        // Add event listeners for individual team deletion
+        document.querySelectorAll('.delete-single-team').forEach(button => {
+            button.addEventListener('click', function() {
+                const teamId = this.getAttribute('data-team-id');
+                if (confirm('Delete this team?')) {
+                    const emptyTeamsSocket = new WebSocket(
+                        'ws://' + window.location.host + '/ws/empty_teams/'
+                    );
+
+                    emptyTeamsSocket.onopen = function() {
+                        emptyTeamsSocket.send(JSON.stringify({
+                            'action': 'delete_single_team',
+                            'team_id': teamId
+                        }));
+                    };
+                }
+            });
+        });
     }
 }
 
