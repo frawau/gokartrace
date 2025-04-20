@@ -1,46 +1,115 @@
-{% extends 'layout/sabase.html' %}
-{% load duration_filters %}
-{% load timer_tags %}
+{% extends 'layout/sabase.html' %} {# Make sure this base loads timer-widget.js and jQuery if needed #}
+{% load static duration_filters timer_tags %}
 
 {% block content %}
 <div class="container-fluid" style="height: 100vh; overflow: hidden;">
     <div class="row" style="height: 10%;">
         <div class="col-12 text-center">
-            <h1>{{ round.name }}&nbsp;&nbsp;Remaining Time: {% timer_widget "race-countdown" "countdownDisplay" round %}</h1>
+            <h1>
+                {% if round %}
+                    {{ round.name }}&nbsp;&nbsp;Remaining Time: {% timer_widget "race-control-countdown" "countdownDisplay" round %}
+                {% else %}
+                    Race Control - No Active Round
+                {% endif %}
+            </h1>
         </div>
     </div>
     <div class="row" style="height: 100%;">
         <div class="col-md-8" style="height: 100%;">
             <div class="card" style="height: 100%; background-color: transparent;">
                 <div class="card-body d-flex flex-column" style="height: 100%;">
-                    <!-- Top half (20% height) -->
                     <div class="d-flex w-100" style="height: 20%;">
-                        <!-- Pre Race Check Button (50% of original width, 50% of original height) -->
-                        <div style="width: 50%;" class="p-2 d-flex align-items-center">
-                            <button class="btn btn-warning btn-lg" id="raceButton" style="width: 50%; height: 50%; font-size: 1.5rem; color: black;">Pre Race Check</button>
+                        <div id="race-control-buttons" style="width: 50%;" class="p-2 d-flex align-items-center flex-wrap" {% if round %}data-round-id="{{ round.id }}"{% endif %}>
+                            {% csrf_token %} {# Include CSRF token for fetch POST requests #}
+
+                            {% if round %}
+                                {# --- Pre Race Check Button --- #}
+                                {% if not round.ready and not round.started and not round.ended %}
+                                <button id="preRaceCheckButton" class="btn btn-warning btn-lg me-2 mb-2 race-action-btn"
+                                        data-action="pre_check"
+                                        data-url="{% url 'api_round_pre_check' round.id %}"> {# Example URL name #}
+                                    <i class="fas fa-tasks me-1"></i> Pre Race Check
+                                </button>
+                                {% endif %}
+
+                                {# --- Start Button --- #}
+                                {% if round.ready and not round.started and not round.ended %}
+                                <button id="startButton" class="btn btn-success btn-lg me-2 mb-2 race-action-btn"
+                                        data-action="start"
+                                        data-url="{% url 'api_round_start' round.id %}"> {# Example URL name #}
+                                    <i class="fas fa-play me-1"></i> Start Race
+                                </button>
+                                {% endif %}
+
+                                {# --- Pause Button --- #}
+                                {% if round.started and not round.is_paused and not round.ended %}
+                                <button id="pauseButton" class="btn btn-warning btn-lg me-2 mb-2 race-action-btn"
+                                        data-action="pause"
+                                        data-url="{% url 'api_round_pause' round.id %}"> {# Example URL name #}
+                                    <i class="fas fa-pause me-1"></i> Pause Race
+                                </button>
+                                {% endif %}
+
+                                {# --- Resume Button --- #}
+                                {% if round.started and round.is_paused and not round.ended %}
+                                <button id="resumeButton" class="btn btn-info btn-lg me-2 mb-2 race-action-btn"
+                                        data-action="resume"
+                                        data-url="{% url 'api_round_resume' round.id %}"> {# Example URL name #}
+                                    <i class="fas fa-play-circle me-1"></i> Resume Race
+                                </button>
+                                {% endif %}
+
+                                {# --- End Button --- #}
+                                {% if round.started and not round.ended %}
+                                <button id="endButton" class="btn btn-danger btn-lg me-2 mb-2 race-action-btn"
+                                        data-action="end"
+                                        data-url="{% url 'api_round_end' round.id %}"> {# Example URL name #}
+                                    <i class="fas fa-stop me-1"></i> End Race
+                                </button>
+                                {% endif %}
+
+                                {# --- False Start Button --- #}
+                                {% comment %} Show only shortly after start? Needs specific logic if desired {% endcomment %}
+                                {% if round.started and not round.ended %} {# Add more specific conditions if needed #}
+                                <button id="falseStartButton" class="btn btn-secondary btn-lg me-2 mb-2 race-action-btn"
+                                        data-action="false_start"
+                                        data-url="{% url 'api_round_false_start' round.id %}"> {# Example URL name #}
+                                    <i class="fas fa-undo me-1"></i> False Start
+                                </button>
+                                {% endif %}
+
+                                {# --- False Restart Button (Optional) --- #}
+                                {% comment %} Show only shortly after resume? Needs specific logic if desired {% endcomment %}
+                                {% if round.started and round.is_paused and not round.ended %} {# Add more specific conditions if needed #}
+                                 <button id="falseRestartButton" class="btn btn-secondary btn-lg me-2 mb-2 race-action-btn"
+                                         data-action="false_restart"
+                                         data-url="{% url 'api_round_false_restart' round.id %}"> {# Example URL name #}
+                                     <i class="fas fa-history me-1"></i> False Restart
+                                 </button>
+                                {% endif %}
+
+                            {% else %}
+                                <p class="text-muted">No round active.</p>
+                            {% endif %}
                         </div>
 
-                        <!-- Empty Teams List (remaining width) -->
                         <div style="width: 50%;" class="p-2" id="teamsListContainer">
-                            <div class="card h-100" id="emptyTeamsCard">
+                             <div class="card h-100" id="emptyTeamsCard" {% if round and round.ready %}style="display: none;"{% endif %}>
                                 <div class="card-header d-flex justify-content-between align-items-center">
                                     <h5 class="mb-0">Teams with No Members</h5>
                                     <button class="btn btn-danger" id="deleteEmptyTeamsBtn">Delete All</button>
                                 </div>
                                 <div class="card-body overflow-auto" id="emptyTeamsList">
                                     <div class="text-center text-muted" id="emptyTeamsPlaceholder">
-                                        Loading teams from active round...
+                                        Loading teams...
                                     </div>
-                                    <ul class="list-group" id="emptyTeamsUL">
-                                        <!-- Teams will be added here -->
-                                    </ul>
+                                    <ul class="list-group" id="emptyTeamsUL"></ul>
                                 </div>
                             </div>
 
-                            <!-- Team Select styled like Empty Teams (initially hidden) -->
-                            <div class="card h-100" id="teamSelectCard" style="display: none;">
+                            <div class="card h-100" id="teamSelectCard" {% if not round or not round.ready %}style="display: none;"{% endif %}>
                                 <div class="card-header">
-                                    <h5 class="mb-0">Teams</h5>
+                                    <h5 class="mb-0">Stop & Go Penalty</h5>
                                 </div>
                                 <div class="card-body overflow-auto">
                                     <select class="form-select mb-2" id="teamSelect" style="font-size: 1.2rem;">
@@ -54,14 +123,12 @@
                         </div>
                     </div>
 
-                    <!-- Bottom half for messages (80% height) -->
                     <div class="w-100 p-2" style="height: 80%;">
                         <div class="card h-100">
                             <div class="card-header">
                                 <h5 class="mb-0">System Messages</h5>
                             </div>
                             <div class="card-body overflow-auto" id="messagesContainer">
-                                <!-- Django messages will be displayed here -->
                                 {% if messages %}
                                     {% for message in messages %}
                                         <div class="alert alert-{{ message.tags }}">
@@ -69,542 +136,119 @@
                                         </div>
                                     {% endfor %}
                                 {% endif %}
-                            </div>
+                                 </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-4 d-flex flex-column" style="height: 100%;">
-            {% for i in "x"|ljust:lanes %}
-                <div id="lane-{{ forloop.counter }}" class="card mb-2" style="flex-grow: 1; background-color: transparent;">Lane {{ forloop.counter }}</div>
+             {% for i in "x"|ljust:lanes %} {# Assuming 'lanes' is passed in context or calculated #}
+                <div id="lane-{{ forloop.counter }}" class="card mb-2" style="flex-grow: 1; background-color: transparent;">Lane {{ forloop.counter }} Loading...</div>
             {% endfor %}
-            <div id="changequeue" class="card mb-2" style="flex-grow: 1; background-color: transparent;">Queue</div>
+            <div id="changequeue" class="card mb-2" style="flex-grow: 1; background-color: transparent;">Queue Loading...</div>
         </div>
     </div>
 </div>
 {% endblock content %}
 
 {% block extra_js %}
+{# Load the new JS file for button handling #}
+<script src="{% static 'js/racecontrol.js' %}"></script>
+
 <script>
 
-$(document).ready(function() {
+    // --- Utility Functions (Keep or move to racecontrol.js) ---
+    // Ensure these are defined if used by inline code below
+    // function addSystemMessage(message, tag) { /* ... implementation ... */ }
+    // function getCookie(name) { /* ... implementation ... */ }
+    // function updateEmptyTeamsList(teams) { /* ... implementation ... */ }
 
-    // Create WebSocket connection with reconnection logic
-    function createWebSocketWithReconnect(url, messageHandler, openHandler, errorHandler) {
-        let socket;
-        let reconnectTimeout;
-        const RECONNECT_DELAY = 10000; // 10 seconds
+    // --- WebSocket Connections (Keep inline if using template vars) ---
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if round %}
+            const roundId = {{ round.id }};
+            const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
 
-        function connect() {
-            socket = new WebSocket(url);
-
-            socket.onmessage = messageHandler;
-
-            socket.onopen = function(event) {
-                // Clear any pending reconnect timeouts
-                if (reconnectTimeout) {
-                    clearTimeout(reconnectTimeout);
-                    reconnectTimeout = null;
-                }
-
-                // Call the custom open handler if provided
-                if (openHandler) {
-                    openHandler(event);
-                }
-            };
-
-            socket.onerror = function(event) {
-                // Call the custom error handler if provided
-                if (errorHandler) {
-                    errorHandler(event);
-                }
-            };
-
-            socket.onclose = function(event) {
-                // Don't reconnect if the closure was clean (intentional)
-                if (!event.wasClean) {
-                    console.log(`WebSocket connection to ${url} closed unexpectedly. Reconnecting in 10 seconds...`);
-
-                    // Schedule reconnection
-                    reconnectTimeout = setTimeout(function() {
-                        console.log(`Attempting to reconnect to ${url}...`);
-                        connect();
-                    }, RECONNECT_DELAY);
-                }
-            };
-        }
-
-        // Initial connection
-        connect();
-
-        // Return functions to interact with the socket
-        return {
-            send: function(data) {
-                if (socket && socket.readyState === WebSocket.OPEN) {
-                    socket.send(data);
-                } else {
-                    console.warn("Cannot send message, socket is not open");
-                }
-            },
-            close: function() {
-                if (socket) {
-                    // Clear reconnect timeout to prevent reconnection after manual close
-                    if (reconnectTimeout) {
-                        clearTimeout(reconnectTimeout);
-                        reconnectTimeout = null;
-                    }
-                    socket.close();
-                }
-            }
-        };
-    }
-
-    // Initial button state based on round properties
-    function initializeRaceButton() {
-        $.get('/get_round_status/', function(data) {
-            const button = $('#raceButton');
-
-            if (!data.ready) {
-                // Not ready - show Pre Race Check
-                button.removeClass('btn-success btn-danger').addClass('btn-warning').text('Pre Race Check').css('color', 'black');
-            } else if (!data.ongoing) {
-                // Ready but not ongoing - show Start
-                button.removeClass('btn-warning btn-danger').addClass('btn-success').text('Start').css('color', 'white');
-                $('#emptyTeamsCard').hide();
-                $('#teamSelectCard').show();
-
-                // Connect to lane sockets if not already connected
-                if (!window.lanesConnected) {
-                    connectToLaneSockets();
-                }
-            } else if (data.is_paused) {
-                // Ready, ongoing, and paused - show Restart
-                button.removeClass('btn-warning btn-danger').addClass('btn-success').text('Restart').css('color', 'white');
-
-                // Connect to lane sockets if not already connected
-                if (!window.lanesConnected) {
-                    connectToLaneSockets();
-                }
-            } else {
-                // Ready and ongoing but not paused - show Pause
-                button.removeClass('btn-success btn-danger').addClass('btn-warning').text('Pause').css('color', 'black');
-
-                // Connect to lane sockets if not already connected
-                if (!window.lanesConnected) {
-                    connectToLaneSockets();
-                }
-            }
-
-            // Check if we're near the end of the round
-            const remainingSeconds = window.remainingSeconds || 0;
-            if (remainingSeconds < 120 && data.ongoing) {
-                button.removeClass('btn-warning btn-success').addClass('btn-danger').text('End Race').css('color', 'white');
-            }
-        });
-    }
-
-    // Initialize button on page load
-    initializeRaceButton();
-
-    // Track if lane sockets are connected
-    window.lanesConnected = false;
-    window.laneSocketsArray = [];
-
-    // Function to connect to lane sockets
-    function connectToLaneSockets() {
-        if (window.lanesConnected) {
-            return; // Already connected
-        }
-
-        console.log("Connecting to pit lane sockets");
-
-        // First, ensure the lane container exists in the DOM
-        const laneContainer = document.querySelector('.col-md-4.d-flex.flex-column');
-        if (!laneContainer) {
-            console.error("Lane container not found in DOM");
-            return;
-        }
-
-        // Don't clear existing content - instead, find the lane elements
-        // and set up WebSockets for each one
-
-        // Get the list of lanes from the server
-        $.get('/get_race_lanes/', function(laneData) {
-            if (!laneData || !laneData.lanes || laneData.lanes.length === 0) {
-                console.warn("No lanes returned from server");
-                return;
-            }
-
-            console.log("Received lane data:", laneData);
-
-            // Set up WebSockets for each lane
-            laneData.lanes.forEach(function(lane) {
-                // Find the existing lane element
-                const laneElement = document.getElementById(`lane-${lane.lane}`);
-
-                if (!laneElement) {
-                    console.warn(`Lane element lane-${lane.lane} not found in DOM`);
-                    return;
-                }
-
-                console.log(`Found lane element for lane ${lane.lane}: ${laneElement.id}`);
-
-                // Create WebSocket connection for this lane
-                const laneSocket = createWebSocketWithReconnect(
-                    `ws://${window.location.host}/ws/pitlanes/${lane.lane}/`,
-                    function(event) {
-                        const data = JSON.parse(event.data);
-                        if (data.type === 'rclane.update') {
-                            console.log(`Received lane update for lane ${lane.lane}`);
-
-                            // Find the lane element again in case it changed
-                            const currentLaneElement = document.getElementById(`lane-${lane.lane}`);
-                            if (currentLaneElement) {
-                                // Replace the entire element
-                                currentLaneElement.outerHTML = data.lane_html;
-                                console.log(`Updated lane ${lane.lane} with new HTML`);
-                            } else {
-                                console.warn(`Lane element lane-${lane.lane} not found for WebSocket update`);
+            // --- Round Update WebSocket ---
+            const roundSocketUrl = `${wsScheme}://${window.location.host}/ws/roundpause/${roundId}/`;
+            const roundSocket = createWebSocketWithReconnect(
+                roundSocketUrl,
+                function(e) { // onmessage
+                    try {
+                        const data = JSON.parse(e.data);
+                        console.log("Round WS received:", data);
+                        if (data.type === 'round_update') {
+                            // Update timer (timer-widget.js handles this via registry)
+                            if (data.remaining_seconds !== undefined && window.timerRegistry && window.timerRegistry.countdownTimers) {
+                                 window.timerRegistry.countdownTimers.forEach(timer => {
+                                     timer.updateRemainingTime(data.remaining_seconds);
+                                 });
                             }
+                            // Update pause state for all timers
+                            const isPaused = data.is_paused;
+                            if (window.timerRegistry && window.timerRegistry.byRoundId && window.timerRegistry.byRoundId[roundId]) {
+                                window.timerRegistry.byRoundId[roundId].forEach(timer => {
+                                    timer.updatePauseState(isPaused);
+                                });
+                            }
+                            // Update status text display (example)
+                            const statusTextEl = document.getElementById('race-status-text');
+                            if (statusTextEl) {
+                                // This logic might be better if backend sends a 'status_display' string
+                                if (data.is_ended) { statusTextEl.textContent = 'Finished'; }
+                                else if (data.is_started && isPaused) { statusTextEl.textContent = 'Paused'; }
+                                else if (data.is_started) { statusTextEl.textContent = 'Running'; }
+                                else { statusTextEl.textContent = 'Not Started'; }
+                            }
+                            // Consider page reload or HTMX swap for button updates
+                            // addSystemMessage("Race state updated.", "info");
                         }
+                     } catch (err) {
+                        console.error("Error processing round WS message:", err, e.data);
+                     }
+                },
+                null, // onopen
+                (e) => addSystemMessage("Round status connection error.", "danger"), // onerror
+                (e) => addSystemMessage("Round status connection closed.", e.wasClean ? "info" : "warning") // onclose
+            );
+
+            // --- Empty Teams WebSocket ---
+            const emptyTeamsSocketUrl = `${wsScheme}://${window.location.host}/ws/empty_teams/`;
+            const emptyTeamsSocket = createWebSocketWithReconnect(
+                 emptyTeamsSocketUrl,
+                 function(e) { // onmessage
+                    try {
+                        const data = JSON.parse(e.data);
+                        if (data.type === 'empty_teams_list') {
+                            updateEmptyTeamsList(data.teams); // Assumes function is defined
+                        } else if (data.type === 'system_message') {
+                            addSystemMessage(data.message, data.tag); // Assumes function is defined
+                        }
+                    } catch (err) {
+                        console.error("Error processing empty teams WS message:", err, e.data);
                     }
-                );
+                 },
+                 function(e) { console.log('Empty Teams WS connected'); }, // onopen
+                 function(e) { addSystemMessage("Empty Teams connection error.", "danger"); }, // onerror
+                 function(e) { addSystemMessage("Empty Teams connection closed.", e.wasClean ? "info" : "warning"); } // onclose
+            );
+             // Add event listener for delete button (can be here or in racecontrol.js)
+             document.getElementById('deleteEmptyTeamsBtn')?.addEventListener('click', function() {
+                 if (confirm('Are you sure you want to delete all teams with no members?')) {
+                     emptyTeamsSocket.send(JSON.stringify({'action': 'delete_empty_teams'}));
+                 }
+             });
+             // Add logic for updating list and single delete buttons (needs function updateEmptyTeamsList)
 
-                // Store socket reference
-                if (!window.laneSocketsArray) {
-                    window.laneSocketsArray = [];
-                }
-                window.laneSocketsArray.push(laneSocket);
 
-                // Refresh the lane data immediately
-                $.get(`/pitlanedetail/${lane.lane}/`, function(data) {
-                    console.log(`Received initial data for lane ${lane.lane}`);
+        {% endif %} // end if round
+    }); // end DOMContentLoaded
 
-                    // Find the lane element again in case it changed
-                    const currentLaneElement = document.getElementById(`lane-${lane.lane}`);
-                    if (currentLaneElement) {
-                        // Replace the entire element
-                        currentLaneElement.outerHTML = data;
-                        console.log(`Initialized lane ${lane.lane} with HTML data`);
-                    } else {
-                        console.warn(`Lane element lane-${lane.lane} not found for initial load`);
-                    }
-                }).fail(function(xhr, status, error) {
-                    console.error(`Failed to load lane ${lane.lane}: ${status} - ${error}`);
-                });
-            });
-        }).fail(function(xhr, status, error) {
-            console.error(`Failed to get race lanes: ${status} - ${error}`);
-            addSystemMessage(`Failed to load pit lanes: ${error}`, "danger");
-        });
-
-        window.lanesConnected = true;
-    }
-
-    // Button click handler
-    $('#raceButton').click(function() {
-        const button = $(this);
-        $.ajaxSetup({
-            headers: { "X-CSRFToken": getCookie("csrftoken") }
-        });
-
-        if (button.text() === 'Pre Race Check') {
-            $.post('/preracecheck/', function(response) {
-                if (response.result) {
-                    button.removeClass('btn-warning').addClass('btn-success').text('Start').css('color', 'white');
-                    // Show teamSelect in place of emptyTeams
-                    $('#emptyTeamsCard').hide();
-                    $('#teamSelectCard').show();
-
-                    // Now connect to lane sockets after successful pre-race check
-                    connectToLaneSockets();
-                } else {
-                    for (const item of response.error) {
-                        addSystemMessage(item,"warning");
-                    }
-                }
-            });
-        } else if (button.text() === 'Start') {
-            $.post('/race/start/', function() {
-                button.removeClass('btn-success').addClass('btn-danger').text('False Start').css('color', 'white');
-                setTimeout(function() {
-                    if (button.text() === 'False Start') {
-                        button.removeClass('btn-danger').addClass('btn-warning').text('Pause').css('color', 'black');
-                    }
-                }, 15000);
-            });
-        } else if (button.text() === 'False Start') {
-            $.post('/falsestart/', function() {
-                button.removeClass('btn-danger').addClass('btn-success').text('Start').css('color', 'white');
-            });
-        } else if (button.text() === 'Pause') {
-            $.post('/racepaused/', function() {
-                button.removeClass('btn-warning').addClass('btn-success').text('Restart').css('color', 'white');
-            });
-        } else if (button.text() === 'Restart') {
-            $.post('/racerestart/', function() {
-                button.removeClass('btn-success').addClass('btn-danger').text('False Restart').css('color', 'white');
-                setTimeout(function() {
-                    if (button.text() === 'False Restart') {
-                        button.removeClass('btn-danger').addClass('btn-success').text('Restart').css('color', 'white');
-                    }
-                }, 15000);
-            });
-        } else if (button.text() === 'False Restart') {
-            $.post('/falserestart/', function() {
-                button.removeClass('btn-danger').addClass('btn-success').text('Restart').css('color', 'white');
-            });
-        } else if (button.text() === 'End Race') {
-          $.post('/endofrace/', function() {
-            button.prop('disabled', true);
-          });
-        }
-    });
-
-    $('#stopGoButton').click(function() {
-        const teamId = $('#teamSelect').val();
-        const button = $(this);
-        const card = button.closest('.card');
-
-        if (button.text() === 'Stop&Go') {
-            $.post('/serve_team/', { team_id: teamId }, function() {
-                card.css('background-color', 'red');
-                button.text('Served');
-            });
-        } else {
-            card.css('background-color', 'transparent');
-            button.text('Stop&Go');
-            $('#teamSelect').val($('#teamSelect option:first').val());
-        }
-    });
-
-    const roundSocket = createWebSocketWithReconnect(
-        'ws://' + window.location.host + '/ws/roundpause/{{ round.id }}/',
-        function(e) {
-            const data = JSON.parse(e.data);
-            if (data.type === 'round_update') {
-                // Find countdown timer in registry
-                if (data.remaining_seconds !== undefined) {
-                    // Update all countdown timers with new remaining time
-                    if (timerRegistry && timerRegistry.countdownTimers) {
-                        timerRegistry.countdownTimers.forEach(timer => {
-                            timer.updateRemainingTime(data.remaining_seconds);
-                        });
-                    }
-
-                    // Store the remaining time for button state logic
-                    window.remainingSeconds = data.remaining_seconds;
-                }
-
-                // Update pause state for all timers in this round
-                const isPaused = data.is_paused;
-                const roundId = {{ round.id }};
-                if (timerRegistry && timerRegistry.byRoundId && timerRegistry.byRoundId[roundId]) {
-                    timerRegistry.byRoundId[roundId].forEach(timer => {
-                        timer.updatePauseState(isPaused);
-                    });
-                }
-
-                window.pageLoadTime = new Date().getTime();
-
-                // Update button state when round is updated
-                initializeRaceButton();
-            }
-        }
-    );
-});
-
-// Initialize empty teams WebSocket connection with reconnection
-document.addEventListener('DOMContentLoaded', function() {
-    // Create WebSocket connection with reconnection logic
-    function createWebSocketWithReconnect(url, messageHandler, openHandler, errorHandler) {
-        let socket;
-        let reconnectTimeout;
-        const RECONNECT_DELAY = 10000; // 10 seconds
-
-        function connect() {
-            socket = new WebSocket(url);
-
-            socket.onmessage = messageHandler;
-
-            socket.onopen = function(event) {
-                // Clear any pending reconnect timeouts
-                if (reconnectTimeout) {
-                    clearTimeout(reconnectTimeout);
-                    reconnectTimeout = null;
-                }
-
-                // Call the custom open handler if provided
-                if (openHandler) {
-                    openHandler(event);
-                }
-            };
-
-            socket.onerror = function(event) {
-                // Call the custom error handler if provided
-                if (errorHandler) {
-                    errorHandler(event);
-                }
-            };
-
-            socket.onclose = function(event) {
-                // Don't reconnect if the closure was clean (intentional)
-                if (!event.wasClean) {
-                    console.log(`WebSocket connection to ${url} closed unexpectedly. Reconnecting in 10 seconds...`);
-
-                    // Schedule reconnection
-                    reconnectTimeout = setTimeout(function() {
-                        console.log(`Attempting to reconnect to ${url}...`);
-                        connect();
-                    }, RECONNECT_DELAY);
-                }
-            };
-        }
-
-        // Initial connection
-        connect();
-
-        // Return functions to interact with the socket
-        return {
-            send: function(data) {
-                if (socket && socket.readyState === WebSocket.OPEN) {
-                    socket.send(data);
-                } else {
-                    console.warn("Cannot send message, socket is not open");
-                }
-            },
-            close: function() {
-                if (socket) {
-                    // Clear reconnect timeout to prevent reconnection after manual close
-                    if (reconnectTimeout) {
-                        clearTimeout(reconnectTimeout);
-                        reconnectTimeout = null;
-                    }
-                    socket.close();
-                }
-            }
-        };
-    }
-
-    const emptyTeamsSocket = createWebSocketWithReconnect(
-        'ws://' + window.location.host + '/ws/empty_teams/',
-        function(e) {
-            const data = JSON.parse(e.data);
-            if (data.type === 'empty_teams_list') {
-                updateEmptyTeamsList(data.teams);
-            } else if (data.type === 'system_message') {
-                addSystemMessage(data.message, data.tag);
-            }
-        },
-        function(e) {
-            console.log('WebSocket connection established');
-            document.getElementById('emptyTeamsPlaceholder').textContent = 'Waiting for data...';
-        },
-        function(e) {
-            console.error('WebSocket error:', e);
-            document.getElementById('emptyTeamsPlaceholder').textContent = 'Connection error!';
-        }
-    );
-
-    // Set up delete button
-    document.getElementById('deleteEmptyTeamsBtn').addEventListener('click', function() {
-        if (confirm('Are you sure you want to delete all teams with no members?')) {
-            emptyTeamsSocket.send(JSON.stringify({
-                'action': 'delete_empty_teams'
-            }));
-        }
-    });
-});
-
-// Function to update the empty teams list
-function updateEmptyTeamsList(teams) {
-    const emptyTeamsUL = document.getElementById('emptyTeamsUL');
-    const placeholder = document.getElementById('emptyTeamsPlaceholder');
-
-    // Clear current list
-    emptyTeamsUL.innerHTML = '';
-
-    if (teams.length === 0) {
-        placeholder.textContent = 'No empty teams found';
-        placeholder.style.display = 'block';
-        emptyTeamsUL.style.display = 'none';
-    } else {
-        placeholder.style.display = 'none';
-        emptyTeamsUL.style.display = 'block';
-
-        // Add each team to the list
-        teams.forEach(function(team) {
-            const li = document.createElement('li');
-            li.className = 'list-group-item d-flex justify-content-between align-items-center';
-
-            // Format: Team name (Number) - Championship name
-            li.innerHTML = `
-                <span>${team.team_name} (#${team.number}) - ${team.championship_name}</span>
-                <button class="btn btn-sm btn-outline-danger delete-single-team"
-                        data-team-id="${team.id}">Delete</button>
-            `;
-
-            emptyTeamsUL.appendChild(li);
-        });
-
-        // Add event listeners for individual team deletion
-        document.querySelectorAll('.delete-single-team').forEach(button => {
-            button.addEventListener('click', function() {
-                const teamId = this.getAttribute('data-team-id');
-                if (confirm('Delete this team?')) {
-                    const emptyTeamsSocket = new WebSocket(
-                        'ws://' + window.location.host + '/ws/empty_teams/'
-                    );
-
-                    emptyTeamsSocket.onopen = function() {
-                        emptyTeamsSocket.send(JSON.stringify({
-                            'action': 'delete_single_team',
-                            'team_id': teamId
-                        }));
-                    };
-                }
-            });
-        });
-    }
-}
-
-// Function to add a system message
-function addSystemMessage(message, tag) {
-    const messagesContainer = document.getElementById('messagesContainer');
-
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${tag}`;
-    alertDiv.textContent = message;
-
-    // Add message to the top of the container
-    messagesContainer.insertBefore(alertDiv, messagesContainer.firstChild);
-
-    // Optional: Auto-dismiss after some time
-    setTimeout(function() {
-        alertDiv.style.opacity = '0';
-        setTimeout(function() {
-            alertDiv.remove();
-        }, 1000);
-    }, 10000);
-}
-
-// Function to get CSRF token for AJAX requests
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-
+    // Keep helper functions if needed by inline WS code and defined in racecontrol.js
+    // Make sure functions like addSystemMessage, getCookie, updateEmptyTeamsList are accessible
+    // Easiest is to define them in racecontrol.js outside the DOMContentLoaded listener
 
 </script>
+
 {% endblock extra_js %}
