@@ -218,6 +218,7 @@ class RoundPauseConsumer(AsyncWebsocketConsumer):
 
 class RoundConsumer(AsyncWebsocketConsumer):
     async def connect(self):
+        print("Round Consumer connection")
         self.round_id = self.scope["url_route"]["kwargs"]["round_id"]
         self.round_group_name = f"round_{self.round_id}"
 
@@ -228,6 +229,7 @@ class RoundConsumer(AsyncWebsocketConsumer):
         )
 
         await self.accept()
+        print(f"Round Consumer connection to {self.round_group_name} accepted.")
 
     async def disconnect(self, close_code):
         # Leave room group
