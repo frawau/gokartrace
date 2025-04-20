@@ -1,6 +1,7 @@
 {% load timer_tags %}
 
 {% block extra_style %}
+<style>
     @media (max-width: 768px) {
         .card-title {
             font-size: 2.5rem !important;
@@ -25,6 +26,7 @@
             content: attr(data-current-session);
         }
     }
+</style>
 {% endblock extra_style %}
 
 <div class="container-fluid">
