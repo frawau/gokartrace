@@ -237,24 +237,6 @@ $(document).ready(function() {
     // Initialize button on page load
     initializeRaceButton();
 
-    // Round socket with reconnection - always connect to this one
-    const roundSocket = createWebSocketWithReconnect(
-        'ws://' + window.location.host + '/ws/roundpause/{{ round.id }}/',
-        function(e) {
-            const data = JSON.parse(e.data);
-            if (data.type === 'round_update') {
-                $('#roundCountdown').data('is-paused', data.is_paused);
-                if (data.remaining_seconds !== undefined) {
-                    $('#roundCountdown').attr('data-remaining', data.remaining_seconds);
-                }
-                window.pageLoadTime = new Date().getTime();
-
-                // Update button state when round is updated
-                initializeRaceButton();
-            }
-        }
-    );
-
     // Track if lane sockets are connected
     window.lanesConnected = false;
     window.laneSocketsArray = [];
