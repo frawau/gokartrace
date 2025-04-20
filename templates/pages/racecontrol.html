@@ -87,6 +87,37 @@
 
 {% block extra_js %}
 <script>
+// Add this at the top of your script if not already defined
+if (typeof timerRegistry === 'undefined') {
+    const timerRegistry = {
+        byDriverId: {},
+        byRoundId: {},
+        countdownTimers: [],
+
+        registerTimer: function(timer) {
+            if (timer.driverId) {
+                if (!this.byDriverId[timer.driverId]) {
+                    this.byDriverId[timer.driverId] = [];
+                }
+                this.byDriverId[timer.driverId].push(timer);
+            }
+
+            if (timer.roundId) {
+                if (!this.byRoundId[timer.roundId]) {
+                    this.byRoundId[timer.roundId] = [];
+                }
+                this.byRoundId[timer.roundId].push(timer);
+            }
+
+            if (timer.countDirection === 'down') {
+                this.countdownTimers.push(timer);
+            }
+        }
+    };
+
+    window.timerRegistry = timerRegistry;
+}
+
 $(document).ready(function() {
 
     // Create WebSocket connection with reconnection logic
@@ -196,7 +227,7 @@ $(document).ready(function() {
             }
 
             // Check if we're near the end of the round
-            const remainingSeconds = parseInt($('#roundCountdown').attr('data-remaining'), 10);
+            const remainingSeconds = window.remainingSeconds || 0;
             if (remainingSeconds < 120 && data.ongoing) {
                 button.removeClass('btn-warning btn-success').addClass('btn-danger').text('End Race').css('color', 'white');
             }
@@ -228,96 +259,96 @@ $(document).ready(function() {
     window.lanesConnected = false;
     window.laneSocketsArray = [];
 
-// Function to connect to lane sockets
-function connectToLaneSockets() {
-    if (window.lanesConnected) {
-        return; // Already connected
-    }
+    // Function to connect to lane sockets
+    function connectToLaneSockets() {
+        if (window.lanesConnected) {
+            return; // Already connected
+        }
 
-    console.log("Connecting to pit lane sockets");
+        console.log("Connecting to pit lane sockets");
 
-    // First, ensure the lane container exists in the DOM
-    const laneContainer = document.querySelector('.col-md-4.d-flex.flex-column');
-    if (!laneContainer) {
-        console.error("Lane container not found in DOM");
-        return;
-    }
-
-    // Don't clear existing content - instead, find the lane elements
-    // and set up WebSockets for each one
-
-    // Get the list of lanes from the server
-    $.get('/get_race_lanes/', function(laneData) {
-        if (!laneData || !laneData.lanes || laneData.lanes.length === 0) {
-            console.warn("No lanes returned from server");
+        // First, ensure the lane container exists in the DOM
+        const laneContainer = document.querySelector('.col-md-4.d-flex.flex-column');
+        if (!laneContainer) {
+            console.error("Lane container not found in DOM");
             return;
         }
 
-        console.log("Received lane data:", laneData);
+        // Don't clear existing content - instead, find the lane elements
+        // and set up WebSockets for each one
 
-        // Set up WebSockets for each lane
-        laneData.lanes.forEach(function(lane) {
-            // Find the existing lane element
-            const laneElement = document.getElementById(`lane-${lane.lane}`);
-
-            if (!laneElement) {
-                console.warn(`Lane element lane-${lane.lane} not found in DOM`);
+        // Get the list of lanes from the server
+        $.get('/get_race_lanes/', function(laneData) {
+            if (!laneData || !laneData.lanes || laneData.lanes.length === 0) {
+                console.warn("No lanes returned from server");
                 return;
             }
 
-            console.log(`Found lane element for lane ${lane.lane}: ${laneElement.id}`);
+            console.log("Received lane data:", laneData);
 
-            // Create WebSocket connection for this lane
-            const laneSocket = createWebSocketWithReconnect(
-                `ws://${window.location.host}/ws/pitlanes/${lane.lane}/`,
-                function(event) {
-                    const data = JSON.parse(event.data);
-                    if (data.type === 'rclane.update') {
-                        console.log(`Received lane update for lane ${lane.lane}`);
+            // Set up WebSockets for each lane
+            laneData.lanes.forEach(function(lane) {
+                // Find the existing lane element
+                const laneElement = document.getElementById(`lane-${lane.lane}`);
 
-                        // Find the lane element again in case it changed
-                        const currentLaneElement = document.getElementById(`lane-${lane.lane}`);
-                        if (currentLaneElement) {
-                            // Replace the entire element
-                            currentLaneElement.outerHTML = data.lane_html;
-                            console.log(`Updated lane ${lane.lane} with new HTML`);
-                        } else {
-                            console.warn(`Lane element lane-${lane.lane} not found for WebSocket update`);
+                if (!laneElement) {
+                    console.warn(`Lane element lane-${lane.lane} not found in DOM`);
+                    return;
+                }
+
+                console.log(`Found lane element for lane ${lane.lane}: ${laneElement.id}`);
+
+                // Create WebSocket connection for this lane
+                const laneSocket = createWebSocketWithReconnect(
+                    `ws://${window.location.host}/ws/pitlanes/${lane.lane}/`,
+                    function(event) {
+                        const data = JSON.parse(event.data);
+                        if (data.type === 'rclane.update') {
+                            console.log(`Received lane update for lane ${lane.lane}`);
+
+                            // Find the lane element again in case it changed
+                            const currentLaneElement = document.getElementById(`lane-${lane.lane}`);
+                            if (currentLaneElement) {
+                                // Replace the entire element
+                                currentLaneElement.outerHTML = data.lane_html;
+                                console.log(`Updated lane ${lane.lane} with new HTML`);
+                            } else {
+                                console.warn(`Lane element lane-${lane.lane} not found for WebSocket update`);
+                            }
                         }
                     }
+                );
+
+                // Store socket reference
+                if (!window.laneSocketsArray) {
+                    window.laneSocketsArray = [];
                 }
-            );
+                window.laneSocketsArray.push(laneSocket);
 
-            // Store socket reference
-            if (!window.laneSocketsArray) {
-                window.laneSocketsArray = [];
-            }
-            window.laneSocketsArray.push(laneSocket);
+                // Refresh the lane data immediately
+                $.get(`/pitlanedetail/${lane.lane}/`, function(data) {
+                    console.log(`Received initial data for lane ${lane.lane}`);
 
-            // Refresh the lane data immediately
-            $.get(`/pitlanedetail/${lane.lane}/`, function(data) {
-                console.log(`Received initial data for lane ${lane.lane}`);
-
-                // Find the lane element again in case it changed
-                const currentLaneElement = document.getElementById(`lane-${lane.lane}`);
-                if (currentLaneElement) {
-                    // Replace the entire element
-                    currentLaneElement.outerHTML = data;
-                    console.log(`Initialized lane ${lane.lane} with HTML data`);
-                } else {
-                    console.warn(`Lane element lane-${lane.lane} not found for initial load`);
-                }
-            }).fail(function(xhr, status, error) {
-                console.error(`Failed to load lane ${lane.lane}: ${status} - ${error}`);
+                    // Find the lane element again in case it changed
+                    const currentLaneElement = document.getElementById(`lane-${lane.lane}`);
+                    if (currentLaneElement) {
+                        // Replace the entire element
+                        currentLaneElement.outerHTML = data;
+                        console.log(`Initialized lane ${lane.lane} with HTML data`);
+                    } else {
+                        console.warn(`Lane element lane-${lane.lane} not found for initial load`);
+                    }
+                }).fail(function(xhr, status, error) {
+                    console.error(`Failed to load lane ${lane.lane}: ${status} - ${error}`);
+                });
             });
+        }).fail(function(xhr, status, error) {
+            console.error(`Failed to get race lanes: ${status} - ${error}`);
+            addSystemMessage(`Failed to load pit lanes: ${error}`, "danger");
         });
-    }).fail(function(xhr, status, error) {
-        console.error(`Failed to get race lanes: ${status} - ${error}`);
-        addSystemMessage(`Failed to load pit lanes: ${error}`, "danger");
-    });
 
-    window.lanesConnected = true;
-}
+        window.lanesConnected = true;
+    }
 
     // Button click handler
     $('#raceButton').click(function() {
@@ -395,6 +426,41 @@ function connectToLaneSockets() {
             $('#teamSelect').val($('#teamSelect option:first').val());
         }
     });
+
+    const roundSocket = createWebSocketWithReconnect(
+        'ws://' + window.location.host + '/ws/roundpause/{{ round.id }}/',
+        function(e) {
+            const data = JSON.parse(e.data);
+            if (data.type === 'round_update') {
+                // Find countdown timer in registry
+                if (data.remaining_seconds !== undefined) {
+                    // Update all countdown timers with new remaining time
+                    if (timerRegistry && timerRegistry.countdownTimers) {
+                        timerRegistry.countdownTimers.forEach(timer => {
+                            timer.updateRemainingTime(data.remaining_seconds);
+                        });
+                    }
+
+                    // Store the remaining time for button state logic
+                    window.remainingSeconds = data.remaining_seconds;
+                }
+
+                // Update pause state for all timers in this round
+                const isPaused = data.is_paused;
+                const roundId = {{ round.id }};
+                if (timerRegistry && timerRegistry.byRoundId && timerRegistry.byRoundId[roundId]) {
+                    timerRegistry.byRoundId[roundId].forEach(timer => {
+                        timer.updatePauseState(isPaused);
+                    });
+                }
+
+                window.pageLoadTime = new Date().getTime();
+
+                // Update button state when round is updated
+                initializeRaceButton();
+            }
+        }
+    );
 });
 
 // Initialize empty teams WebSocket connection with reconnection
@@ -586,5 +652,7 @@ function getCookie(name) {
     }
     return cookieValue;
 }
+
+
 </script>
 {% endblock extra_js %}
