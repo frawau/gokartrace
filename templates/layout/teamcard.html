@@ -1,3 +1,4 @@
+{% comment %} Inside teamcard.html {% endcomment %}
 {% load timer_tags %}
 
 <div class="card" style="background-color: transparent;">
@@ -21,11 +22,19 @@
                                     {% timer_widget "total-time-"|add:member.id|stringformat:"s" "totaltime" member %}
                                 </td>
                                 <td style="border: 10px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;" id="session-cell-{{ member.id }}">
-                                    {% if member.ontrack %}
-                                        {% timer_widget "session-time-"|add:member.id|stringformat:"s" "sessiontime" member %}
-                                    {% else %}
-                                        <span class="no-session"></span>
-                                    {% endif %}
+                                    {# Always render the session timer widget #}
+                                    {# The JS will hide/show its content via visibility style #}
+                                    {# The template tag should set initialPaused based on member.ontrack #}
+                                    {% timer_widget "session-time-"|add:member.id|stringformat:"s" "sessiontime" member %}
+
+                                    {# Example of how you might visually hide if not ontrack initially #}
+                                    {# This could also be done by adding a class based on data-ontrack #}
+                                    <style>
+                                      #session-time-{{ member.id }}:not([style*="visibility: visible"]) {
+                                          visibility: {% if not member.ontrack %}hidden{% else %}visible{% endif %};
+                                      }
+                                    </style>
+
                                 </td>
                             </tr>
                         {% endif %}

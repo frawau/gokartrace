@@ -79,27 +79,52 @@ const timerRegistry = {
     byDriverId: {},
     byRoundId: {},
     countdownTimers: [],
+    // Add a way to get a timer by its elementId if needed, though registry is preferred
+    byId: {},
 
     registerTimer: function(timer) {
+        // Keep track by element ID as well
+        this.byId[timer.element.id] = timer;
+
         if (timer.driverId) {
             if (!this.byDriverId[timer.driverId]) {
                 this.byDriverId[timer.driverId] = [];
             }
-            this.byDriverId[timer.driverId].push(timer);
+            // Avoid duplicates if re-registration happens (though it shouldn't now)
+            if (!this.byDriverId[timer.driverId].includes(timer)) {
+                 this.byDriverId[timer.driverId].push(timer);
+            }
         }
 
         if (timer.roundId) {
             if (!this.byRoundId[timer.roundId]) {
                 this.byRoundId[timer.roundId] = [];
             }
-            this.byRoundId[timer.roundId].push(timer);
+             if (!this.byRoundId[timer.roundId].includes(timer)) {
+                this.byRoundId[timer.roundId].push(timer);
+             }
         }
 
         if (timer.countDirection === 'down') {
-            this.countdownTimers.push(timer);
+            if (!this.countdownTimers.includes(timer)) {
+                this.countdownTimers.push(timer);
+            }
         }
+    },
+
+    // Optional: Add a method to remove/deregister timers if elements are truly removed
+    deregisterTimer: function(timer) {
+        delete this.byId[timer.element.id];
+        if (timer.driverId && this.byDriverId[timer.driverId]) {
+            this.byDriverId[timer.driverId] = this.byDriverId[timer.driverId].filter(t => t !== timer);
+        }
+         if (timer.roundId && this.byRoundId[timer.roundId]) {
+            this.byRoundId[timer.roundId] = this.byRoundId[timer.roundId].filter(t => t !== timer);
+        }
+        this.countdownTimers = this.countdownTimers.filter(t => t !== timer);
     }
 };
+
 
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize Bootstrap Carousel
@@ -127,14 +152,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const roundId = {{ round.id }};
     let socket = null;
     let reconnectAttempts = 0;
-    const maxReconnectAttempts = 50; // Maximum number of reconnection attempts
-    const reconnectDelay = 3000; // Initial delay in milliseconds
+    const maxReconnectAttempts = 50;
+    const reconnectDelay = 3000;
 
     function connectWebSocket() {
         const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
         const wsPath = `${wsScheme}://${window.location.host}/ws/round/${roundId}/`;
 
-        // Close previous socket if it exists
         if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
             socket.close();
         }
@@ -143,88 +167,90 @@ document.addEventListener('DOMContentLoaded', function() {
 
         socket.onopen = function() {
             console.log('WebSocket connection established');
-            reconnectAttempts = 0; // Reset reconnect attempts on successful connection
+            reconnectAttempts = 0;
         };
 
         socket.onmessage = function(event) {
             const data = JSON.parse(event.data);
+            console.log("WebSocket received:", data); // Add logging
 
             if (data.type === 'round_update') {
-                // Handle countdown timer updates
-                if (data.remaining_seconds !== undefined) {
+                const isPaused = data.is_paused; // Get pause state first
+
+                // 1. Handle countdown timer updates (if present)
+                if (data.remaining_seconds !== undefined && data.remaining_seconds !== null) {
                     timerRegistry.countdownTimers.forEach(timer => {
+                        // Ensure countdown is also paused/resumed correctly based on round state
                         timer.updateRemainingTime(data.remaining_seconds);
+                        timer.updatePauseState(isPaused); // Apply pause state here too
                     });
                 }
 
-                // Update pause state for all round timers
-                const isPaused = data.is_paused;
+                // 2. Update pause state for ALL relevant round timers (including driver total/session)
+                // This ensures timers pause/resume with the overall race state.
                 if (timerRegistry.byRoundId[roundId]) {
                     timerRegistry.byRoundId[roundId].forEach(timer => {
-                        timer.updatePauseState(isPaused);
+                         // Don't pause/resume countdown timers here again if handled above
+                        if (timer.countDirection !== 'down') {
+                            timer.updatePauseState(isPaused);
+                        }
                     });
                 }
 
-                // Handle driver session updates
+                // 3. Handle SPECIFIC driver session activation/deactivation
                 if (data.session_update && data.driver_id) {
-                    // Your existing code for DOM updates
+                    console.log(`Handling session update for driver ${data.driver_id}, active: ${data.driver_active}`);
+                    const driverTimers = timerRegistry.byDriverId[data.driver_id];
+                    const newOntrack = data.driver_active; // True if driver is now active, false otherwise
+
+                    // --- REMOVED HTML FETCHING AND REFRESH EVENT ---
+
+                    // Update the data attribute for styling if needed
                     const driverRow = document.getElementById(`driver-row-${data.driver_id}`);
-                    if (!driverRow) return;
-
-                    const sessionCell = document.getElementById(`session-cell-${data.driver_id}`);
-                    if (!sessionCell) return;
-
-                    const currentOntrack = driverRow.getAttribute('data-ontrack') === 'true';
-                    const newOntrack = data.driver_active;
-
-                    if (currentOntrack !== newOntrack) {
+                    if (driverRow) {
                         driverRow.setAttribute('data-ontrack', newOntrack ? 'true' : 'false');
+                        // You might want to add/remove CSS classes here instead of direct style manipulation
+                        // e.g., driverRow.classList.toggle('driver-active', newOntrack);
+                    }
 
-                        if (newOntrack) {
-                            fetch(`/api/driver/${data.driver_id}/session-timer/`)
-                                .then(response => response.text())
-                                .then(html => {
-                                    sessionCell.innerHTML = html;
-                                    const event = new CustomEvent('refreshTeamTimers', {
-                                        detail: {
-                                            teamId: driverRow.getAttribute('data-team-id')
-                                        }
-                                    });
-                                    document.dispatchEvent(event);
-                                })
-                                .catch(error => {
-                                    console.error('Error fetching session timer:', error);
-                                    sessionCell.innerHTML = '<span class="no-session error">Error</span>';
-                                });
-                        } else {
-                            sessionCell.innerHTML = '<span class="no-session">--:--:--</span>';
-                        }
+                     // Visually manage the session cell container if needed (optional)
+                     const sessionCell = document.getElementById(`session-cell-${data.driver_id}`);
+                     if (sessionCell) {
+                         // Example: Hide/show the cell content area or apply a class
+                          const timerSpan = sessionCell.querySelector('[data-timer]'); // Find the timer span within
+                          if(timerSpan){
+                              timerSpan.style.visibility = newOntrack ? 'visible' : 'hidden';
+                              // OR: sessionCell.classList.toggle('session-inactive', !newOntrack);
+                          } else if (newOntrack) {
+                              // This case *shouldn't* happen if the template always renders it,
+                              // but indicates a potential issue if the span isn't found when it should be active.
+                              console.warn(`Session timer span not found in cell session-cell-${data.driver_id} when activating.`);
+                          }
+                     }
 
-                        // Update timer instances for this driver
-                        if (timerRegistry.byDriverId[data.driver_id]) {
-                            timerRegistry.byDriverId[data.driver_id].forEach(timer => {
-                                timer.handleSessionUpdate(newOntrack);
-                            });
-                        }
+
+                    // Update the ACTUAL TimerWidget instances
+                    if (driverTimers) {
+                        driverTimers.forEach(timer => {
+                            console.log(`Updating timer ${timer.element.id} (type: ${timer.timerType}) for driver ${data.driver_id}`);
+                            timer.handleSessionUpdate(newOntrack);
+                        });
+                    } else {
+                         console.warn(`No timers found in registry for driver ${data.driver_id}`);
                     }
                 }
             }
         };
 
         socket.onclose = function(event) {
-            // Don't attempt to reconnect if the closure was clean/intentional
             if (event.wasClean) {
                 console.log(`WebSocket connection closed cleanly, code=${event.code}, reason=${event.reason}`);
                 return;
             }
-
             console.warn('WebSocket connection lost, attempting to reconnect...');
-
-            // Implement exponential backoff for reconnection attempts
             if (reconnectAttempts < maxReconnectAttempts) {
-                const delay = Math.min(reconnectDelay * Math.pow(1.5, reconnectAttempts), 30000); // Cap at 30 seconds
+                const delay = Math.min(reconnectDelay * Math.pow(1.5, reconnectAttempts), 30000);
                 reconnectAttempts++;
-
                 console.log(`Reconnecting in ${delay/1000} seconds... (attempt ${reconnectAttempts}/${maxReconnectAttempts})`);
                 setTimeout(connectWebSocket, delay);
             } else {
@@ -234,6 +260,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
         socket.onerror = function(error) {
             console.error('WebSocket error:', error);
+            // Attempt to reconnect on error as well
+             if (socket.readyState === WebSocket.CLOSED && !event.wasClean) { // Check if it closed unexpectedly
+                 console.warn('WebSocket error led to closure, attempting to reconnect...');
+                  if (reconnectAttempts < maxReconnectAttempts) {
+                    const delay = Math.min(reconnectDelay * Math.pow(1.5, reconnectAttempts), 30000);
+                    reconnectAttempts++;
+                     console.log(`Reconnecting in ${delay/1000} seconds... (attempt ${reconnectAttempts}/${maxReconnectAttempts})`);
+                    setTimeout(connectWebSocket, delay);
+                } else {
+                    console.error('Maximum reconnection attempts reached after error. Please refresh the page.');
+                }
+             }
         };
     }
 
