@@ -46,7 +46,7 @@
     {% else %}
         <div class="row mb-4">
             <div class="col-12 text-center">
-                <h1>Race Time: {% timer_widget "race-countdown" "countdownDisplay" round %}</h1>
+                <h2>{{ round.name }}&nbsp;&nbsp;Remaining Time: {% timer_widget "race-countdown" "countdownDisplay" round %}</h2>
             </div>
         </div>
 
