@@ -52,7 +52,7 @@
             <div class="carousel-inner">
                 {% for round_team in round.round_team_set.all %}
                     <div class="carousel-item {% if forloop.first %}active{% endif %}" id="team-slide-{{ round_team.id }}">
-                        {% include "teamcard.html" with round_team=round_team %}
+                        {% include "layout/teamcard.html" with round_team=round_team %}
                     </div>
                 {% endfor %}
             </div>
