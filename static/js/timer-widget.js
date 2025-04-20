@@ -17,10 +17,6 @@ class TimerWidget {
         this.showMinutes = options.showMinutes !== undefined ? options.showMinutes : true;
         this.showSeconds = true;
 
-        // Setup WebSocket if roundId is provided
-        if (this.roundId) {
-            this.setupWebSocket();
-        }
 
         // Initial render
         this.render();
@@ -29,62 +25,9 @@ class TimerWidget {
         if (!this.paused) {
             this.start();
         }
+        timerRegistry.registerTimer(this);
     }
 
-    setupWebSocket() {
-        const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
-        const wsPath = `${wsScheme}://${window.location.host}/ws/round/${this.roundId}/`;
-
-        this.socket = new WebSocket(wsPath);
-
-        this.socket.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-
-            if (data.type === 'round_update') {
-                // Handle pause/resume
-                if (data.is_paused) {
-                    this.pause();
-                } else {
-                    this.resume();
-                }
-
-                // If we're a countdown timer, sync with server time
-                if (this.countDirection === 'down' && data.remaining_seconds !== undefined) {
-                    this.currentValue = data.remaining_seconds;
-                    this.render();
-                }
-
-                // Handle session updates
-                if (data.session_update && this.driverId) {
-                    // If this message is about our driver
-                    if (data.driver_id == this.driverId) {
-                        if (this.timerType === 'sessiontime') {
-                            // For session timers, reset when a driver starts a new session
-                            if (data.driver_active) {
-                                this.reset(0);
-                                this.paused = false;
-                                this.start();
-                            } else {
-                                this.pause();
-                            }
-                        } else if (this.timerType === 'totaltime') {
-                            // For total time timers, update pause state based on driver activity
-                            this.paused = !data.driver_active || data.is_paused;
-                            if (!this.paused) {
-                                this.start();
-                            }
-                        }
-                    }
-                }
-            }
-        };
-
-        this.socket.onclose = () => {
-            console.warn('Timer WebSocket connection closed');
-            // Try to reconnect after 5 seconds
-            setTimeout(() => this.setupWebSocket(), 5000);
-        };
-    }
 
     start() {
         this.paused = false;
@@ -171,6 +114,38 @@ class TimerWidget {
                 this.element.classList.add('timer-paused');
             } else {
                 this.element.classList.remove('timer-paused');
+            }
+        }
+    }
+
+    updatePauseState(isPaused) {
+        if (isPaused) {
+            this.pause();
+        } else {
+            this.resume();
+        }
+    }
+
+    updateRemainingTime(seconds) {
+        if (this.countDirection === 'down') {
+            this.currentValue = seconds;
+            this.render();
+        }
+    }
+
+    handleSessionUpdate(isActive) {
+        if (this.timerType === 'sessiontime') {
+            if (isActive) {
+                this.reset(0);
+                this.paused = false;
+                this.start();
+            } else {
+                this.pause();
+            }
+        } else if (this.timerType === 'totaltime') {
+            this.paused = !isActive;
+            if (!this.paused) {
+                this.start();
             }
         }
     }

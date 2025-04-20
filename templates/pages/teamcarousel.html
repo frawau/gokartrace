@@ -73,10 +73,35 @@
 {% endblock main_content %}
 
 {% block extra_js %}
+{% if round is not None %}
 <script>
-// This script will handle refreshing session displays when a driver's status changes
+const timerRegistry = {
+    byDriverId: {},
+    byRoundId: {},
+    countdownTimers: [],
+
+    registerTimer: function(timer) {
+        if (timer.driverId) {
+            if (!this.byDriverId[timer.driverId]) {
+                this.byDriverId[timer.driverId] = [];
+            }
+            this.byDriverId[timer.driverId].push(timer);
+        }
+
+        if (timer.roundId) {
+            if (!this.byRoundId[timer.roundId]) {
+                this.byRoundId[timer.roundId] = [];
+            }
+            this.byRoundId[timer.roundId].push(timer);
+        }
+
+        if (timer.countDirection === 'down') {
+            this.countdownTimers.push(timer);
+        }
+    }
+};
+
 document.addEventListener('DOMContentLoaded', function() {
-    {% if round is not None %}
     // Initialize Bootstrap Carousel
     const carousel = document.getElementById('teamCarousel');
     if (carousel) {
@@ -124,46 +149,63 @@ document.addEventListener('DOMContentLoaded', function() {
         socket.onmessage = function(event) {
             const data = JSON.parse(event.data);
 
-            // If this is a session update
-            if (data.type === 'round_update' && data.session_update && data.driver_id) {
-                // Find the driver row
-                const driverRow = document.getElementById(`driver-row-${data.driver_id}`);
-                if (!driverRow) return;
+            if (data.type === 'round_update') {
+                // Handle countdown timer updates
+                if (data.remaining_seconds !== undefined) {
+                    timerRegistry.countdownTimers.forEach(timer => {
+                        timer.updateRemainingTime(data.remaining_seconds);
+                    });
+                }
 
-                // Get the session cell for this driver
-                const sessionCell = document.getElementById(`session-cell-${data.driver_id}`);
-                if (!sessionCell) return;
+                // Update pause state for all round timers
+                const isPaused = data.is_paused;
+                if (timerRegistry.byRoundId[roundId]) {
+                    timerRegistry.byRoundId[roundId].forEach(timer => {
+                        timer.updatePauseState(isPaused);
+                    });
+                }
 
-                const currentOntrack = driverRow.getAttribute('data-ontrack') === 'true';
-                const newOntrack = data.driver_active;
+                // Handle driver session updates
+                if (data.session_update && data.driver_id) {
+                    // Your existing code for DOM updates
+                    const driverRow = document.getElementById(`driver-row-${data.driver_id}`);
+                    if (!driverRow) return;
 
-                // If ontrack status changed
-                if (currentOntrack !== newOntrack) {
-                    // Update the row attribute
-                    driverRow.setAttribute('data-ontrack', newOntrack ? 'true' : 'false');
+                    const sessionCell = document.getElementById(`session-cell-${data.driver_id}`);
+                    if (!sessionCell) return;
 
-                    // Update the session cell content
-                    if (newOntrack) {
-                        // Driver now on track - add timer
-                        fetch(`/api/driver/${data.driver_id}/session-timer/`)
-                            .then(response => response.text())
-                            .then(html => {
-                                sessionCell.innerHTML = html;
-                                // Force timer initialization
-                                const event = new CustomEvent('refreshTeamTimers', {
-                                    detail: {
-                                        teamId: driverRow.getAttribute('data-team-id')
-                                    }
+                    const currentOntrack = driverRow.getAttribute('data-ontrack') === 'true';
+                    const newOntrack = data.driver_active;
+
+                    if (currentOntrack !== newOntrack) {
+                        driverRow.setAttribute('data-ontrack', newOntrack ? 'true' : 'false');
+
+                        if (newOntrack) {
+                            fetch(`/api/driver/${data.driver_id}/session-timer/`)
+                                .then(response => response.text())
+                                .then(html => {
+                                    sessionCell.innerHTML = html;
+                                    const event = new CustomEvent('refreshTeamTimers', {
+                                        detail: {
+                                            teamId: driverRow.getAttribute('data-team-id')
+                                        }
+                                    });
+                                    document.dispatchEvent(event);
+                                })
+                                .catch(error => {
+                                    console.error('Error fetching session timer:', error);
+                                    sessionCell.innerHTML = '<span class="no-session error">Error</span>';
                                 });
-                                document.dispatchEvent(event);
-                            })
-                            .catch(error => {
-                                console.error('Error fetching session timer:', error);
-                                sessionCell.innerHTML = '<span class="no-session error">Error</span>';
+                        } else {
+                            sessionCell.innerHTML = '<span class="no-session">--:--:--</span>';
+                        }
+
+                        // Update timer instances for this driver
+                        if (timerRegistry.byDriverId[data.driver_id]) {
+                            timerRegistry.byDriverId[data.driver_id].forEach(timer => {
+                                timer.handleSessionUpdate(newOntrack);
                             });
-                    } else {
-                        // Driver not on track - remove timer
-                        sessionCell.innerHTML = '<span class="no-session">--:--:--</span>';
+                        }
                     }
                 }
             }
@@ -197,7 +239,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initial connection
     connectWebSocket();
-    {% endif %}
 });
 </script>
+{% endif %}
 {% endblock extra_js %}
