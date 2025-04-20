@@ -38,6 +38,7 @@ from .models import (
 from .serializers import ChangeLaneSerializer
 from .utils import datadecode
 from .forms import DriverForm, TeamForm
+from django.template import loader
 
 # Create your views here.
 
@@ -563,3 +564,12 @@ def get_race_lanes(request):
     lanes = ChangeLane.objects.filter(round=current_round).values("id", "lane")
 
     return JsonResponse({"lanes": list(lanes)})
+
+def driver_session_timer(request, driver_id):
+    """Return the HTML for a driver's session timer"""
+    driver = get_object_or_404(team_member, id=driver_id)
+
+    # Load the timer template tag
+    template = loader.get_template('layout/session_timer_snippet.html')
+    context = {'member': driver}
+    return HttpResponse(template.render(context, request))
