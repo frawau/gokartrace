@@ -177,34 +177,39 @@
                         const data = JSON.parse(e.data);
                         console.log("Round WS received:", data);
                         if (data.type === 'round_update') {
-                            // Update timer (timer-widget.js handles this via registry)
+                            // --- Timer Update ---
                             if (data.remaining_seconds !== undefined && window.timerRegistry && window.timerRegistry.countdownTimers) {
-                                 window.timerRegistry.countdownTimers.forEach(timer => {
-                                     timer.updateRemainingTime(data.remaining_seconds);
-                                 });
+                                window.timerRegistry.countdownTimers.forEach(timer => {
+                                    timer.updateRemainingTime(data.remaining_seconds);
+                                });
                             }
-                            // Update pause state for all timers
                             const isPaused = data.is_paused;
                             if (window.timerRegistry && window.timerRegistry.byRoundId && window.timerRegistry.byRoundId[roundId]) {
                                 window.timerRegistry.byRoundId[roundId].forEach(timer => {
-                                    timer.updatePauseState(isPaused);
+                                    timer.updatePauseState(isPaused); // Let timer widget handle its own pause state
                                 });
                             }
-                            // Update status text display (example)
-                            const statusTextEl = document.getElementById('race-status-text');
-                            if (statusTextEl) {
-                                // This logic might be better if backend sends a 'status_display' string
-                                if (data.is_ended) { statusTextEl.textContent = 'Finished'; }
-                                else if (data.is_started && isPaused) { statusTextEl.textContent = 'Paused'; }
-                                else if (data.is_started) { statusTextEl.textContent = 'Running'; }
-                                else { statusTextEl.textContent = 'Not Started'; }
-                            }
-                            // Consider page reload or HTMX swap for button updates
-                            // addSystemMessage("Race state updated.", "info");
+
+                            // --- Determine State from WS Data ---
+                            // Assumes backend sends these boolean flags
+                            const isStarted = data.is_started === true;
+                            // const isPaused = data.is_paused === true; // already have this
+                            const isEnded = data.is_ended === true;
+                            const isReady = data.is_ready === true;
+
+                            let currentState = 'initial';
+                            if (isEnded) currentState = 'ended';
+                            else if (isStarted && isPaused) currentState = 'paused';
+                            else if (isStarted && !isPaused) currentState = 'running';
+                            else if (isReady && !isStarted) currentState = 'ready';
+
+                            // --- Update Button Visibility using Helper Function ---
+                            updateButtonVisibility(currentState); // Call the function from racecontrol.js
+
                         }
-                     } catch (err) {
+                    } catch (err) {
                         console.error("Error processing round WS message:", err, e.data);
-                     }
+                    }
                 },
                 null, // onopen
                 (e) => addSystemMessage("Round status connection error.", "danger"), // onerror

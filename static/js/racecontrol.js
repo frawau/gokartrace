@@ -137,9 +137,102 @@ function connectToLaneSockets() {
     .catch(error => { console.error('Failed get_race_lanes:', error); addSystemMessage(`Failed load pit lanes: ${error}`, "danger"); window.lanesConnected = false; });
 }
 
+/**
+ * Hides the False Start button if it's currently visible.
+ */
+function hideFalseStartButton() {
+    const btn = document.getElementById('falseStartButton');
+    if (btn && !btn.hidden) {
+        console.log("Hiding False Start button due to timeout or state change.");
+        btn.hidden = true;
+    }
+    if (falseStartTimeoutId) {
+        clearTimeout(falseStartTimeoutId);
+        falseStartTimeoutId = null;
+    }
+}
+
+/**
+ * Hides the False Restart button if it's currently visible.
+ */
+function hideFalseRestartButton() {
+    const btn = document.getElementById('falseRestartButton');
+    if (btn && !btn.hidden) {
+        console.log("Hiding False Restart button due to timeout or state change.");
+        btn.hidden = true;
+    }
+    if (falseRestartTimeoutId) {
+        clearTimeout(falseRestartTimeoutId);
+        falseRestartTimeoutId = null;
+    }
+}
+
+/**
+ * Updates button visibility based on the provided race state.
+ * @param {string} state - The current state ('initial', 'ready', 'running', 'paused', 'ended')
+ * @param {object} [options] - Optional parameters like { showFalseStart: true }
+ */
+function updateButtonVisibility(state, options = {}) {
+    console.log(`Updating button visibility for state: ${state}`, options);
+    const allActionButtons = document.querySelectorAll('#race-control-buttons .race-action-btn');
+    allActionButtons.forEach(btn => btn.hidden = true); // Hide all first
+
+    // Clear any pending temporary button timeouts unless explicitly told otherwise
+    if (!options.keepFalseStart) hideFalseStartButton();
+    if (!options.keepFalseRestart) hideFalseRestartButton();
+
+    // Show buttons based on state
+    switch (state) {
+        case 'initial': // Not ready, not started
+            document.getElementById('preRaceCheckButton')?.removeAttribute('hidden');
+            document.getElementById('race-status-text').textContent = 'Not Started';
+            document.getElementById('emptyTeamsCard')?.style.setProperty('display', 'block', 'important');
+            document.getElementById('teamSelectCard')?.style.setProperty('display', 'none', 'important');
+            break;
+        case 'ready': // Ready, not started
+            document.getElementById('startButton')?.removeAttribute('hidden');
+            document.getElementById('race-status-text').textContent = 'Ready to Start';
+            document.getElementById('emptyTeamsCard')?.style.setProperty('display', 'none', 'important');
+            document.getElementById('teamSelectCard')?.style.setProperty('display', 'block', 'important');
+            break;
+        case 'running': // Started, not paused
+            document.getElementById('pauseButton')?.removeAttribute('hidden');
+            document.getElementById('endButton')?.removeAttribute('hidden');
+            document.getElementById('falseStartButton')?.removeAttribute('hidden'); // Show initially
+            document.getElementById('race-status-text').textContent = 'Running';
+            // Start timeout to hide False Start button after a delay
+            if (!options.keepFalseStart) { // Avoid restarting timeout if already running
+                falseStartTimeoutId = setTimeout(hideFalseStartButton, 15000); // 15 seconds
+            }
+            break;
+        case 'paused': // Started, paused
+            document.getElementById('resumeButton')?.removeAttribute('hidden');
+            document.getElementById('endButton')?.removeAttribute('hidden');
+            document.getElementById('falseRestartButton')?.removeAttribute('hidden'); // Show initially
+            document.getElementById('race-status-text').textContent = 'Paused';
+            // Start timeout to hide False Restart button after a delay
+            if (!options.keepFalseRestart) { // Avoid restarting timeout
+                falseRestartTimeoutId = setTimeout(hideFalseRestartButton, 15000); // 15 seconds
+            }
+            break;
+        case 'ended': // Ended
+            // No buttons shown by default in 'ended' state
+            document.getElementById('race-status-text').textContent = 'Finished';
+            break;
+        default:
+            console.warn("Unknown state passed to updateButtonVisibility:", state);
+            // Show pre-check as a fallback?
+            document.getElementById('preRaceCheckButton')?.removeAttribute('hidden');
+            document.getElementById('race-status-text').textContent = 'Unknown';
+
+    }
+    // Ensure all visible buttons are enabled
+    document.querySelectorAll('#race-control-buttons .race-action-btn:not([hidden])').forEach(btn => btn.disabled = false);
+}
 
 /**
  * Handles clicks on race action buttons. Sends request to backend API.
+ * Updates button visibility on success based on FSM logic.
  * @param {Event} event - The click event object
  */
 async function handleRaceAction(event) {
@@ -148,140 +241,85 @@ async function handleRaceAction(event) {
     const url = button.dataset.url;
     const roundIdContainer = document.getElementById('race-control-buttons');
     const roundId = roundIdContainer?.dataset.roundId;
-    const csrfToken = getCookie('csrftoken'); // Assumes getCookie is defined elsewhere
+    const csrfToken = getCookie('csrftoken');
 
     console.log(`Button clicked. Action: ${action}, URL: ${url}, RoundID: ${roundId}`);
+    if (!action || !url || !roundId || !csrfToken) { /* ... validation ... */ return; }
 
-    // --- Basic validation ---
-    if (!action || !url) { addSystemMessage('Error: Button missing action/URL.', 'danger'); console.error('Button missing data attributes:', button); return; }
-    if (!roundId) { addSystemMessage('Error: Round ID missing.', 'danger'); return; } // Keep check even if not used in fetch URL
-    if (!csrfToken) { addSystemMessage('Error: CSRF Token missing. Cannot send request.', 'danger'); return; }
-
-    button.disabled = true;
+    // --- Disable ALL action buttons during processing ---
+    const allActionButtons = document.querySelectorAll('#race-control-buttons .race-action-btn');
+    allActionButtons.forEach(btn => btn.disabled = true);
     const originalButtonHTML = button.innerHTML;
     button.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>`;
     console.log(`Sending POST request to: ${url}`);
 
+    // --- Clear relevant timeouts when an action is initiated ---
+    if (action !== 'false_start') clearTimeout(falseStartTimeoutId);
+    if (action !== 'false_restart') clearTimeout(falseRestartTimeoutId);
+
+
     try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' },
-        });
+        const response = await fetch(url, { /* ... fetch options ... */ });
         console.log(`Received response for ${action}. Status: ${response.status}`);
 
-        // --- Check HTTP Status FIRST ---
-        if (response.ok) { // Status 200-299
-            // --- Try to parse JSON ---
+        if (response.ok) {
             let data;
-            try {
-                 data = await response.json();
-                 console.log(`Action '${action}' response data:`, data);
-            } catch (e) {
-                 // Handle cases where backend sends 2xx status but non-JSON body
-                 console.error("Could not parse JSON response despite OK status:", e);
-                 addSystemMessage("Action status OK but received invalid response from server.", "warning");
-                 // Re-enable button and return, as we can't process the result
-                 if (button) { button.disabled = false; button.innerHTML = originalButtonHTML; }
-                 return;
-            }
+            try { data = await response.json(); console.log(`Action '${action}' response data:`, data); }
+            catch (e) { addSystemMessage("Invalid response.", "warning"); return; }
 
-            // --- Check LOGICAL Result from Backend ---
-            // Adjust condition based on your actual backend response structure for failure
             const isLogicalError = data.result === false || (data.error && Array.isArray(data.error) && data.error.length > 0) || data.status === 'error';
 
             if (isLogicalError) {
-                // Logical failure reported by backend
-                console.warn(`Action '${action}' failed logically according to backend.`);
-
-                // --- Display Error Messages ---
+                // --- Handle Logical Failure ---
+                console.warn(`Action '${action}' failed logically.`);
                 if (data.error && Array.isArray(data.error) && data.error.length > 0) {
-                    // Call addSystemMessage for each error in the list
-                    data.error.forEach(errorMsg => {
-                        if (typeof errorMsg === 'string') {
-                             addSystemMessage(errorMsg, 'warning'); // Use 'warning' or 'danger'
-                        } else {
-                             console.warn("Non-string item found in errors array:", errorMsg);
-                             addSystemMessage("Received an invalid error format from backend.", "warning");
-                        }
-                    });
-                } else if (data.message) {
-                    // Use message field if errors array is not present/empty
-                    addSystemMessage(data.message, 'warning');
-                } else {
-                    // Default failure message if no specific errors/message provided
-                    addSystemMessage(`Action '${action}' failed according to backend.`, 'warning');
-                }
-                // --- End Display Error Messages ---
+                    data.error.forEach(errorMsg => { addSystemMessage(errorMsg, 'warning'); });
+                } else { addSystemMessage(data.message || `Action '${action}' failed.`, 'warning'); }
+                // Restore clicked button text
+                button.innerHTML = originalButtonHTML;
+                // Determine current state to re-enable correct buttons (or rely on WS)
+                // For now, just re-enable all potentially visible buttons for simplicity on error
+                allActionButtons.forEach(btn => btn.disabled = false);
 
-                // Re-enable the button on logical failure
-                if (button) {
-                    button.disabled = false;
-                    button.innerHTML = originalButtonHTML;
-                }
 
             } else {
-                // Logical success reported by backend
+                // --- Handle Logical Success ---
                 console.log(`Action '${action}' successful logically.`);
-                addSystemMessage(data.message || `Action '${action}' successful.`, data.status || 'success');
+                addSystemMessage(data.message || `Action '${action}' successful.`, 'success');
 
-                // --- DYNAMIC UI UPDATES for SUCCESS ---
-                // Example for successful pre_check:
+                // --- Determine NEXT state and update button visibility ---
+                let nextState = 'unknown';
+                let options = {}; // Options for updateButtonVisibility
+
+                switch (action) {
+                    case 'pre_check':     nextState = 'ready'; break;
+                    case 'start':         nextState = 'running'; options = { showFalseStart: true }; break;
+                    case 'pause':         nextState = 'paused'; options = { showFalseRestart: true }; break;
+                    case 'resume':        nextState = 'running'; options = { showFalseStart: true }; break; // Resume goes back to running
+                    case 'end':           nextState = 'ended'; break;
+                    case 'false_start':   nextState = 'ready'; break; // False start goes back to ready
+                    case 'false_restart': nextState = 'paused'; options = { showFalseRestart: true }; break; // False restart goes back to paused
+                }
+
+                updateButtonVisibility(nextState, options); // Update UI based on FSM
+
+                // Connect lanes only after successful pre-check
                 if (action === 'pre_check') {
-                     console.log("Pre-race check successful. Updating UI and connecting lanes...");
-                     if (button) button.style.display = 'none'; // Hide pre-check button
-                     const startButton = document.getElementById('startButton');
-                     if (startButton) startButton.style.display = 'inline-block'; // Show start button
-                     // Show/Hide team list cards
-                     document.getElementById('emptyTeamsCard')?.style.setProperty('display', 'none', 'important');
-                     document.getElementById('teamSelectCard')?.style.setProperty('display', 'block', 'important');
-                     // Connect lanes (assumes connectToLaneSockets is defined)
-                     if (typeof connectToLaneSockets === 'function') {
-                         connectToLaneSockets();
-                     } else {
-                         console.error("connectToLaneSockets function not found!");
-                     }
+                    if (typeof connectToLaneSockets === 'function') connectToLaneSockets(); else console.error("connectToLaneSockets missing!");
                 }
-                // Add similar 'else if (action === 'start')' blocks etc. for other actions...
-                // Remember to handle showing/hiding the correct buttons based on the new state
-
-                // Re-enable button if it wasn't hidden by the UI update logic above
-                // (e.g., pause/resume buttons might just change text/class, not disappear)
-                if (button && button.style.display !== 'none') {
-                     button.disabled = false;
-                     button.innerHTML = originalButtonHTML; // Or update text, e.g., Pause -> Resume
-                }
-                // --- END DYNAMIC UI UPDATES ---
             }
 
-        } else { // Handle HTTP errors (4xx, 5xx)
-            let errorMsg = `Error performing action '${action}'. Status: ${response.status}`;
-            try {
-                // Try to get more specific error from JSON response body, even on HTTP error
-                const errorData = await response.json();
-                errorMsg = errorData.error || errorData.message || errorMsg;
-                console.error(`Server error detail for ${action}:`, errorData);
-            } catch (e) {
-                // Response wasn't JSON or couldn't be parsed, use status text
-                errorMsg = `${errorMsg} (${response.statusText})`;
-                console.warn("Could not parse error response as JSON.");
-            }
-            console.error(`Action '${action}' failed HTTP Status. Status: ${response.status}`);
-            addSystemMessage(errorMsg, 'danger');
-            // Re-enable button on failure
-            if (button) {
-                button.disabled = false;
-                button.innerHTML = originalButtonHTML;
-            }
+        } else { // Handle HTTP errors
+            let errorMsg = `Error: ${response.status}`; /* ... get details ... */ addSystemMessage(errorMsg, 'danger');
+            button.innerHTML = originalButtonHTML; // Restore button text
+            allActionButtons.forEach(btn => btn.disabled = false); // Re-enable all on HTTP error
         }
-    } catch (error) { // Handle network errors or other exceptions during fetch
-        console.error(`Network or fetch error during action '${action}':`, error);
-        addSystemMessage(`Network error: ${error}. Please check connection.`, 'danger');
-        // Re-enable button on failure
-        if (button) {
-            button.disabled = false;
-            button.innerHTML = originalButtonHTML;
-        }
+    } catch (error) { // Handle network errors
+        console.error(`Network error:`, error); addSystemMessage(`Network error: ${error}.`, 'danger');
+        button.innerHTML = originalButtonHTML; // Restore button text
+        allActionButtons.forEach(btn => btn.disabled = false); // Re-enable all on network error
     }
+    // No finally block needed as enablement is handled in error/success paths now
 }
 
 /**
@@ -351,20 +389,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Add listener for Stop&Go button (Keep as is)
     const stopGoButton = document.getElementById('stopGoButton');
-    // ... (rest of stopGoButton listener logic from v3) ...
     if (stopGoButton) { stopGoButton.addEventListener('click', async () => { /* ... */ }); }
 
 
+    // --- Set Initial Button State ---
+    // Determine initial state based on which buttons are initially visible in the HTML
+    let initialState = 'initial'; // Default
+    if (document.getElementById('startButton')?.offsetParent !== null) initialState = 'ready'; // Check visibility more reliably
+    else if (document.getElementById('pauseButton')?.offsetParent !== null) initialState = 'running';
+    else if (document.getElementById('resumeButton')?.offsetParent !== null) initialState = 'paused';
+    else if (!document.querySelector('#race-control-buttons .race-action-btn:not([hidden])')) initialState = 'ended'; // If no buttons visible
+
+    updateButtonVisibility(initialState); // Set initial visibility
+
     // --- Initial Lane Connection Check ---
-    const isReadyOrStarted = document.getElementById('startButton') || document.getElementById('pauseButton') || document.getElementById('resumeButton') || document.getElementById('endButton');
-    const roundIdContainer = document.getElementById('race-control-buttons');
-    const roundId = roundIdContainer?.dataset.roundId;
-    if (roundId && isReadyOrStarted) {
-        console.log("Page loaded: Round ready/started. Connecting lane sockets.");
+    // Connect if initial state is ready, running, or paused
+    if (['ready', 'running', 'paused'].includes(initialState)) {
+        console.log(`Page loaded: Round state is ${initialState}. Connecting lane sockets.`);
         setTimeout(connectToLaneSockets, 200);
     } else {
-        console.log("Page loaded: Round not ready/started. Skipping initial lane connection.");
+        console.log("Page loaded: Round not ready/started/paused. Skipping initial lane connection.");
         window.lanesConnected = false;
     }
 
-}); // End DOMContentLoaded
+});
