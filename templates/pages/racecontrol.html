@@ -87,36 +87,6 @@
 
 {% block extra_js %}
 <script>
-// Add this at the top of your script if not already defined
-if (typeof timerRegistry === 'undefined') {
-    const timerRegistry = {
-        byDriverId: {},
-        byRoundId: {},
-        countdownTimers: [],
-
-        registerTimer: function(timer) {
-            if (timer.driverId) {
-                if (!this.byDriverId[timer.driverId]) {
-                    this.byDriverId[timer.driverId] = [];
-                }
-                this.byDriverId[timer.driverId].push(timer);
-            }
-
-            if (timer.roundId) {
-                if (!this.byRoundId[timer.roundId]) {
-                    this.byRoundId[timer.roundId] = [];
-                }
-                this.byRoundId[timer.roundId].push(timer);
-            }
-
-            if (timer.countDirection === 'down') {
-                this.countdownTimers.push(timer);
-            }
-        }
-    };
-
-    window.timerRegistry = timerRegistry;
-}
 
 $(document).ready(function() {
 
