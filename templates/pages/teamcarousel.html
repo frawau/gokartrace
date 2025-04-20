@@ -75,57 +75,6 @@
 {% block extra_js %}
 {% if round is not None %}
 <script>
-const timerRegistry = {
-    byDriverId: {},
-    byRoundId: {},
-    countdownTimers: [],
-    // Add a way to get a timer by its elementId if needed, though registry is preferred
-    byId: {},
-
-    registerTimer: function(timer) {
-        // Keep track by element ID as well
-        this.byId[timer.element.id] = timer;
-
-        if (timer.driverId) {
-            if (!this.byDriverId[timer.driverId]) {
-                this.byDriverId[timer.driverId] = [];
-            }
-            // Avoid duplicates if re-registration happens (though it shouldn't now)
-            if (!this.byDriverId[timer.driverId].includes(timer)) {
-                 this.byDriverId[timer.driverId].push(timer);
-            }
-        }
-
-        if (timer.roundId) {
-            if (!this.byRoundId[timer.roundId]) {
-                this.byRoundId[timer.roundId] = [];
-            }
-             if (!this.byRoundId[timer.roundId].includes(timer)) {
-                this.byRoundId[timer.roundId].push(timer);
-             }
-        }
-
-        if (timer.countDirection === 'down') {
-            if (!this.countdownTimers.includes(timer)) {
-                this.countdownTimers.push(timer);
-            }
-        }
-    },
-
-    // Optional: Add a method to remove/deregister timers if elements are truly removed
-    deregisterTimer: function(timer) {
-        delete this.byId[timer.element.id];
-        if (timer.driverId && this.byDriverId[timer.driverId]) {
-            this.byDriverId[timer.driverId] = this.byDriverId[timer.driverId].filter(t => t !== timer);
-        }
-         if (timer.roundId && this.byRoundId[timer.roundId]) {
-            this.byRoundId[timer.roundId] = this.byRoundId[timer.roundId].filter(t => t !== timer);
-        }
-        this.countdownTimers = this.countdownTimers.filter(t => t !== timer);
-    }
-};
-
-
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize Bootstrap Carousel
     const carousel = document.getElementById('teamCarousel');

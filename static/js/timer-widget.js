@@ -1,4 +1,39 @@
 // timer-widget.js
+// Ensure the timerRegistry and initializeTimers function are also present
+// (Copied from previous response for completeness, assuming no changes needed there)
+
+const timerRegistry = {
+    byDriverId: {},
+    byRoundId: {},
+    countdownTimers: [],
+    byId: {},
+
+    registerTimer: function(timer) {
+        this.byId[timer.element.id] = timer;
+        if (timer.driverId) {
+            if (!this.byDriverId[timer.driverId]) this.byDriverId[timer.driverId] = [];
+            if (!this.byDriverId[timer.driverId].includes(timer)) this.byDriverId[timer.driverId].push(timer);
+        }
+        if (timer.roundId) {
+            if (!this.byRoundId[timer.roundId]) this.byRoundId[timer.roundId] = [];
+            if (!this.byRoundId[timer.roundId].includes(timer)) this.byRoundId[timer.roundId].push(timer);
+        }
+        if (timer.countDirection === 'down') {
+            if (!this.countdownTimers.includes(timer)) this.countdownTimers.push(timer);
+        }
+    },
+
+    deregisterTimer: function(timer) {
+        delete this.byId[timer.element.id];
+        if (timer.driverId && this.byDriverId[timer.driverId]) {
+            this.byDriverId[timer.driverId] = this.byDriverId[timer.driverId].filter(t => t !== timer);
+        }
+        if (timer.roundId && this.byRoundId[timer.roundId]) {
+            this.byRoundId[timer.roundId] = this.byRoundId[timer.roundId].filter(t => t !== timer);
+        }
+        this.countdownTimers = this.countdownTimers.filter(t => t !== timer);
+    }
+};
 
 class TimerWidget {
     constructor(options) {
@@ -129,18 +164,37 @@ class TimerWidget {
     }
 
     render() {
+        // Only render if element exists in the DOM
         if (this.element && document.getElementById(this.element.id)) {
-            this.element.textContent = this.formatTime(this.currentValue);
+
+            // --- Content Logic ---
+            let textContent = ''; // Default to empty
+            if (this.timerType === 'sessiontime') {
+                // Session timer: Show time only if driver is active
+                if (this.isDriverActive) {
+                    textContent = this.formatTime(this.currentValue);
+                } else {
+                    textContent = ''; // Explicitly empty if inactive
+                }
+            } else {
+                // Other timers: Always show formatted time
+                textContent = this.formatTime(this.currentValue);
+            }
+            this.element.textContent = textContent;
+
+            // --- Styling Classes ---
             this.element.classList.toggle('timer-ended', this.currentValue <= 0 && this.countDirection === 'down');
             this.element.classList.toggle('timer-paused', this.paused);
-            // Add visibility control for session timer based on driver active state
-            if (this.timerType === 'sessiontime') {
-                this.element.style.visibility = this.isDriverActive ? 'visible' : 'hidden';
-            }
+
+            // --- Visibility (Optional - empty text might be enough) ---
+            // You might not need visibility if empty text works for your layout
+            // If you still need it:
+            // this.element.style.visibility = (this.timerType === 'sessiontime' && !this.isDriverActive) ? 'hidden' : 'visible';
+
 
         } else if (this.element && !document.getElementById(this.element.id)) {
             console.warn(`Timer element ${this.element.id} removed. Stopping.`);
-            this.pause();
+            this.pause(); // Stop ticking if element is gone
         }
     }
 
@@ -244,41 +298,7 @@ class TimerWidget {
     }
 }
 
-// Ensure the timerRegistry and initializeTimers function are also present
-// (Copied from previous response for completeness, assuming no changes needed there)
 
-const timerRegistry = {
-    byDriverId: {},
-    byRoundId: {},
-    countdownTimers: [],
-    byId: {},
-
-    registerTimer: function(timer) {
-        this.byId[timer.element.id] = timer;
-        if (timer.driverId) {
-            if (!this.byDriverId[timer.driverId]) this.byDriverId[timer.driverId] = [];
-            if (!this.byDriverId[timer.driverId].includes(timer)) this.byDriverId[timer.driverId].push(timer);
-        }
-        if (timer.roundId) {
-            if (!this.byRoundId[timer.roundId]) this.byRoundId[timer.roundId] = [];
-            if (!this.byRoundId[timer.roundId].includes(timer)) this.byRoundId[timer.roundId].push(timer);
-        }
-        if (timer.countDirection === 'down') {
-            if (!this.countdownTimers.includes(timer)) this.countdownTimers.push(timer);
-        }
-    },
-
-    deregisterTimer: function(timer) {
-        delete this.byId[timer.element.id];
-        if (timer.driverId && this.byDriverId[timer.driverId]) {
-            this.byDriverId[timer.driverId] = this.byDriverId[timer.driverId].filter(t => t !== timer);
-        }
-        if (timer.roundId && this.byRoundId[timer.roundId]) {
-            this.byRoundId[timer.roundId] = this.byRoundId[timer.roundId].filter(t => t !== timer);
-        }
-        this.countdownTimers = this.countdownTimers.filter(t => t !== timer);
-    }
-};
 
 function initializeTimers() {
     const timerPlaceholders = document.querySelectorAll('[data-timer]');

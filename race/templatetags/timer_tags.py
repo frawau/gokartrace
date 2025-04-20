@@ -1,8 +1,10 @@
 # raceinfo/templatetags/timer_tags.py
+# (Replace 'raceinfo' with your actual Django app name if different)
+
 from django import template
 from django.utils.safestring import mark_safe
 import json
-import datetime as dt # Make sure datetime is imported if needed for type hints or checks
+import datetime as dt # Import datetime for type checking and timedelta operations
 
 register = template.Library()
 
@@ -13,7 +15,8 @@ def timer_widget(element_id, timer_type, instance=None, initial_value=None, show
 
     Args:
         element_id (str): The base HTML element ID (e.g., "total-time-").
-                          The instance ID will be appended for member timers.
+                          The instance ID will be appended for member timers,
+                          or used directly for round timers.
         timer_type (str): One of 'countdownDisplay', 'totaltime', or 'sessiontime'.
         instance (Model Instance): The model instance (Round or team_member). Required for configuration.
         initial_value (float, optional): Override calculated startValue. Defaults to None.
@@ -27,17 +30,23 @@ def timer_widget(element_id, timer_type, instance=None, initial_value=None, show
         safe_element_id = str(element_id).replace(" ", "_").replace(":", "-")
         return mark_safe(f'<span id="{safe_element_id}" class="timer text-muted">--:--:--</span> ')
 
-    # Determine the final element ID based on instance type
+    # Determine the final element ID based on instance type and timer type
     final_element_id = str(element_id) # Default for round timer
-    if hasattr(instance, 'id') and timer_type in ['totaltime', 'sessiontime']:
+    instance_id_str = "" # Store instance ID if applicable
+
+    if hasattr(instance, 'id'):
+        instance_id_str = str(instance.id) # Get instance ID safely
+
+    if timer_type in ['totaltime', 'sessiontime'] and instance_id_str:
          # Append instance ID for driver-specific timers
-         final_element_id = f"{element_id}{instance.id}"
-    elif timer_type == 'countdownDisplay' and hasattr(instance, 'id'):
+         final_element_id = f"{element_id}{instance_id_str}"
+    elif timer_type == 'countdownDisplay':
         # For countdown, use the passed element_id directly (e.g., "race-countdown")
         final_element_id = str(element_id)
+    # else: handle potential other cases or keep default element_id
 
 
-    # Default configuration
+    # Default configuration dictionary
     config = {
         'elementId': final_element_id, # Use the final determined ID
         'showHours': bool(show_hours), # Ensure boolean
@@ -51,13 +60,16 @@ def timer_widget(element_id, timer_type, instance=None, initial_value=None, show
     }
 
     try:
+        # --- Configure based on timer_type and instance type ---
+
         if timer_type == 'countdownDisplay' and hasattr(instance, 'duration'): # Instance is a Round
             round_instance = instance
-            initial_seconds = round_instance.duration.total_seconds()
+            initial_seconds = round_instance.duration.total_seconds() if round_instance.duration else 0
+
             # Calculate remaining time accurately
             if round_instance.started and not round_instance.ended:
                  # Ensure time_elapsed calculation handles potential None values if needed
-                 elapsed_seconds = round_instance.time_elapsed.total_seconds() if round_instance.time_elapsed else 0
+                 elapsed_seconds = round_instance.time_elapsed.total_seconds() if isinstance(round_instance.time_elapsed, dt.timedelta) else 0
                  remaining = initial_seconds - elapsed_seconds
             elif not round_instance.started:
                  remaining = initial_seconds # Not started, show full duration
@@ -107,15 +119,20 @@ def timer_widget(element_id, timer_type, instance=None, initial_value=None, show
 
         else:
              # Handle cases where instance type doesn't match timer_type expectation
-             return mark_safe(f'<span id="{final_element_id}" class="timer text-danger">--:--:--</span> ')
+             print(f"Warning: Mismatched instance/type for timer widget {final_element_id}. Type: {timer_type}, Instance: {type(instance)}")
+             return mark_safe(f'<span id="{final_element_id}" class="timer text-danger">Config Error</span> ')
 
+    except AttributeError as e:
+        # Catch potential errors during attribute access (e.g., related object doesn't exist like member.team.round)
+        print(f"Error configuring timer widget {final_element_id} (AttributeError): {e}") # Log error server-side
+        return mark_safe(f'<span id="{final_element_id}" class="timer text-danger">Error</span> ')
     except Exception as e:
-         # Catch potential errors during attribute access (e.g., related object doesn't exist)
-         print(f"Error configuring timer widget {final_element_id}: {e}") # Log error server-side
+         # Catch other potential errors during configuration
+         print(f"Error configuring timer widget {final_element_id} (General Exception): {e}") # Log error server-side
          return mark_safe(f'<span id="{final_element_id}" class="timer text-danger">Error</span> ')
 
 
-    # Allow overriding the calculated startValue if explicitly provided
+    # Allow overriding the calculated startValue if explicitly provided via tag argument
     if initial_value is not None:
         try:
             config['startValue'] = float(initial_value)
@@ -123,12 +140,35 @@ def timer_widget(element_id, timer_type, instance=None, initial_value=None, show
             print(f"Warning: Invalid initial_value '{initial_value}' for timer {final_element_id}. Using calculated value.")
 
 
-    # Serialize config safely for HTML attribute
+    # Serialize config safely for HTML data attribute
     # Use json.dumps with separators to minimize output size slightly
     json_config = json.dumps(config, separators=(',', ':'))
 
+    # --- Determine Initial Display Text ---
+    initial_display_text = "--:--:--" # Default placeholder for errors or unhandled cases
+
+    # Check if configuration was successful before setting initial text
+    if 'startValue' in config: # Basic check that config likely succeeded
+        if timer_type == 'sessiontime' and config.get('initialPaused', True):
+            # If it's a session timer AND it starts paused (inactive), display nothing initially
+            initial_display_text = ""
+        elif config.get('startValue', 0) == 0 and config.get('countDirection', 'up') == 'up':
+            # For count-up timers starting at 0, display 00:00:00 initially
+            # (Adjust formatting based on showHours/showMinutes)
+            if config.get('showHours', True):
+                initial_display_text = "00:00:00"
+            elif config.get('showMinutes', True):
+                 initial_display_text = "00:00"
+            else:
+                 initial_display_text = "00"
+        else:
+            # For countdown or countup not starting at 0, could format initial value
+            # For simplicity, keep placeholder, JS will format on init render
+            initial_display_text = "--:--:--"
+
+
     # Create the HTML span element for the timer widget
     # The initial text content will be replaced by timer-widget.js on initialization
-    html = f'<span id="{final_element_id}" class="timer" data-timer="true" data-config=\'{json_config}\'>--:--:--</span>'
+    html = f'<span id="{final_element_id}" class="timer" data-timer="true" data-config=\'{json_config}\'>{initial_display_text}</span>'
 
     return mark_safe(html)
