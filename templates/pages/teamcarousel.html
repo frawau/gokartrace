@@ -207,6 +207,9 @@
 
         function updateCountdown() {
             const countdownEl = $('#roundCountdown');
+            if (countdownEl.length) {
+                countdownEl.attr('data-is-paused', data.is_paused);
+            }
             const displayEl = $('#countdownDisplay');
             const remainingSeconds = parseInt(countdownEl.attr('data-remaining'), 10);
             const isPaused = countdownEl.attr('data-is-paused') === 'true';
@@ -249,42 +252,46 @@
         );
 
         roundSocket.onmessage = function(e) {
-            const data = JSON.parse(e.data);
-            if (data.type === 'round_update') {
-                // Update round pause status in the countdown element
-                $('#roundCountdown').attr('data-is-paused', data.is_paused);
+            try {
+                const data = JSON.parse(e.data);
+                if (data.type === 'round_update') {
+                    // Update round pause status in the countdown element
+                    $('#roundCountdown').attr('data-is-paused', data.is_paused);
 
-                const now = new Date().getTime();
+                    const now = new Date().getTime();
 
-                // Handle pause state changes
-                if (data.is_paused && !isPaused) {
-                    // Race just got paused
-                    console.log("Race paused - timers stopped");
-                    pauseStartTime = now;
-                }
-                else if (!data.is_paused && isPaused) {
-                    // Race just resumed
-                    console.log("Race resumed - timers continue");
+                    // Handle pause state changes
+                    if (data.is_paused && !isPaused) {
+                        // Race just got paused
+                        console.log("Race paused - timers stopped");
+                        pauseStartTime = now;
+                    }
+                    else if (!data.is_paused && isPaused) {
+                        // Race just resumed
+                        console.log("Race resumed - timers continue");
 
-                    // Calculate how long we were paused
-                    if (pauseStartTime !== null) {
-                        const pauseDuration = now - pauseStartTime;
-                        totalPausedTime += pauseDuration;
-                        pauseStartTime = null;
+                        // Calculate how long we were paused
+                        if (pauseStartTime !== null) {
+                            const pauseDuration = now - pauseStartTime;
+                            totalPausedTime += pauseDuration;
+                            pauseStartTime = null;
+                        }
+                    }
+
+                    // Update the pause state
+                    isPaused = data.is_paused;
+
+                    // Update remaining time if provided
+                    if (data.remaining_seconds !== undefined) {
+                        $('#roundCountdown').attr('data-remaining', data.remaining_seconds);
                     }
                 }
-
-                // Update the pause state
-                isPaused = data.is_paused;
-
-                // Update remaining time if provided
-                if (data.remaining_seconds !== undefined) {
-                    $('#roundCountdown').attr('data-remaining', data.remaining_seconds);
+                else if (data.type === 'driver_update') {
+                    // Refresh the team card if there's a driver update
+                    $('#teamCarousel').trigger('slid.bs.carousel');
                 }
-            }
-            else if (data.type === 'driver_update') {
-                // Refresh the team card if there's a driver update
-                $('#teamCarousel').trigger('slid.bs.carousel');
+            } catch (error) {
+                console.error("Error handling WebSocket message:", error);
             }
         };
     });
