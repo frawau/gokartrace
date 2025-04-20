@@ -1,11 +1,12 @@
 {% extends 'layout/sabase.html' %}
 {% load duration_filters %}
+{% load timer_tags %}
 
 {% block content %}
 <div class="container-fluid" style="height: 100vh; overflow: hidden;">
     <div class="row" style="height: 10%;">
         <div class="col-12 text-center">
-            <h2 class="countdown-timer" id="roundCountdown" data-remaining="{{ round|duration_difference_seconds|default:"0" }}" data-is-paused="{{ round|round_is_paused }}">Time remaining: <span id="countdownDisplay">--:--:--</span></h2>
+            <h1>{{ round.name }}&nbsp;&nbsp;Remaining Time: {% timer_widget "race-countdown" "countdownDisplay" round %}</h1>
         </div>
     </div>
     <div class="row" style="height: 100%;">
@@ -87,43 +88,6 @@
 {% block extra_js %}
 <script>
 $(document).ready(function() {
-    function updateCountdown() {
-        const countdownEl = $('#roundCountdown');
-        const displayEl = $('#countdownDisplay');
-        const remainingSeconds = parseInt(countdownEl.attr('data-remaining'), 10);
-        const isPaused = countdownEl.attr('data-is-paused') === 'true';
-
-        if (isNaN(remainingSeconds)) {
-            displayEl.text('--:--:--');
-            return;
-        }
-
-        let remainingTime = remainingSeconds * 1000;
-        if (!isPaused) {
-            const now = new Date().getTime();
-            const elapsedSincePageLoad = now - pageLoadTime;
-            remainingTime = Math.max(0, remainingTime - elapsedSincePageLoad);
-        }
-
-        const hours = Math.floor(remainingTime / (1000 * 60 * 60));
-        const minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((remainingTime % (1000 * 60)) / 1000);
-
-        displayEl.text(
-            hours.toString().padStart(2, '0') + ':' +
-            minutes.toString().padStart(2, '0') + ':' +
-            seconds.toString().padStart(2, '0')
-        );
-
-        // Check if we're near the end of the round
-        if (remainingSeconds < 120 && !$('#raceButton').prop('disabled')) {
-            $('#raceButton').removeClass('btn-warning btn-success').addClass('btn-danger').text('End Race').css('color', 'white');
-        }
-    };
-
-    const pageLoadTime = new Date().getTime();
-    setInterval(updateCountdown, 1000);
-    updateCountdown();
 
     // Create WebSocket connection with reconnection logic
     function createWebSocketWithReconnect(url, messageHandler, openHandler, errorHandler) {
