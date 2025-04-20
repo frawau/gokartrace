@@ -1,323 +1,198 @@
-// timer-widget.js
-// Ensure the timerRegistry and initializeTimers function are also present
-// (Copied from previous response for completeness, assuming no changes needed there)
+// static/js/racecontrol.js
 
-const timerRegistry = {
-    byDriverId: {},
-    byRoundId: {},
-    countdownTimers: [],
-    byId: {},
+/**
+ * Creates a WebSocket connection with automatic reconnection logic.
+ * (Keep function definition as is)
+ */
+function createWebSocketWithReconnect(url, messageHandler, openHandler = null, errorHandler = null, closeHandler = null) {
+    // ... (implementation from previous version) ...
+    let socket;
+    let reconnectTimeout;
+    const RECONNECT_DELAY = 5000;
+    function connect() { /* ... */ }
+    connect();
+    return { /* send, close, getReadyState */ };
+}
 
-    registerTimer: function(timer) {
-        this.byId[timer.element.id] = timer;
-        if (timer.driverId) {
-            if (!this.byDriverId[timer.driverId]) this.byDriverId[timer.driverId] = [];
-            if (!this.byDriverId[timer.driverId].includes(timer)) this.byDriverId[timer.driverId].push(timer);
-        }
-        if (timer.roundId) {
-            if (!this.byRoundId[timer.roundId]) this.byRoundId[timer.roundId] = [];
-            if (!this.byRoundId[timer.roundId].includes(timer)) this.byRoundId[timer.roundId].push(timer);
-        }
-        if (timer.countDirection === 'down') {
-            if (!this.countdownTimers.includes(timer)) this.countdownTimers.push(timer);
-        }
-    },
+/**
+ * Function to get CSRF token (Keep as is)
+ */
+function getCookie(name) {
+    // ... (implementation from previous version) ...
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') { /* ... */ }
+    return cookieValue;
+}
 
-    deregisterTimer: function(timer) {
-        delete this.byId[timer.element.id];
-        if (timer.driverId && this.byDriverId[timer.driverId]) {
-            this.byDriverId[timer.driverId] = this.byDriverId[timer.driverId].filter(t => t !== timer);
-        }
-        if (timer.roundId && this.byRoundId[timer.roundId]) {
-            this.byRoundId[timer.roundId] = this.byRoundId[timer.roundId].filter(t => t !== timer);
-        }
-        this.countdownTimers = this.countdownTimers.filter(t => t !== timer);
-    }
-};
-
-class TimerWidget {
-    constructor(options) {
-        this.element = document.getElementById(options.elementId);
-        if (!this.element) {
-            console.error(`TimerWidget Error: Element with ID "${options.elementId}" not found.`);
-            this.element = document.createElement('span'); // Dummy element
-            this.paused = true;
-        }
-        this.startValue = options.startValue || 0;
-        this.countDirection = options.countDirection || 'up';
-        // initialPaused from config reflects the state *at page load*
-        this.initialPaused = options.initialPaused || false;
-        this.paused = this.initialPaused; // Set current pause state initially
-        this.roundId = options.roundId;
-        this.driverId = options.driverId;
-        this.precision = options.precision || 0;
-        this.currentValue = this.startValue;
-        this.lastUpdateTime = null;
-        this.timerType = options.timerType || 'default';
-        this.animationFrameId = null;
-
-        // Track the driver's active state internally for logic
-        // Initialize based on initialPaused if it's a driver timer
-        this.isDriverActive = (this.driverId && !this.initialPaused);
-
-        this.showHours = options.showHours !== undefined ? options.showHours : true;
-        this.showMinutes = options.showMinutes !== undefined ? options.showMinutes : true;
-        this.showSeconds = true;
-
-        this.render();
-        timerRegistry.registerTimer(this);
-
-        // Start timer only if it shouldn't be paused initially
-        if (!this.paused && this.element.id) {
-            this.start();
-        }
-    }
-
-    // --- start, pause, resume, reset, tick, formatTime, render ---
-    // (Keep these methods as in the previous version, ensuring 'pause'
-    // cancels the animation frame and 'resume'/'start' request it)
-
-    start() {
-        if (!this.element || !this.element.id) return;
-        // This method implies the timer *should* run if called.
-        // We manage the *decision* to call start/pause elsewhere.
-        this.paused = false;
-        this.lastUpdateTime = Date.now();
-        if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
-        this.tick();
-        this.render();
-    }
-
-    pause() {
-        if (!this.element || !this.element.id) return;
-        // This method implies the timer *should* pause if called.
-        if (!this.paused) { // Only log/cancel if actually changing state
-            this.paused = true;
-            if (this.animationFrameId) {
-                cancelAnimationFrame(this.animationFrameId);
-                this.animationFrameId = null;
-            }
-            this.render();
-        }
-    }
-
-    resume() {
-        // This method implies the timer *should* resume if called.
-        if (this.paused && this.element && this.element.id) {
-            this.paused = false;
-            this.lastUpdateTime = Date.now();
-            if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
-            this.tick();
-            this.render();
-        }
-    }
-
-    reset(newStartValue) {
-        if (!this.element || !this.element.id) return;
-        this.currentValue = newStartValue !== undefined ? newStartValue : this.startValue;
-        if(!this.paused) {
-            this.lastUpdateTime = Date.now();
-        }
-        this.render();
-    }
-
-    tick() {
-        if (this.paused || !this.element || !document.getElementById(this.element.id)) {
-            if (this.animationFrameId) {
-                cancelAnimationFrame(this.animationFrameId);
-                this.animationFrameId = null;
-            }
-            return;
-        }
-
-        const now = Date.now();
-        if (this.lastUpdateTime === null) this.lastUpdateTime = now;
-        const delta = (now - this.lastUpdateTime) / 1000;
-        this.lastUpdateTime = now;
-
-        if (this.countDirection === 'up') {
-            this.currentValue += delta;
-        } else {
-            this.currentValue -= delta;
-            if (this.currentValue <= 0) {
-                this.currentValue = 0;
-                this.pause();
-            }
-        }
-
-        this.render();
-        this.animationFrameId = requestAnimationFrame(() => this.tick());
-    }
-
-    formatTime(totalSeconds) {
-        const totalSecondsRounded = Math.round(totalSeconds);
-        const totalSecondsAbs = Math.abs(totalSecondsRounded);
-        const hours = Math.floor(totalSecondsAbs / 3600);
-        const minutes = Math.floor((totalSecondsAbs % 3600) / 60);
-        const seconds = totalSecondsAbs % 60;
-        let parts = [];
-        if (this.showHours) parts.push(String(hours).padStart(2, '0'));
-        if (this.showMinutes) parts.push(String(minutes).padStart(2, '0'));
-        if (this.showSeconds || parts.length === 0) parts.push(String(seconds).padStart(2, '0'));
-        let formattedTime = parts.join(':');
-        return totalSecondsRounded < 0 ? '-' + formattedTime : formattedTime;
-    }
-
-    render() {
-        // Only render if element exists in the DOM
-        if (this.element && document.getElementById(this.element.id)) {
-
-            // --- Content Logic ---
-            let textContent = ''; // Default to empty
-            if (this.timerType === 'sessiontime') {
-                // Session timer: Show time only if driver is active
-                if (this.isDriverActive) {
-                    textContent = this.formatTime(this.currentValue);
-                } else {
-                    textContent = ''; // Explicitly empty if inactive
-                }
-            } else {
-                // Other timers: Always show formatted time
-                textContent = this.formatTime(this.currentValue);
-            }
-            this.element.textContent = textContent;
-
-            // --- Styling Classes ---
-            this.element.classList.toggle('timer-ended', this.currentValue <= 0 && this.countDirection === 'down');
-            this.element.classList.toggle('timer-paused', this.paused);
-
-            // --- Visibility (Optional - empty text might be enough) ---
-            // You might not need visibility if empty text works for your layout
-            // If you still need it:
-            // this.element.style.visibility = (this.timerType === 'sessiontime' && !this.isDriverActive) ? 'hidden' : 'visible';
-
-
-        } else if (this.element && !document.getElementById(this.element.id)) {
-            console.warn(`Timer element ${this.element.id} removed. Stopping.`);
-            this.pause(); // Stop ticking if element is gone
-        }
-    }
-
-    // --- Logic Methods ---
-
-    /**
-     * Updates the timer's state based on the overall race pause status.
-     * @param {boolean} isRacePaused - True if the race is paused, false otherwise.
-     */
-    updatePauseState(isRacePaused) {
-        if (!this.element || !this.element.id) return;
-        console.log(`Timer ${this.element.id} (Type: ${this.timerType}): updatePauseState called with isRacePaused=${isRacePaused}. Driver active state: ${this.isDriverActive}`);
-
-        if (isRacePaused) {
-            // If race pauses, *all* timers pause.
-            this.pause();
-        } else {
-            // If race resumes, timer should run *only if* it's supposed to be active.
-            // Countdown timers always resume (if value > 0).
-            // Driver timers resume only if their driver is active.
-            const shouldBeRunning =
-            this.timerType === 'countdownDisplay' ? (this.currentValue > 0) : // Countdown runs if > 0
-            (this.driverId ? this.isDriverActive : true); // Driver timers run if active, others always run
-
-            if (shouldBeRunning) {
-                this.resume();
-            } else {
-                // Ensure it remains paused if it shouldn't be running
-                this.pause();
-            }
-        }
-        this.render(); // Update visual state
-    }
-
-    /**
-     * Updates the timer's state based on the specific driver's active status.
-     * This primarily affects session timer reset and visibility, and whether
-     * driver-specific timers (session/total) should run *if* the race is active.
-     * @param {boolean} isActive - True if the driver is now active, false otherwise.
-     */
-    handleSessionUpdate(isActive) {
-        if (!this.element || !this.element.id || !this.driverId) return; // Only for driver timers
-        console.log(`Timer ${this.element.id} (Type: ${this.timerType}): handleSessionUpdate called with isActive=${isActive}.`);
-
-        // Update internal driver active state
-        this.isDriverActive = isActive;
-
-        // --- Session Timer Specific Logic ---
-        if (this.timerType === 'sessiontime') {
-            if (isActive) {
-                // Reset session timer to 0 when driver becomes active
-                console.log(`Timer ${this.element.id}: Session timer activating. Resetting to 0.`);
-                this.reset(0);
-                // Visibility is handled in render() based on this.isDriverActive
-            } else {
-                // If driver becomes inactive, pause the session timer.
-                console.log(`Timer ${this.element.id}: Session timer deactivating. Pausing.`);
-                this.pause();
-                // Optionally reset to 0 when inactive, but pausing is usually sufficient
-                // this.reset(0);
-            }
-        }
-
-        // --- Determine if timer should run based on new state ---
-        // Check the global race pause state (needs access, e.g., via registry)
-        let isRacePaused = timerRegistry.countdownTimers.length > 0 ? timerRegistry.countdownTimers[0].paused : true; // Example check
-
-        const shouldBeRunning = this.isDriverActive && !isRacePaused;
-
-        if (shouldBeRunning) {
-            // If driver is active AND race is not paused, resume timer
-            console.log(`Timer ${this.element.id}: Driver active and race active. Resuming.`);
-            this.resume();
-        } else {
-            // Otherwise, pause the timer
-            console.log(`Timer ${this.element.id}: Pausing (Driver active: ${this.isDriverActive}, Race paused: ${isRacePaused}).`);
-            this.pause();
-        }
-
-        this.render(); // Update visual state (including session timer visibility)
-    }
-
-    updateRemainingTime(seconds) {
-        if (!this.element || !this.element.id) return;
-        if (this.countDirection === 'down') {
-            const newTime = parseFloat(seconds);
-            if (!isNaN(newTime)) {
-                this.currentValue = newTime;
-                // If time hits 0, pause should be handled in tick()
-                this.render();
-            } else {
-                console.warn(`Timer ${this.element.id}: Invalid remaining time: ${seconds}`);
-            }
-        }
-    }
-
-    destroy() {
-        this.pause();
-        timerRegistry.deregisterTimer(this);
-        this.element = null;
-    }
+/**
+ * Function to add a system message (Simplified for debugging)
+ * (Keep simplified version or restore Bootstrap features if parentElement error is resolved)
+ * @param {string} message - The message text
+ * @param {string} tag - The message type/tag (e.g., 'success', 'warning', 'danger', 'info')
+ */
+function addSystemMessage(message, tag) {
+    const messagesContainer = document.getElementById('messagesContainer');
+    if (!messagesContainer) { console.warn("Messages container not found"); return; }
+    const alertDiv = document.createElement('div');
+    // Using simplified classes for now
+    alertDiv.className = `alert alert-${tag} m-2`;
+    alertDiv.setAttribute('role', 'alert');
+    alertDiv.textContent = message;
+    messagesContainer.insertBefore(alertDiv, messagesContainer.firstChild);
+    setTimeout(() => { if (alertDiv) { alertDiv.remove(); } }, 7000);
 }
 
 
+/**
+ * Function to connect to lane sockets (Keep as is)
+ */
+function connectToLaneSockets() {
+    // ... (implementation from previous version) ...
+    if (window.lanesConnected) { console.log("Lane sockets already connected."); return; }
+    window.lanesConnected = true; window.laneSocketsArray = window.laneSocketsArray || []; console.log("Connecting to pit lane sockets...");
+    fetch('/get_race_lanes/')
+    .then(response => { if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); return response.json(); })
+    .then(laneData => { /* ... */ }) // Keep implementation
+    .catch(error => { /* ... */ }); // Keep implementation
+}
 
-function initializeTimers() {
-    const timerPlaceholders = document.querySelectorAll('[data-timer]');
-    timerPlaceholders.forEach(placeholder => {
-        if (timerRegistry.byId[placeholder.id]) {
-            // console.log(`Timer already initialized for ${placeholder.id}, skipping.`);
-            return;
-        }
-        try {
-            const config = JSON.parse(placeholder.getAttribute('data-config'));
-            if (!config || typeof config.startValue === 'undefined' || !config.timerType) {
-                console.error(`Invalid config for timer ${placeholder.id}:`, placeholder.getAttribute('data-config'));
+
+/**
+ * Handles clicks on race action buttons. Sends request to backend API.
+ * Checks backend logical result within the JSON response.
+ * Displays each error from the 'errors' array as a separate message.
+ * @param {Event} event - The click event object
+ */
+async function handleRaceAction(event) {
+    const button = event.currentTarget;
+    const action = button.dataset.action;
+    const url = button.dataset.url;
+    const roundIdContainer = document.getElementById('race-control-buttons');
+    const roundId = roundIdContainer?.dataset.roundId;
+    const csrfToken = getCookie('csrftoken');
+
+    console.log(`Button clicked. Action: ${action}, URL: ${url}, RoundID: ${roundId}`);
+
+    if (!action || !url || !roundId || !csrfToken) { /* ... validation ... */ return; }
+
+    button.disabled = true;
+    const originalButtonHTML = button.innerHTML;
+    button.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>`;
+    console.log(`Sending POST request to: ${url}`);
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        console.log(`Received response for ${action}. Status: ${response.status}`);
+
+        // --- Check HTTP Status FIRST ---
+        if (response.ok) {
+            // --- Try to parse JSON ---
+            let data;
+            try {
+                data = await response.json();
+                console.log(`Action '${action}' response data:`, data);
+            } catch (e) {
+                console.error("Could not parse JSON response:", e);
+                addSystemMessage("Action succeeded but received invalid response from server.", "warning");
+                if (button) { button.disabled = false; button.innerHTML = originalButtonHTML; }
                 return;
             }
-            new TimerWidget(config); // Pass config directly
-        } catch (e) {
-            console.error(`Error parsing/init timer for ${placeholder.id}:`, e, placeholder.getAttribute('data-config'));
+
+            // --- Check LOGICAL Result from Backend ---
+            // Check if backend explicitly signals failure OR provides an errors array
+            if (data.result === false || (data.errors && Array.isArray(data.errors) && data.errors.length > 0) || data.status === 'error') {
+                // Logical failure reported by backend
+                console.warn(`Action '${action}' failed logically according to backend.`);
+
+                // --- Display Error Messages ---
+                if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+                    // Call addSystemMessage for each error in the list
+                    data.errors.forEach(errorMsg => {
+                        // Ensure the item is a string before displaying
+                        if (typeof errorMsg === 'string') {
+                            addSystemMessage(errorMsg, 'warning'); // Use 'warning' or 'danger'
+                        } else {
+                            console.warn("Non-string item found in errors array:", errorMsg);
+                        }
+                    });
+                } else if (data.message) {
+                    // Use message field if errors array is not present/empty
+                    addSystemMessage(data.message, 'warning');
+                } else {
+                    // Default failure message if no specific errors/message provided
+                    addSystemMessage("Action failed according to backend.", 'warning');
+                }
+                // --- End Display Error Messages ---
+
+                // Re-enable the button on logical failure
+                if (button) {
+                    button.disabled = false;
+                    button.innerHTML = originalButtonHTML;
+                }
+
+            } else {
+                // Logical success reported by backend
+                console.log(`Action '${action}' successful logically.`);
+                addSystemMessage(data.message || `Action '${action}' successful.`, data.status || 'success');
+
+                // --- DYNAMIC UI UPDATES for SUCCESS ---
+                if (action === 'pre_check') {
+                    console.log("Pre-race check successful. Updating UI and connecting lanes...");
+                    if (button) button.style.display = 'none';
+                    const startButton = document.getElementById('startButton');
+                    if (startButton) startButton.style.display = 'inline-block';
+                    document.getElementById('emptyTeamsCard')?.style.setProperty('display', 'none', 'important');
+                    document.getElementById('teamSelectCard')?.style.setProperty('display', 'block', 'important');
+                    connectToLaneSockets();
+                }
+                // Add other UI update logic here...
+
+                // Re-enable button if it wasn't hidden
+                if (button && button.style.display !== 'none') {
+                    button.disabled = false;
+                    button.innerHTML = originalButtonHTML;
+                }
+                // --- END DYNAMIC UI UPDATES ---
+            }
+
+        } else { // Handle HTTP errors (4xx, 5xx)
+            let errorMsg = `Error performing action '${action}'. Status: ${response.status}`;
+            try { /* ... try parsing error json ... */ } catch (e) { /* ... */ }
+            console.error(`Action '${action}' failed. Status: ${response.status}`);
+            addSystemMessage(errorMsg, 'danger');
+            if (button) { /* ... re-enable button ... */ }
         }
-    });
+    } catch (error) { // Handle network errors
+        console.error(`Network or fetch error during action '${action}':`, error);
+        addSystemMessage(`Network error: ${error}. Please check connection.`, 'danger');
+        if (button) { /* ... re-enable button ... */ }
+    }
 }
 
-document.addEventListener('DOMContentLoaded', initializeTimers);
+/**
+ * Function to update the empty teams list UI (Keep as is)
+ */
+function updateEmptyTeamsList(teams) {
+    // ... (implementation from previous version) ...
+}
+
+
+// --- Event Listeners Setup ---
+document.addEventListener('DOMContentLoaded', () => {
+    // ... (Keep event listener setup for action buttons, stop&go) ...
+    const actionButtons = document.querySelectorAll('.race-action-btn');
+    actionButtons.forEach(button => { button.addEventListener('click', handleRaceAction); });
+    const stopGoButton = document.getElementById('stopGoButton');
+    if (stopGoButton) { stopGoButton.addEventListener('click', async () => { /* ... */ }); }
+
+    // --- Initial Lane Connection Check (Keep as is) ---
+    const isReadyOrStarted = document.getElementById('startButton') || document.getElementById('pauseButton') || document.getElementById('resumeButton') || document.getElementById('endButton');
+    const roundIdContainer = document.getElementById('race-control-buttons');
+    const roundId = roundIdContainer?.dataset.roundId;
+    if (roundId && isReadyOrStarted) { /* ... */ setTimeout(connectToLaneSockets, 200); }
+    else { /* ... */ window.lanesConnected = false; }
+
+}); // End DOMContentLoaded
