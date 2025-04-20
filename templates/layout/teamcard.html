@@ -24,7 +24,7 @@
                                     {% if member.ontrack %}
                                         {% timer_widget "session-time-"|add:member.id|stringformat:"s" "sessiontime" member %}
                                     {% else %}
-                                        <span class="no-session">--:--:--</span>
+                                        <span class="no-session"></span>
                                     {% endif %}
                                 </td>
                             </tr>
