@@ -20,77 +20,64 @@
                 <div class="card-body d-flex flex-column" style="height: 100%;">
                     <div class="d-flex w-100" style="height: 20%;">
                         <div id="race-control-buttons" style="width: 50%;" class="p-2 d-flex align-items-center flex-wrap" {% if round %}data-round-id="{{ round.id }}"{% endif %}>
-                            {% csrf_token %}
+                        {% csrf_token %}
 
-                            {% if round %}
-                                {# --- Pre Race Check Button --- #}
-                                {% if not round.ready and not round.started and not round.ended %}
-                                <button id="preRaceCheckButton" class="btn btn-warning btn-lg me-2 mb-2 race-action-btn"
-                                        data-action="pre_check"
-                                        data-url="{% url 'preracecheck' %}">
-                                    <i class="fas fa-tasks me-1"></i> Pre Race Check
-                                </button>
-                                {% endif %}
+                        {% if round %}
+                            {# Render all buttons, use 'hidden' attribute based on initial state #}
 
-                                {# --- Start Button --- #}
-                                {% if round.ready and not round.started and not round.ended %}
-                                <button id="startButton" class="btn btn-success btn-lg me-2 mb-2 race-action-btn"
-                                        data-action="start"
-                                        data-url="{% url 'race_start' %}">
-                                    <i class="fas fa-play me-1"></i> Start Race
-                                </button>
-                                {% endif %}
+                            <button id="preRaceCheckButton" class="btn btn-warning btn-lg me-2 mb-2 race-action-btn"
+                                    data-action="pre_check"
+                                    data-url="{% url 'preracecheck' %}"
+                                    {% if round.ready or round.started or round.ended %}hidden{% endif %}> {# Hide if not initial state #}
+                                <i class="fas fa-tasks me-1"></i> Pre Race Check
+                            </button>
 
-                                {# --- Pause Button --- #}
-                                {% if round.started and not round.is_paused and not round.ended %}
-                                <button id="pauseButton" class="btn btn-warning btn-lg me-2 mb-2 race-action-btn"
-                                        data-action="pause"
-                                        data-url="{% url 'racepaused' %}">
-                                    <i class="fas fa-pause me-1"></i> Pause Race
-                                </button>
-                                {% endif %}
+                            <button id="startButton" class="btn btn-success btn-lg me-2 mb-2 race-action-btn"
+                                    data-action="start"
+                                    data-url="{% url 'race_start' %}"
+                                    {% if not round.ready or round.started or round.ended %}hidden{% endif %}> {# Hide if not ready or already started/ended #}
+                                <i class="fas fa-play me-1"></i> Start Race
+                            </button>
 
-                                {# --- Resume Button --- #}
-                                {% if round.started and round.is_paused and not round.ended %}
-                                <button id="resumeButton" class="btn btn-info btn-lg me-2 mb-2 race-action-btn"
-                                        data-action="resume"
-                                        data-url="{% url 'racerestart' %}">
-                                    <i class="fas fa-play-circle me-1"></i> Resume Race
-                                </button>
-                                {% endif %}
+                            <button id="pauseButton" class="btn btn-warning btn-lg me-2 mb-2 race-action-btn"
+                                    data-action="pause"
+                                    data-url="{% url 'racepaused' %}"
+                                    {% if not round.started or round.is_paused or round.ended %}hidden{% endif %}> {# Hide if not running #}
+                                <i class="fas fa-pause me-1"></i> Pause Race
+                            </button>
 
-                                {# --- End Button --- #}
-                                {% if round.started and not round.ended %}
-                                <button id="endButton" class="btn btn-danger btn-lg me-2 mb-2 race-action-btn"
-                                        data-action="end"
-                                        data-url="{% url 'endofrace' %}">
-                                    <i class="fas fa-stop me-1"></i> End Race
-                                </button>
-                                {% endif %}
+                            <button id="resumeButton" class="btn btn-info btn-lg me-2 mb-2 race-action-btn"
+                                    data-action="resume"
+                                    data-url="{% url 'racerestart' %}"
+                                    {% if not round.started or not round.is_paused or round.ended %}hidden{% endif %}> {# Hide if not paused #}
+                                <i class="fas fa-play-circle me-1"></i> Resume Race
+                            </button>
 
-                                {# --- False Start Button --- #}
-                                {% if round.started and not round.ended %} {# Adjust condition if needed #}
-                                <button id="falseStartButton" class="btn btn-secondary btn-lg me-2 mb-2 race-action-btn"
-                                        data-action="false_start"
-                                        data-url="{% url 'falsestart' %}">
-                                    <i class="fas fa-undo me-1"></i> False Start
-                                </button>
-                                {% endif %}
+                            <button id="endButton" class="btn btn-danger btn-lg me-2 mb-2 race-action-btn"
+                                    data-action="end"
+                                    data-url="{% url 'endofrace' %}"
+                                    {% if not round.started or round.ended %}hidden{% endif %}> {# Hide if not started or already ended #}
+                                <i class="fas fa-stop me-1"></i> End Race
+                            </button>
 
-                                {# --- False Restart Button (Optional) --- #}
-                                {% if round.started and round.is_paused and not round.ended %} {# Adjust condition if needed #}
-                                 <button id="falseRestartButton" class="btn btn-secondary btn-lg me-2 mb-2 race-action-btn"
-                                         data-action="false_restart"
-                                         data-url="{% url 'falserestart' %}">
-                                     <i class="fas fa-history me-1"></i> False Restart
-                                 </button>
-                                {% endif %}
+                            <button id="falseStartButton" class="btn btn-secondary btn-lg me-2 mb-2 race-action-btn"
+                                    data-action="false_start"
+                                    data-url="{% url 'falsestart' %}"
+                                    {% if not round.started or round.ended %}hidden{% endif %}> {# Hide if not started or ended (adjust logic as needed) #}
+                                <i class="fas fa-undo me-1"></i> False Start
+                            </button>
 
-                            {% else %}
-                                <p class="text-muted">No round active.</p>
-                            {% endif %}
-                        </div>
+                            <button id="falseRestartButton" class="btn btn-secondary btn-lg me-2 mb-2 race-action-btn"
+                                    data-action="false_restart"
+                                    data-url="{% url 'falserestart' %}"
+                                    {% if not round.started or not round.is_paused or round.ended %}hidden{% endif %}> {# Hide if not paused (adjust logic) #}
+                                <i class="fas fa-history me-1"></i> False Restart
+                            </button>
 
+                        {% else %}
+                            <p class="text-muted">No round active.</p>
+                        {% endif %}
+                    </div>
                         <div style="width: 50%;" class="p-2" id="teamsListContainer">
                              <div class="card h-100" id="emptyTeamsCard" {% if round and round.ready %}style="display: none;"{% endif %}>
                                 <div class="card-header d-flex justify-content-between align-items-center">
