@@ -148,9 +148,9 @@ async function handleRaceAction(event) {
     const url = button.dataset.url;
     const roundIdContainer = document.getElementById('race-control-buttons');
     const roundId = roundIdContainer?.dataset.roundId;
-    const csrfToken = getCookie('csrftoken');
+    const csrfToken = getCookie('csrftoken'); // Assumes getCookie is defined elsewhere
 
-    console.log(`Button clicked. Action: ${action}, URL: ${url}, RoundID: ${roundId}`); // Log click
+    console.log(`Button clicked. Action: ${action}, URL: ${url}, RoundID: ${roundId}`);
 
     // --- Basic validation ---
     if (!action || !url) { addSystemMessage('Error: Button missing action/URL.', 'danger'); console.error('Button missing data attributes:', button); return; }
@@ -160,83 +160,127 @@ async function handleRaceAction(event) {
     button.disabled = true;
     const originalButtonHTML = button.innerHTML;
     button.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>`;
-
-    console.log(`Sending POST request to: ${url}`); // Log before fetch
+    console.log(`Sending POST request to: ${url}`);
 
     try {
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' },
         });
+        console.log(`Received response for ${action}. Status: ${response.status}`);
 
-        console.log(`Received response for ${action}. Status: ${response.status}`); // Log response status
-
-        if (response.ok) {
-            const data = await response.json().catch(e => {
-                console.error("Could not parse JSON response:", e);
-                return { message: "Action likely succeeded, but response was not valid JSON.", status: "warning" }; // Default success data
-            });
-            console.log(`Action '${action}' successful:`, data);
-            addSystemMessage(data.message || `Action '${action}' successful.`, data.status || 'success');
-
-            // --- DYNAMIC UI UPDATES (Instead of Reload) ---
-
-            // 1. Update Button States (Example for pre_check success)
-            if (action === 'pre_check' && (data.status === 'success' || data.ready === true)) {
-                console.log("Pre-race check successful. Updating UI and connecting lanes...");
-                // Hide pre-check button
-                button.style.display = 'none';
-                // Show start button (assuming it exists but might be hidden, or we add it)
-                // This requires the 'Start' button to be present in the HTML initially,
-                // perhaps hidden with CSS or display:none, then shown here.
-                // Or, more robustly, the backend response should indicate the *next* valid state/actions.
-                const startButton = document.getElementById('startButton');
-                if (startButton) startButton.style.display = 'inline-block'; // Or remove hidden class
-
-                // Show teamSelect card, hide emptyTeams card
-                document.getElementById('emptyTeamsCard')?.style.setProperty('display', 'none', 'important');
-                document.getElementById('teamSelectCard')?.style.setProperty('display', 'block', 'important');
-
-                // Connect the lane sockets
-                connectToLaneSockets();
+        // --- Check HTTP Status FIRST ---
+        if (response.ok) { // Status 200-299
+            // --- Try to parse JSON ---
+            let data;
+            try {
+                 data = await response.json();
+                 console.log(`Action '${action}' response data:`, data);
+            } catch (e) {
+                 // Handle cases where backend sends 2xx status but non-JSON body
+                 console.error("Could not parse JSON response despite OK status:", e);
+                 addSystemMessage("Action status OK but received invalid response from server.", "warning");
+                 // Re-enable button and return, as we can't process the result
+                 if (button) { button.disabled = false; button.innerHTML = originalButtonHTML; }
+                 return;
             }
-            // Add similar logic for other actions (start -> show pause/end, pause -> show resume, etc.)
-            // This can get complex quickly. Relying on WebSocket updates + maybe HTMX is often better.
 
-            // 2. Update Status Text (Rely on WebSocket update if possible)
-            // const statusTextEl = document.getElementById('race-status-text');
-            // if (statusTextEl && data.new_status_display) { // If backend sends new status text
-            //     statusTextEl.textContent = data.new_status_display;
-            // }
+            // --- Check LOGICAL Result from Backend ---
+            // Adjust condition based on your actual backend response structure for failure
+            const isLogicalError = data.result === false || (data.errors && Array.isArray(data.errors) && data.errors.length > 0) || data.status === 'error';
 
-            // Re-enable the *original* button now that action is done (since no reload)
-            // Although ideally the original button should be hidden and a new one shown.
-            // For simplicity now, let's just restore it if it wasn't hidden above.
-            if (button.style.display !== 'none') {
-                button.disabled = false;
-                button.innerHTML = originalButtonHTML;
+            if (isLogicalError) {
+                // Logical failure reported by backend
+                console.warn(`Action '${action}' failed logically according to backend.`);
+
+                // --- Display Error Messages ---
+                if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+                    // Call addSystemMessage for each error in the list
+                    data.errors.forEach(errorMsg => {
+                        if (typeof errorMsg === 'string') {
+                             addSystemMessage(errorMsg, 'warning'); // Use 'warning' or 'danger'
+                        } else {
+                             console.warn("Non-string item found in errors array:", errorMsg);
+                             addSystemMessage("Received an invalid error format from backend.", "warning");
+                        }
+                    });
+                } else if (data.message) {
+                    // Use message field if errors array is not present/empty
+                    addSystemMessage(data.message, 'warning');
+                } else {
+                    // Default failure message if no specific errors/message provided
+                    addSystemMessage(`Action '${action}' failed according to backend.`, 'warning');
+                }
+                // --- End Display Error Messages ---
+
+                // Re-enable the button on logical failure
+                if (button) {
+                    button.disabled = false;
+                    button.innerHTML = originalButtonHTML;
+                }
+
+            } else {
+                // Logical success reported by backend
+                console.log(`Action '${action}' successful logically.`);
+                addSystemMessage(data.message || `Action '${action}' successful.`, data.status || 'success');
+
+                // --- DYNAMIC UI UPDATES for SUCCESS ---
+                // Example for successful pre_check:
+                if (action === 'pre_check') {
+                     console.log("Pre-race check successful. Updating UI and connecting lanes...");
+                     if (button) button.style.display = 'none'; // Hide pre-check button
+                     const startButton = document.getElementById('startButton');
+                     if (startButton) startButton.style.display = 'inline-block'; // Show start button
+                     // Show/Hide team list cards
+                     document.getElementById('emptyTeamsCard')?.style.setProperty('display', 'none', 'important');
+                     document.getElementById('teamSelectCard')?.style.setProperty('display', 'block', 'important');
+                     // Connect lanes (assumes connectToLaneSockets is defined)
+                     if (typeof connectToLaneSockets === 'function') {
+                         connectToLaneSockets();
+                     } else {
+                         console.error("connectToLaneSockets function not found!");
+                     }
+                }
+                // Add similar 'else if (action === 'start')' blocks etc. for other actions...
+                // Remember to handle showing/hiding the correct buttons based on the new state
+
+                // Re-enable button if it wasn't hidden by the UI update logic above
+                // (e.g., pause/resume buttons might just change text/class, not disappear)
+                if (button && button.style.display !== 'none') {
+                     button.disabled = false;
+                     button.innerHTML = originalButtonHTML; // Or update text, e.g., Pause -> Resume
+                }
+                // --- END DYNAMIC UI UPDATES ---
             }
-            // --- END DYNAMIC UI UPDATES ---
 
         } else { // Handle HTTP errors (4xx, 5xx)
             let errorMsg = `Error performing action '${action}'. Status: ${response.status}`;
             try {
+                // Try to get more specific error from JSON response body, even on HTTP error
                 const errorData = await response.json();
                 errorMsg = errorData.error || errorData.message || errorMsg;
-                console.error(`Server error detail for ${action}:`, errorData); // Log server error detail
-            } catch (e) { errorMsg = `${errorMsg} - ${response.statusText}`; console.warn("Could not parse error response as JSON."); }
-            console.error(`Action '${action}' failed. Status: ${response.status}`);
+                console.error(`Server error detail for ${action}:`, errorData);
+            } catch (e) {
+                // Response wasn't JSON or couldn't be parsed, use status text
+                errorMsg = `${errorMsg} (${response.statusText})`;
+                console.warn("Could not parse error response as JSON.");
+            }
+            console.error(`Action '${action}' failed HTTP Status. Status: ${response.status}`);
             addSystemMessage(errorMsg, 'danger');
-            // Re-enable button and restore text on failure
+            // Re-enable button on failure
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = originalButtonHTML;
+            }
+        }
+    } catch (error) { // Handle network errors or other exceptions during fetch
+        console.error(`Network or fetch error during action '${action}':`, error);
+        addSystemMessage(`Network error: ${error}. Please check connection.`, 'danger');
+        // Re-enable button on failure
+        if (button) {
             button.disabled = false;
             button.innerHTML = originalButtonHTML;
         }
-    } catch (error) { // Handle network errors
-        console.error(`Network or fetch error during action '${action}':`, error);
-        addSystemMessage(`Network error: ${error}. Please check connection.`, 'danger');
-        // Re-enable button and restore text on failure
-        button.disabled = false;
-        button.innerHTML = originalButtonHTML;
     }
 }
 
