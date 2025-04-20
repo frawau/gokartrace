@@ -15,6 +15,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         seenteam=[]
         todel = True
+        now=dt.datetime.now()
         for asess in list(Session.objects.all()):
             if not asess.end:
                 if asess.start:
@@ -27,4 +28,5 @@ class Command(BaseCommand):
                 asess.delete()
             else:
                 asess.start=None
+                asess.register = now
                 asess.save()
