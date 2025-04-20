@@ -64,9 +64,13 @@
 {% block extra_js %}
 <script>
 {% if round is not None %}
+
     // Store page load time globally to calculate elapsed time
     let pageLoadTime = new Date().getTime();
     let activeDrivers = {};
+    let isPaused = {{ round|round_is_paused|lower }};  // Get initial pause state
+    let pauseStartTime = null;
+    let totalPausedTime = 0;
 
     $(document).ready(function() {
         // Set the interval for auto-sliding (7 seconds)
@@ -168,32 +172,34 @@
         }
 
         function updateDriverTimes() {
-            // Update all active driver times
-            const now = new Date().getTime();
+            // Only update if not paused
+            if (!isPaused) {
+                const now = new Date().getTime();
 
-            $('.card-body table tbody tr').each(function() {
-                const row = $(this);
-                const driverName = row.find('td:first-child').text().trim();
-                const sessionTimeCell = row.find('#sessiontime');
-                const totalTimeCell = row.find('#totaltime');
+                $('.card-body table tbody tr').each(function() {
+                    const row = $(this);
+                    const driverName = row.find('td:first-child').text().trim();
+                    const sessionTimeCell = row.find('#sessiontime');
+                    const totalTimeCell = row.find('#totaltime');
 
-                // Only update cells with the specific IDs
-                if (sessionTimeCell.length && totalTimeCell.length && activeDrivers[driverName]) {
-                    const driverData = activeDrivers[driverName];
-                    const elapsedSeconds = Math.floor((now - driverData.startTime) / 1000);
+                    // Only update cells with the specific IDs
+                    if (sessionTimeCell.length && totalTimeCell.length && activeDrivers[driverName]) {
+                        const driverData = activeDrivers[driverName];
+                        const elapsedSeconds = Math.floor((now - driverData.startTime - totalPausedTime) / 1000);
 
-                    // Update session time with seconds precision
-                    const newSessionSeconds = driverData.sessionSeconds + elapsedSeconds;
-                    sessionTimeCell.text(formatTime(newSessionSeconds));
+                        // Update session time with seconds precision
+                        const newSessionSeconds = driverData.sessionSeconds + elapsedSeconds;
+                        sessionTimeCell.text(formatTime(newSessionSeconds));
 
-                    // Update total time with seconds precision
-                    const newTotalSeconds = driverData.totalSeconds + elapsedSeconds;
-                    totalTimeCell.text(formatTime(newTotalSeconds));
+                        // Update total time with seconds precision
+                        const newTotalSeconds = driverData.totalSeconds + elapsedSeconds;
+                        totalTimeCell.text(formatTime(newTotalSeconds));
 
-                    // Update data attribute for mobile view
-                    totalTimeCell.attr('data-current-session', formatTime(newSessionSeconds));
+                        // Update data attribute for mobile view
+                        totalTimeCell.attr('data-current-session', formatTime(newSessionSeconds));
+                        }
+                    });
                 }
-            });
 
             // Update every second
             setTimeout(updateDriverTimes, 1000);
@@ -245,16 +251,36 @@
         roundSocket.onmessage = function(e) {
             const data = JSON.parse(e.data);
             if (data.type === 'round_update') {
-                // Update pause status
+                // Update round pause status in the countdown element
                 $('#roundCountdown').attr('data-is-paused', data.is_paused);
+
+                const now = new Date().getTime();
+
+                // Handle pause state changes
+                if (data.is_paused && !isPaused) {
+                    // Race just got paused
+                    console.log("Race paused - timers stopped");
+                    pauseStartTime = now;
+                }
+                else if (!data.is_paused && isPaused) {
+                    // Race just resumed
+                    console.log("Race resumed - timers continue");
+
+                    // Calculate how long we were paused
+                    if (pauseStartTime !== null) {
+                        const pauseDuration = now - pauseStartTime;
+                        totalPausedTime += pauseDuration;
+                        pauseStartTime = null;
+                    }
+                }
+
+                // Update the pause state
+                isPaused = data.is_paused;
 
                 // Update remaining time if provided
                 if (data.remaining_seconds !== undefined) {
                     $('#roundCountdown').attr('data-remaining', data.remaining_seconds);
                 }
-
-                // Reset page load time so countdown calculations are correct
-                pageLoadTime = new Date().getTime();
             }
             else if (data.type === 'driver_update') {
                 // Refresh the team card if there's a driver update
