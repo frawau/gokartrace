@@ -187,16 +187,16 @@ async function handleRaceAction(event) {
 
             // --- Check LOGICAL Result from Backend ---
             // Adjust condition based on your actual backend response structure for failure
-            const isLogicalError = data.result === false || (data.errors && Array.isArray(data.errors) && data.errors.length > 0) || data.status === 'error';
+            const isLogicalError = data.result === false || (data.error && Array.isArray(data.error) && data.error.length > 0) || data.status === 'error';
 
             if (isLogicalError) {
                 // Logical failure reported by backend
                 console.warn(`Action '${action}' failed logically according to backend.`);
 
                 // --- Display Error Messages ---
-                if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+                if (data.error && Array.isArray(data.error) && data.error.length > 0) {
                     // Call addSystemMessage for each error in the list
-                    data.errors.forEach(errorMsg => {
+                    data.error.forEach(errorMsg => {
                         if (typeof errorMsg === 'string') {
                              addSystemMessage(errorMsg, 'warning'); // Use 'warning' or 'danger'
                         } else {
