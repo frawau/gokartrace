@@ -187,13 +187,11 @@ function updateButtonVisibility(state, options = {}) {
     switch (state) {
         case 'initial': // Not ready, not started
             document.getElementById('preRaceCheckButton')?.removeAttribute('hidden');
-            document.getElementById('race-status-text').textContent = 'Not Started';
             document.getElementById('emptyTeamsCard')?.style.setProperty('display', 'block', 'important');
             document.getElementById('teamSelectCard')?.style.setProperty('display', 'none', 'important');
             break;
         case 'ready': // Ready, not started
             document.getElementById('startButton')?.removeAttribute('hidden');
-            document.getElementById('race-status-text').textContent = 'Ready to Start';
             document.getElementById('emptyTeamsCard')?.style.setProperty('display', 'none', 'important');
             document.getElementById('teamSelectCard')?.style.setProperty('display', 'block', 'important');
             break;
@@ -201,7 +199,6 @@ function updateButtonVisibility(state, options = {}) {
             document.getElementById('pauseButton')?.removeAttribute('hidden');
             document.getElementById('endButton')?.removeAttribute('hidden');
             document.getElementById('falseStartButton')?.removeAttribute('hidden'); // Show initially
-            document.getElementById('race-status-text').textContent = 'Running';
             // Start timeout to hide False Start button after a delay
             if (!options.keepFalseStart) { // Avoid restarting timeout if already running
                 falseStartTimeoutId = setTimeout(hideFalseStartButton, 15000); // 15 seconds
@@ -211,7 +208,6 @@ function updateButtonVisibility(state, options = {}) {
             document.getElementById('resumeButton')?.removeAttribute('hidden');
             document.getElementById('endButton')?.removeAttribute('hidden');
             document.getElementById('falseRestartButton')?.removeAttribute('hidden'); // Show initially
-            document.getElementById('race-status-text').textContent = 'Paused';
             // Start timeout to hide False Restart button after a delay
             if (!options.keepFalseRestart) { // Avoid restarting timeout
                 falseRestartTimeoutId = setTimeout(hideFalseRestartButton, 15000); // 15 seconds
@@ -219,13 +215,11 @@ function updateButtonVisibility(state, options = {}) {
             break;
         case 'ended': // Ended
             // No buttons shown by default in 'ended' state
-            document.getElementById('race-status-text').textContent = 'Finished';
             break;
         default:
             console.warn("Unknown state passed to updateButtonVisibility:", state);
             // Show pre-check as a fallback?
             document.getElementById('preRaceCheckButton')?.removeAttribute('hidden');
-            document.getElementById('race-status-text').textContent = 'Unknown';
 
     }
     // Ensure all visible buttons are enabled
