@@ -55,8 +55,7 @@ def timer_widget(element_id, timer_type, instance=None, initial_value=None, show
         'startValue': 0, # Default start value
         'countDirection': 'up', # Default direction
         'initialPaused': True, # Default to paused
-        'roundId': None,
-        'driverId': None,
+        'targetId': None,
     }
 
     try:
@@ -81,7 +80,6 @@ def timer_widget(element_id, timer_type, instance=None, initial_value=None, show
                 'countDirection': 'down',
                 # Pause if not started OR explicitly paused OR ended
                 'initialPaused': not round_instance.started or round_instance.is_paused or round_instance.ended,
-                'roundId': round_instance.id
             })
 
         elif timer_type == 'totaltime' and hasattr(instance, 'time_spent'): # Instance is a team_member
@@ -96,8 +94,7 @@ def timer_widget(element_id, timer_type, instance=None, initial_value=None, show
                 'countDirection': 'up',
                 # Pause if driver not on track OR round not started OR round paused OR round ended
                 'initialPaused': not member.ontrack or not round_instance.started or round_instance.is_paused or round_instance.ended,
-                'roundId': round_instance.id,
-                'driverId': member.id
+                'targetId': member.id
             })
 
         elif timer_type == 'sessiontime' and hasattr(instance, 'ontrack'): # Instance is a team_member
@@ -114,7 +111,7 @@ def timer_widget(element_id, timer_type, instance=None, initial_value=None, show
                  # Pause if driver not on track OR round not started OR round paused OR round ended
                 'initialPaused': not member.ontrack or not round_instance.started or round_instance.is_paused or round_instance.ended,
                 'roundId': round_instance.id,
-                'driverId': member.id
+                'targetId': member.id
             })
 
         else:

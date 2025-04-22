@@ -1,198 +1,233 @@
-// static/js/racecontrol.js
+// timer-widget.js
+// Global Timer Registry to manage all timers
+const timerRegistry = {
+    allTimers: [],
+    countdownTimers: [],
+    byDriverId: {},
 
-/**
- * Creates a WebSocket connection with automatic reconnection logic.
- * (Keep function definition as is)
- */
-function createWebSocketWithReconnect(url, messageHandler, openHandler = null, errorHandler = null, closeHandler = null) {
-    // ... (implementation from previous version) ...
-    let socket;
-    let reconnectTimeout;
-    const RECONNECT_DELAY = 5000;
-    function connect() { /* ... */ }
-    connect();
-    return { /* send, close, getReadyState */ };
-}
+    registerTimer: function(timer) {
+        this.allTimers.push(timer);
 
-/**
- * Function to get CSRF token (Keep as is)
- */
-function getCookie(name) {
-    // ... (implementation from previous version) ...
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') { /* ... */ }
-    return cookieValue;
-}
-
-/**
- * Function to add a system message (Simplified for debugging)
- * (Keep simplified version or restore Bootstrap features if parentElement error is resolved)
- * @param {string} message - The message text
- * @param {string} tag - The message type/tag (e.g., 'success', 'warning', 'danger', 'info')
- */
-function addSystemMessage(message, tag) {
-    const messagesContainer = document.getElementById('messagesContainer');
-    if (!messagesContainer) { console.warn("Messages container not found"); return; }
-    const alertDiv = document.createElement('div');
-    // Using simplified classes for now
-    alertDiv.className = `alert alert-${tag} m-2`;
-    alertDiv.setAttribute('role', 'alert');
-    alertDiv.textContent = message;
-    messagesContainer.insertBefore(alertDiv, messagesContainer.firstChild);
-    setTimeout(() => { if (alertDiv) { alertDiv.remove(); } }, 7000);
-}
-
-
-/**
- * Function to connect to lane sockets (Keep as is)
- */
-function connectToLaneSockets() {
-    // ... (implementation from previous version) ...
-    if (window.lanesConnected) { console.log("Lane sockets already connected."); return; }
-    window.lanesConnected = true; window.laneSocketsArray = window.laneSocketsArray || []; console.log("Connecting to pit lane sockets...");
-    fetch('/get_race_lanes/')
-    .then(response => { if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); return response.json(); })
-    .then(laneData => { /* ... */ }) // Keep implementation
-    .catch(error => { /* ... */ }); // Keep implementation
-}
-
-
-/**
- * Handles clicks on race action buttons. Sends request to backend API.
- * Checks backend logical result within the JSON response.
- * Displays each error from the 'errors' array as a separate message.
- * @param {Event} event - The click event object
- */
-async function handleRaceAction(event) {
-    const button = event.currentTarget;
-    const action = button.dataset.action;
-    const url = button.dataset.url;
-    const roundIdContainer = document.getElementById('race-control-buttons');
-    const roundId = roundIdContainer?.dataset.roundId;
-    const csrfToken = getCookie('csrftoken');
-
-    console.log(`Button clicked. Action: ${action}, URL: ${url}, RoundID: ${roundId}`);
-
-    if (!action || !url || !roundId || !csrfToken) { /* ... validation ... */ return; }
-
-    button.disabled = true;
-    const originalButtonHTML = button.innerHTML;
-    button.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>`;
-    console.log(`Sending POST request to: ${url}`);
-
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' },
-        });
-        console.log(`Received response for ${action}. Status: ${response.status}`);
-
-        // --- Check HTTP Status FIRST ---
-        if (response.ok) {
-            // --- Try to parse JSON ---
-            let data;
-            try {
-                data = await response.json();
-                console.log(`Action '${action}' response data:`, data);
-            } catch (e) {
-                console.error("Could not parse JSON response:", e);
-                addSystemMessage("Action succeeded but received invalid response from server.", "warning");
-                if (button) { button.disabled = false; button.innerHTML = originalButtonHTML; }
-                return;
-            }
-
-            // --- Check LOGICAL Result from Backend ---
-            // Check if backend explicitly signals failure OR provides an errors array
-            if (data.result === false || (data.errors && Array.isArray(data.errors) && data.errors.length > 0) || data.status === 'error') {
-                // Logical failure reported by backend
-                console.warn(`Action '${action}' failed logically according to backend.`);
-
-                // --- Display Error Messages ---
-                if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
-                    // Call addSystemMessage for each error in the list
-                    data.errors.forEach(errorMsg => {
-                        // Ensure the item is a string before displaying
-                        if (typeof errorMsg === 'string') {
-                            addSystemMessage(errorMsg, 'warning'); // Use 'warning' or 'danger'
-                        } else {
-                            console.warn("Non-string item found in errors array:", errorMsg);
-                        }
-                    });
-                } else if (data.message) {
-                    // Use message field if errors array is not present/empty
-                    addSystemMessage(data.message, 'warning');
-                } else {
-                    // Default failure message if no specific errors/message provided
-                    addSystemMessage("Action failed according to backend.", 'warning');
-                }
-                // --- End Display Error Messages ---
-
-                // Re-enable the button on logical failure
-                if (button) {
-                    button.disabled = false;
-                    button.innerHTML = originalButtonHTML;
-                }
-
-            } else {
-                // Logical success reported by backend
-                console.log(`Action '${action}' successful logically.`);
-                addSystemMessage(data.message || `Action '${action}' successful.`, data.status || 'success');
-
-                // --- DYNAMIC UI UPDATES for SUCCESS ---
-                if (action === 'pre_check') {
-                    console.log("Pre-race check successful. Updating UI and connecting lanes...");
-                    if (button) button.style.display = 'none';
-                    const startButton = document.getElementById('startButton');
-                    if (startButton) startButton.style.display = 'inline-block';
-                    document.getElementById('emptyTeamsCard')?.style.setProperty('display', 'none', 'important');
-                    document.getElementById('teamSelectCard')?.style.setProperty('display', 'block', 'important');
-                    connectToLaneSockets();
-                }
-                // Add other UI update logic here...
-
-                // Re-enable button if it wasn't hidden
-                if (button && button.style.display !== 'none') {
-                    button.disabled = false;
-                    button.innerHTML = originalButtonHTML;
-                }
-                // --- END DYNAMIC UI UPDATES ---
-            }
-
-        } else { // Handle HTTP errors (4xx, 5xx)
-            let errorMsg = `Error performing action '${action}'. Status: ${response.status}`;
-            try { /* ... try parsing error json ... */ } catch (e) { /* ... */ }
-            console.error(`Action '${action}' failed. Status: ${response.status}`);
-            addSystemMessage(errorMsg, 'danger');
-            if (button) { /* ... re-enable button ... */ }
+        // Register by type
+        if (timer.countDirection === 'down') {
+            this.countdownTimers.push(timer);
         }
-    } catch (error) { // Handle network errors
-        console.error(`Network or fetch error during action '${action}':`, error);
-        addSystemMessage(`Network error: ${error}. Please check connection.`, 'danger');
-        if (button) { /* ... re-enable button ... */ }
+
+        // Register by driver ID
+        if (timer.targetId) {
+            if (!this.byDriverId[timer.targetId]) {
+                this.byDriverId[timer.targetId] = [];
+            }
+            this.byDriverId[timer.targetId].push(timer);
+        }
+    }
+};
+
+class TimerWidget {
+    constructor(options) {
+        this.element = document.getElementById(options.elementId);
+        this.startValue = options.startValue || 0; // In seconds
+        this.countDirection = options.countDirection || 'up'; // 'up' or 'down'
+        this.paused = options.initialPaused || false;
+        this.targetId = options.targetId; // Store driver ID for session updates
+        this.precision = options.precision || 0; // Decimal places
+        this.currentValue = this.startValue;
+        this.lastUpdateTime = null;
+        this.timerType = options.timerType || 'default'; // 'totaltime', 'sessiontime', 'countdownDisplay'
+
+        // Format options
+        this.showHours = options.showHours !== undefined ? options.showHours : true;
+        this.showMinutes = options.showMinutes !== undefined ? options.showMinutes : true;
+        this.showSeconds = true;
+
+        // Initial render
+        this.render();
+
+        // Start timer if not paused
+        if (!this.paused) {
+            this.start();
+        }
+
+        // Register with the global registry
+        timerRegistry.registerTimer(this);
+    }
+
+    start() {
+        this.paused = false;
+        this.lastUpdateTime = Date.now();
+        this.tick();
+    }
+
+    pause() {
+        this.paused = true;
+    }
+
+    resume() {
+        if (this.paused) {
+            this.paused = false;
+            this.lastUpdateTime = Date.now();
+            this.tick();
+        }
+    }
+
+    reset(newStartValue) {
+        this.currentValue = newStartValue !== undefined ? newStartValue : this.startValue;
+        this.render();
+    }
+
+    tick() {
+        if (this.paused) return;
+
+        const now = Date.now();
+        const delta = (now - this.lastUpdateTime) / 1000;
+        this.lastUpdateTime = now;
+
+        if (this.countDirection === 'up') {
+            this.currentValue += delta;
+        } else {
+            this.currentValue -= delta;
+            // Don't go below zero for countdown timers
+            if (this.currentValue < 0) {
+                this.currentValue = 0;
+                this.pause();
+            }
+        }
+
+        this.render();
+        requestAnimationFrame(() => this.tick());
+    }
+
+    formatTime(totalSeconds) {
+        const totalSecondsAbs = Math.abs(totalSeconds);
+        const hours = Math.floor(totalSecondsAbs / 3600);
+        const minutes = Math.floor((totalSecondsAbs % 3600) / 60);
+        const seconds = totalSecondsAbs % 60;
+
+        let formattedTime = '';
+
+        if (this.showHours) {
+            formattedTime += String(hours).padStart(2, '0') + ':';
+        }
+
+        if (this.showMinutes) {
+            formattedTime += String(minutes).padStart(2, '0') + ':';
+        }
+
+        if (this.precision > 0) {
+            formattedTime += seconds.toFixed(this.precision).padStart(3 + this.precision, '0');
+        } else {
+            formattedTime += String(Math.floor(seconds)).padStart(2, '0');
+        }
+
+        return totalSeconds < 0 ? '-' + formattedTime : formattedTime;
+    }
+
+    render() {
+        if (this.element) {
+            this.element.textContent = this.formatTime(this.currentValue);
+
+            // Add classes for styling
+            if (this.currentValue <= 0 && this.countDirection === 'down') {
+                this.element.classList.add('timer-ended');
+            } else {
+                this.element.classList.remove('timer-ended');
+            }
+
+            if (this.paused) {
+                this.element.classList.add('timer-paused');
+            } else {
+                this.element.classList.remove('timer-paused');
+            }
+        }
+    }
+
+    updatePauseState(isPaused) {
+        if (isPaused) {
+            this.pause();
+        } else {
+            this.resume();
+        }
+    }
+
+    updateRemainingTime(seconds) {
+        if (this.countDirection === 'down') {
+            this.currentValue = seconds;
+            this.render();
+        }
+    }
+
+    handleSessionUpdate(isActive) {
+        if (this.timerType === 'sessiontime') {
+            if (isActive) {
+                this.reset(0);
+                this.paused = false;
+                this.start();
+                if (this.element) {
+                    this.element.style.visibility = 'visible';
+                }
+            } else {
+                this.pause();
+                if (this.element) {
+                    this.element.style.visibility = 'hidden';
+                }
+            }
+        } else if (this.timerType === 'totaltime') {
+            this.paused = !isActive;
+            if (!this.paused) {
+                this.start();
+            }
+        }
     }
 }
 
-/**
- * Function to update the empty teams list UI (Keep as is)
- */
-function updateEmptyTeamsList(teams) {
-    // ... (implementation from previous version) ...
+// This function creates all timer widgets on a page and registers them with their driver IDs
+function initializeTimers() {
+    // Find all timer placeholders
+    const timerPlaceholders = document.querySelectorAll('[data-timer]');
+
+    timerPlaceholders.forEach(placeholder => {
+        const config = JSON.parse(placeholder.getAttribute('data-config'));
+
+        // Create the timer
+        new TimerWidget({
+            elementId: placeholder.id,
+            startValue: config.startValue || 0,
+            countDirection: config.countDirection || 'up',
+            initialPaused: config.initialPaused || false,
+            targetId: config.targetId,
+            timerType: config.timerType,
+            showHours: config.showHours,
+            showMinutes: config.showMinutes
+        });
+    });
 }
 
+// Initialize all timers when the DOM is ready
+document.addEventListener('DOMContentLoaded', initializeTimers);
 
-// --- Event Listeners Setup ---
-document.addEventListener('DOMContentLoaded', () => {
-    // ... (Keep event listener setup for action buttons, stop&go) ...
-    const actionButtons = document.querySelectorAll('.race-action-btn');
-    actionButtons.forEach(button => { button.addEventListener('click', handleRaceAction); });
-    const stopGoButton = document.getElementById('stopGoButton');
-    if (stopGoButton) { stopGoButton.addEventListener('click', async () => { /* ... */ }); }
+// Listen for custom event to refresh a specific team's timers
+document.addEventListener('refreshTeamTimers', function(e) {
+    if (e.detail && e.detail.teamId) {
+        const teamContainer = document.querySelector(`#team-slide-${e.detail.teamId}`);
+        if (teamContainer) {
+            // Find all timer placeholders in this team's container
+            const timerPlaceholders = teamContainer.querySelectorAll('[data-timer]');
 
-    // --- Initial Lane Connection Check (Keep as is) ---
-    const isReadyOrStarted = document.getElementById('startButton') || document.getElementById('pauseButton') || document.getElementById('resumeButton') || document.getElementById('endButton');
-    const roundIdContainer = document.getElementById('race-control-buttons');
-    const roundId = roundIdContainer?.dataset.roundId;
-    if (roundId && isReadyOrStarted) { /* ... */ setTimeout(connectToLaneSockets, 200); }
-    else { /* ... */ window.lanesConnected = false; }
+            timerPlaceholders.forEach(placeholder => {
+                const config = JSON.parse(placeholder.getAttribute('data-config'));
 
-}); // End DOMContentLoaded
+                // Create the timer
+                new TimerWidget({
+                    elementId: placeholder.id,
+                    startValue: config.startValue || 0,
+                    countDirection: config.countDirection || 'up',
+                    initialPaused: config.initialPaused || false,
+                    targetId: config.targetId,
+                    timerType: config.timerType,
+                    showHours: config.showHours,
+                    showMinutes: config.showMinutes
+                });
+            });
+        }
+    }
+});

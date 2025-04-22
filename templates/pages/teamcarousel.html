@@ -75,6 +75,7 @@
 {% block extra_js %}
 {% if round is not None %}
 <script>
+// Add this to your extra_js block in teamcarousel.html
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize Bootstrap Carousel
     const carousel = document.getElementById('teamCarousel');
@@ -121,71 +122,60 @@ document.addEventListener('DOMContentLoaded', function() {
 
         socket.onmessage = function(event) {
             const data = JSON.parse(event.data);
-            console.log("WebSocket received:", data); // Add logging
+            console.log("WebSocket received:", data);
 
             if (data.type === 'round_update') {
-                const isPaused = data.is_paused; // Get pause state first
+                const isPaused = data.is_paused;
 
-                // 1. Handle countdown timer updates (if present)
+                // Handle countdown timer updates
                 if (data.remaining_seconds !== undefined && data.remaining_seconds !== null) {
-                    timerRegistry.countdownTimers.forEach(timer => {
-                        // Ensure countdown is also paused/resumed correctly based on round state
-                        timer.updateRemainingTime(data.remaining_seconds);
-                        timer.updatePauseState(isPaused); // Apply pause state here too
-                    });
-                }
+                    // Special case for remaining <= 120 seconds
+                    if (data.remaining_seconds <= 120) {
+                        // Pause all timers but keep countdown showing remaining time
+                        timerRegistry.allTimers.forEach(timer => {
+                            timer.pause();
+                        });
 
-                // 2. Update pause state for ALL relevant round timers (including driver total/session)
-                // This ensures timers pause/resume with the overall race state.
-                if (timerRegistry.byRoundId[roundId]) {
-                    timerRegistry.byRoundId[roundId].forEach(timer => {
-                         // Don't pause/resume countdown timers here again if handled above
-                        if (timer.countDirection !== 'down') {
+                        timerRegistry.countdownTimers.forEach(timer => {
+                            timer.updateRemainingTime(data.remaining_seconds);
+                        });
+                    } else {
+                        // Normal case - update all timers based on pause state
+                        timerRegistry.countdownTimers.forEach(timer => {
+                            timer.updateRemainingTime(data.remaining_seconds);
                             timer.updatePauseState(isPaused);
-                        }
-                    });
+                        });
+
+                        // For all other timers, update based on round state
+                        // Only update non-session timers here
+                        timerRegistry.allTimers
+                            .filter(timer => timer.countDirection !== 'down' && timer.timerType !== 'sessiontime')
+                            .forEach(timer => {
+                                timer.updatePauseState(isPaused);
+                            });
+                    }
                 }
 
-                // 3. Handle SPECIFIC driver session activation/deactivation
+                // Handle driver session updates
                 if (data.session_update && data.driver_id) {
                     console.log(`Handling session update for driver ${data.driver_id}, active: ${data.driver_active}`);
                     const driverTimers = timerRegistry.byDriverId[data.driver_id];
-                    const newOntrack = data.driver_active; // True if driver is now active, false otherwise
+                    const newOntrack = data.driver_active;
 
-                    // --- REMOVED HTML FETCHING AND REFRESH EVENT ---
-
-                    // Update the data attribute for styling if needed
+                    // Update UI elements
                     const driverRow = document.getElementById(`driver-row-${data.driver_id}`);
                     if (driverRow) {
                         driverRow.setAttribute('data-ontrack', newOntrack ? 'true' : 'false');
-                        // You might want to add/remove CSS classes here instead of direct style manipulation
-                        // e.g., driverRow.classList.toggle('driver-active', newOntrack);
                     }
 
-                     // Visually manage the session cell container if needed (optional)
-                     const sessionCell = document.getElementById(`session-cell-${data.driver_id}`);
-                     if (sessionCell) {
-                         // Example: Hide/show the cell content area or apply a class
-                          const timerSpan = sessionCell.querySelector('[data-timer]'); // Find the timer span within
-                          if(timerSpan){
-                              timerSpan.style.visibility = newOntrack ? 'visible' : 'hidden';
-                              // OR: sessionCell.classList.toggle('session-inactive', !newOntrack);
-                          } else if (newOntrack) {
-                              // This case *shouldn't* happen if the template always renders it,
-                              // but indicates a potential issue if the span isn't found when it should be active.
-                              console.warn(`Session timer span not found in cell session-cell-${data.driver_id} when activating.`);
-                          }
-                     }
-
-
-                    // Update the ACTUAL TimerWidget instances
+                    // Update timer widgets
                     if (driverTimers) {
                         driverTimers.forEach(timer => {
                             console.log(`Updating timer ${timer.element.id} (type: ${timer.timerType}) for driver ${data.driver_id}`);
                             timer.handleSessionUpdate(newOntrack);
                         });
                     } else {
-                         console.warn(`No timers found in registry for driver ${data.driver_id}`);
+                        console.warn(`No timers found in registry for driver ${data.driver_id}`);
                     }
                 }
             }
@@ -209,18 +199,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         socket.onerror = function(error) {
             console.error('WebSocket error:', error);
-            // Attempt to reconnect on error as well
-             if (socket.readyState === WebSocket.CLOSED && !event.wasClean) { // Check if it closed unexpectedly
-                 console.warn('WebSocket error led to closure, attempting to reconnect...');
-                  if (reconnectAttempts < maxReconnectAttempts) {
-                    const delay = Math.min(reconnectDelay * Math.pow(1.5, reconnectAttempts), 30000);
-                    reconnectAttempts++;
-                     console.log(`Reconnecting in ${delay/1000} seconds... (attempt ${reconnectAttempts}/${maxReconnectAttempts})`);
-                    setTimeout(connectWebSocket, delay);
-                } else {
-                    console.error('Maximum reconnection attempts reached after error. Please refresh the page.');
-                }
-             }
+            if (reconnectAttempts < maxReconnectAttempts) {
+                const delay = Math.min(reconnectDelay * Math.pow(1.5, reconnectAttempts), 30000);
+                reconnectAttempts++;
+                console.log(`Reconnecting in ${delay/1000} seconds... (attempt ${reconnectAttempts}/${maxReconnectAttempts})`);
+                setTimeout(connectWebSocket, delay);
+            } else {
+                console.error('Maximum reconnection attempts reached after error. Please refresh the page.');
+            }
         };
     }
 
