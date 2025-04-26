@@ -193,29 +193,6 @@ class ChangeDriverConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({"driverc_html": driverc_html}))
 
 
-class RoundPauseConsumer(AsyncWebsocketConsumer):
-    async def connect(self):
-        self.round_id = self.scope["url_route"]["kwargs"]["round_id"]
-        self.round_group_name = f"roundpause_{self.round_id}"
-
-        await self.channel_layer.group_add(self.round_group_name, self.channel_name)
-        await self.accept()
-
-    async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(self.round_group_name, self.channel_name)
-
-    async def round_update(self, event):
-        await self.send(
-            text_data=json.dumps(
-                {
-                    "type": "round_update",
-                    "is_paused": event["is paused"],
-                    "remaining_seconds": event["remaining seconds"],
-                }
-            )
-        )
-
-
 class RoundConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         print("Round Consumer connection")
@@ -240,25 +217,39 @@ class RoundConsumer(AsyncWebsocketConsumer):
     # Receive message from room group
     async def round_update(self, event):
         # Send message to WebSocket
-        if event["type"] == "session update":
-            await self.send(
-                text_data=json.dumps(
-                    {
-                        "is_paused": event["is paused"],
-                        "time_spent": event["time spent"],
-                        "session_update": True,
-                        "driver_id": event["driver_id"],
-                        "driver_status": event["driver status"],
-                    }
-                )
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "is_paused": event["is_paused"],
+                    "remaining_seconds": event["remaining_seconds"],
+                    "session_update": False,
+                }
             )
-        else:
-            await self.send(
-                text_data=json.dumps(
-                    {
-                        "is_paused": event["is_paused"],
-                        "remaining_seconds": event["remaining_seconds"],
-                        "session_update": False,
-                    }
-                )
+        )
+
+    # Receive message from room group
+    async def session_update(self, event):
+        # Send message to WebSocket
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "is_paused": event["is paused"],
+                    "time_spent": event["time spent"],
+                    "session_update": True,
+                    "driver_id": event["driver_id"],
+                    "driver_status": event["driver status"],
+                }
             )
+        )
+
+    async def pause_update(self, event):
+        # Send message to WebSocket
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "session_update": False,
+                    "is_paused": event["is paused"],
+                    "remaining_seconds": event["remaining seconds"],
+                }
+            )
+        )

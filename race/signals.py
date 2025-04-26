@@ -109,9 +109,9 @@ def handle_pause_change(sender, instance, **kwargs):
 
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
-        f"roundpause_{round.id}",
+        f"round_{round.id}",
         {
-            "type": "round update",
+            "type": "pause_update",
             "is paused": is_paused,
             "remaining seconds": remaining,
         },
@@ -132,7 +132,7 @@ def handle_round_change(sender, instance, **kwargs):
     async_to_sync(channel_layer.group_send)(
         f"round_{instance.id}",
         {
-            "type": "round update",
+            "type": "round_update",
             "is paused": is_paused,
             "remaining seconds": remaining,
         },
@@ -158,7 +158,7 @@ def handle_session_change(sender, instance, **kwargs):
     async_to_sync(channel_layer.group_send)(
         f"round_{round_instance.id}",
         {
-            "type": "session update",
+            "type": "session_update",
             "is paused": round_instance.is_paused,
             "time spent": driver.time_spent.total_seconds(),
             "driver id": driver.id,
