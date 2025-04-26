@@ -35,9 +35,9 @@ class TimerWidget {
         this.lastUpdateTime = null;
         this.timerType = options.timerType || 'countdownDisplay'; // 'totaltime', 'sessiontime', 'countdownDisplay'
         if ( this.timerType == 'countdownDisplay' ) {
-            this.isacive = true;
+            this.isactive = true;
         } else {
-            tis.isactive = false;
+            this.isactive = false;
         }
 
         // Format options
