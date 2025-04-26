@@ -112,7 +112,7 @@ def handle_pause_change(sender, instance, **kwargs):
 
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
-        f"round_{round.id}",
+        f"round_{cround.id}",
         {
             "type": "pause_update",
             "is paused": is_paused,
