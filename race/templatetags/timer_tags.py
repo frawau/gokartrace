@@ -139,7 +139,7 @@ def timer_widget(
 
             # Session timer always starts from 0 when activated by JS.
             # Set startValue to 0 here for consistency.
-            initial_seconds = 0
+            initial_seconds = member.current_session.total_seconds()
 
             config.update(
                 {

@@ -696,11 +696,11 @@ class team_member(models.Model):
                 return total_time
         except ObjectDoesNotExist:
             # Handle the case where no session is found
-            return None
+            return dt.timedelta(0)
 
         except MultipleObjectsReturned:
             _log.critical("There should be only one active session per team/driver")
-            return "Contact Race Management!"
+            return dt.timedelta(0)
 
     @property
     def ontrack(self):
