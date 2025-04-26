@@ -221,6 +221,9 @@ class TimerWidget {
                 this.deactivate();
             } else if (status === "reset"){
                 this.deactivate();
+                if (this.element) {
+                    this.element.style.visibility = 'hidden';
+                }
                 this.reset(0)
             }
         }
