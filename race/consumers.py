@@ -223,6 +223,9 @@ class RoundConsumer(AsyncWebsocketConsumer):
                     "is_paused": event["is paused"],
                     "remaining_seconds": event["remaining seconds"],
                     "session_update": False,
+                    "started": event["started"],
+                    "ready": event["ready"],
+                    "ended": event["ended"],
                 }
             )
         )
@@ -250,6 +253,9 @@ class RoundConsumer(AsyncWebsocketConsumer):
                     "session_update": False,
                     "is_paused": event["is paused"],
                     "remaining_seconds": event["remaining seconds"],
+                    "started": event["started"],
+                    "ready": event["ready"],
+                    "ended": event["ended"],
                 }
             )
         )

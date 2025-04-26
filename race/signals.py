@@ -104,7 +104,10 @@ def change_lane_deleted(sender, instance, **kwargs):
 @receiver(post_save, sender=round_pause)
 def handle_pause_change(sender, instance, **kwargs):
     round = instance.round
-    is_paused = round.round_pause_set.filter(end__isnull=True).exists()
+    is_paused = round.is_paused
+    is_ready = round.ready
+    started = round.started != None
+    ended = round.ended != None
     remaining = (round.duration - round.time_elapsed).total_seconds()
 
     channel_layer = get_channel_layer()
@@ -114,6 +117,9 @@ def handle_pause_change(sender, instance, **kwargs):
             "type": "pause_update",
             "is paused": is_paused,
             "remaining seconds": remaining,
+            "started": started,
+            "ready": is_ready,
+            "ended": ended,
         },
     )
 
@@ -122,6 +128,9 @@ def handle_pause_change(sender, instance, **kwargs):
 def handle_round_change(sender, instance, **kwargs):
     """Handle round state changes (started, ended) for timer updates"""
     is_paused = instance.is_paused
+    is_ready = instance.ready
+    started = instance.started != None
+    ended = instance.ended != None
     remaining = (
         (instance.duration - instance.time_elapsed).total_seconds()
         if instance.started
@@ -135,6 +144,9 @@ def handle_round_change(sender, instance, **kwargs):
             "type": "round_update",
             "is paused": is_paused,
             "remaining seconds": remaining,
+            "started": started,
+            "ready": is_ready,
+            "ended": ended,
         },
     )
 
@@ -165,6 +177,7 @@ def handle_session_change(sender, instance, **kwargs):
             "driver status": dstatus,
         },
     )
+
 
 @receiver(pre_delete, sender=Session)
 def handle_session_delete(sender, instance, **kwargs):

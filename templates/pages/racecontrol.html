@@ -63,14 +63,14 @@
                             <button id="falseStartButton" class="btn btn-secondary btn-lg me-2 mb-2 race-action-btn"
                                     data-action="false_start"
                                     data-url="{% url 'falsestart' %}"
-                                    {% if not round.started or round.ended %}hidden{% endif %}> {# Hide if not started or ended (adjust logic as needed) #}
+                                    hidden>
                                 <i class="fas fa-undo me-1"></i> False Start
                             </button>
 
                             <button id="falseRestartButton" class="btn btn-secondary btn-lg me-2 mb-2 race-action-btn"
                                     data-action="false_restart"
                                     data-url="{% url 'falserestart' %}"
-                                    {% if not round.started or not round.is_paused or round.ended %}hidden{% endif %}> {# Hide if not paused (adjust logic) #}
+                                    hidden>
                                 <i class="fas fa-history me-1"></i> False Restart
                             </button>
 
@@ -136,7 +136,11 @@
     </div>
 </div>
 {% endblock content %}
-
+<div id="round-data"
+data-started="{{ round.started|yesno:'true,false' }}"
+data-ended="{{ round.ended|yesno:'true,false' }}"
+data-ready="{{ round.is_ready|yesno:'true,false' }}">
+</div>
 {% block extra_js %}
 {# Load the new JS file for button handling #}
 <script src="{% static 'js/racecontrol.js' %}"></script>
@@ -165,24 +169,20 @@
                         console.log("Round WS received:", data);
                         if ( ! data.session_update) {
                             // --- Timer Update ---
-                            if (data.remaining_seconds !== undefined && window.timerRegistry && window.timerRegistry.countdownTimers) {
-                                window.timerRegistry.countdownTimers.forEach(timer => {
-                                    timer.updateRemainingTime(data.remaining_seconds);
-                                });
-                            }
                             const isPaused = data.is_paused;
-                            if (window.timerRegistry && window.timerRegistry.byRoundId && window.timerRegistry.byRoundId[roundId]) {
-                                window.timerRegistry.byRoundId[roundId].forEach(timer => {
-                                    timer.updatePauseState(isPaused); // Let timer widget handle its own pause state
+
+                            // Handle countdown timer updates
+                            if (data.remaining_seconds !== undefined && data.remaining_seconds !== null) {
+                                // Normal case - update all timers based on pause state
+                                timerRegistry.countdownTimers.forEach(timer => {
+                                    timer.updateRemainingTime(data.remaining_seconds);
+                                    timer.updatePauseState(isPaused);
                                 });
-                            }
 
                             // --- Determine State from WS Data ---
-                            // Assumes backend sends these boolean flags
-                            const isStarted = data.is_started === true;
-                            // const isPaused = data.is_paused === true; // already have this
-                            const isEnded = data.is_ended === true;
-                            const isReady = data.is_ready === true;
+                            const isStarted = data.started === true;
+                            const isEnded = data.ended === true;
+                            const isReady = data.ready === true;
 
                             let currentState = 'initial';
                             if (isEnded) currentState = 'ended';
@@ -234,10 +234,6 @@
 
         {% endif %} // end if round
     }); // end DOMContentLoaded
-
-    // Keep helper functions if needed by inline WS code and defined in racecontrol.js
-    // Make sure functions like addSystemMessage, getCookie, updateEmptyTeamsList are accessible
-    // Easiest is to define them in racecontrol.js outside the DOMContentLoaded listener
 
 </script>
 

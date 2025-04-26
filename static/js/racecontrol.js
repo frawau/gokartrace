@@ -1,6 +1,8 @@
 // static/js/racecontrol.js
 let falseStartTimeoutId = null;
+let falseStartTimeoutExpired = false;
 let falseRestartTimeoutId = null;
+let falseRestartTimeoutExpired = false;
 let emptyTeamsSocketInstance = null;
 /**
  * Creates a WebSocket connection with automatic reconnection logic.
@@ -147,7 +149,11 @@ function hideFalseStartButton() {
     if (btn && !btn.hidden) {
         console.log("Hiding False Start button due to timeout or state change.");
         btn.hidden = true;
+        if ( falseStartTimeoutExpired) {
+            document.getElementById('pauseButton')?.removeAttribute('hidden');
+        }
     }
+    falseStartTimeoutExpired = false;
     if (falseStartTimeoutId) {
         clearTimeout(falseStartTimeoutId);
         falseStartTimeoutId = null;
@@ -162,7 +168,11 @@ function hideFalseRestartButton() {
     if (btn && !btn.hidden) {
         console.log("Hiding False Restart button due to timeout or state change.");
         btn.hidden = true;
+        if ( falseRetartTimeoutExpired) {
+            document.getElementById('pauseButton')?.removeAttribute('hidden');
+        }
     }
+    falseRestartTimeoutExpired = false;
     if (falseRestartTimeoutId) {
         clearTimeout(falseRestartTimeoutId);
         falseRestartTimeoutId = null;
@@ -195,22 +205,27 @@ function updateButtonVisibility(state, options = {}) {
             document.getElementById('emptyTeamsCard')?.style.setProperty('display', 'none', 'important');
             document.getElementById('teamSelectCard')?.style.setProperty('display', 'block', 'important');
             break;
-        case 'running': // Started, not paused
+        case 'running': // Ready, not started
             document.getElementById('pauseButton')?.removeAttribute('hidden');
-            document.getElementById('endButton')?.removeAttribute('hidden');
+            break;
+        case 'prerunning': // Started, not paused
             document.getElementById('falseStartButton')?.removeAttribute('hidden'); // Show initially
             // Start timeout to hide False Start button after a delay
             if (!options.keepFalseStart) { // Avoid restarting timeout if already running
-                falseStartTimeoutId = setTimeout(hideFalseStartButton, 15000); // 15 seconds
+                falseStartTimeoutId = setTimeout(() => {
+                    falseStartTimeoutExpired = true;
+                    hideFalseStartButton();
+                }, 15000); // 15 seconds
             }
             break;
         case 'paused': // Started, paused
-            document.getElementById('resumeButton')?.removeAttribute('hidden');
-            document.getElementById('endButton')?.removeAttribute('hidden');
             document.getElementById('falseRestartButton')?.removeAttribute('hidden'); // Show initially
             // Start timeout to hide False Restart button after a delay
             if (!options.keepFalseRestart) { // Avoid restarting timeout
-                falseRestartTimeoutId = setTimeout(hideFalseRestartButton, 15000); // 15 seconds
+                falseRestartTimeoutId = setTimeout(() => {
+                    falseRestartTimeoutExpired = true;
+                    hideFalseRestartButton();
+                }, 15000); // 15 seconds
             }
             break;
         case 'ended': // Ended
@@ -289,7 +304,7 @@ async function handleRaceAction(event) {
 
                 switch (action) {
                     case 'pre_check':     nextState = 'ready'; break;
-                    case 'start':         nextState = 'running'; options = { showFalseStart: true }; break;
+                    case 'start':         nextState = 'prerunning'; options = { showFalseStart: true }; break;
                     case 'pause':         nextState = 'paused'; options = { showFalseRestart: true }; break;
                     case 'resume':        nextState = 'running'; options = { showFalseStart: true }; break; // Resume goes back to running
                     case 'end':           nextState = 'ended'; break;
