@@ -201,7 +201,7 @@ def race_start(request):
         Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
     ).first()
     cround.start_race()
-    return HttpResponse("OK")
+    return JsonResponse({"result": True})
 
 
 @login_required
@@ -213,7 +213,7 @@ def falsestart(request):
         Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
     ).first()
     cround.false_start()
-    return HttpResponse("OK")
+    return JsonResponse({"result": True})
 
 
 @login_required
@@ -225,7 +225,7 @@ def racepaused(request):
         Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
     ).first()
     cround.pause_race()
-    return HttpResponse("OK")
+    return JsonResponse({"result": True})
 
 
 @login_required
@@ -237,7 +237,7 @@ def racerestart(request):
         Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
     ).first()
     cround.restart_race()
-    return HttpResponse("OK")
+    return JsonResponse({"result": True})
 
 
 @login_required
@@ -250,14 +250,14 @@ def falserestart(request):
         Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
     ).first()
     cround.false_restart()
-    return HttpResponse("OK")
+    return JsonResponse({"result": True})
 
 
 @login_required
 @user_passes_test(is_race_director)
 def endofrace(request):
     errs = self.end_race()
-    return HttpResponse("OK")
+    return JsonResponse({"result": True})
 
 
 @csrf_exempt
