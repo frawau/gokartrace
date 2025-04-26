@@ -205,28 +205,33 @@ function updateButtonVisibility(state, options = {}) {
             document.getElementById('emptyTeamsCard')?.style.setProperty('display', 'none', 'important');
             document.getElementById('teamSelectCard')?.style.setProperty('display', 'block', 'important');
             break;
-        case 'running': // Ready, not started
-            document.getElementById('pauseButton')?.removeAttribute('hidden');
+        case 'running': // Ready, started
+            if (options.showFalseStart ) {
+                document.getElementById('falseStartButton')?.removeAttribute('hidden'); // Show initially
+                if (!options.keepFalseStart) { // Avoid restarting timeout if already running
+                    falseStartTimeoutId = setTimeout(() => {
+                        falseStartTimeoutExpired = true;
+                        hideFalseStartButton();
+                    }, 15000); // 15 seconds
+                }
+            } else {
+                document.getElementById('pauseButton')?.removeAttribute('hidden');
+            };
             break;
-        case 'prerunning': // Started, not paused
-            document.getElementById('falseStartButton')?.removeAttribute('hidden'); // Show initially
-            // Start timeout to hide False Start button after a delay
-            if (!options.keepFalseStart) { // Avoid restarting timeout if already running
-                falseStartTimeoutId = setTimeout(() => {
-                    falseStartTimeoutExpired = true;
-                    hideFalseStartButton();
-                }, 15000); // 15 seconds
-            }
-            break;
-        case 'paused': // Started, paused
+
+        case paused': // Started, paused
+            if (options.showFalseRestart ) {
             document.getElementById('falseRestartButton')?.removeAttribute('hidden'); // Show initially
-            // Start timeout to hide False Restart button after a delay
-            if (!options.keepFalseRestart) { // Avoid restarting timeout
-                falseRestartTimeoutId = setTimeout(() => {
-                    falseRestartTimeoutExpired = true;
-                    hideFalseRestartButton();
-                }, 15000); // 15 seconds
-            }
+                // Start timeout to hide False Restart button after a delay
+                if (!options.keepFalseRestart) { // Avoid restarting timeout
+                    falseRestartTimeoutId = setTimeout(() => {
+                        falseRestartTimeoutExpired = true;
+                        hideFalseRestartButton();
+                    }, 15000); // 15 seconds
+                }
+            } else {
+                document.getElementById('pauseButton')?.removeAttribute('hidden'); // Show initially
+            };
             break;
         case 'ended': // Ended
             // No buttons shown by default in 'ended' state
@@ -304,12 +309,12 @@ async function handleRaceAction(event) {
 
                 switch (action) {
                     case 'pre_check':     nextState = 'ready'; break;
-                    case 'start':         nextState = 'prerunning'; options = { showFalseStart: true }; break;
-                    case 'pause':         nextState = 'paused'; options = { showFalseRestart: true }; break;
-                    case 'resume':        nextState = 'running'; options = { showFalseStart: true }; break; // Resume goes back to running
+                    case 'start':         nextState = 'running'; options = { showFalseStart: true }; break;
+                    case 'pause':         nextState = 'paused'; break;
+                    case 'resume':        nextState = 'paused'; options = { showFalseRestart: true }; break; // Resume goes back to running
                     case 'end':           nextState = 'ended'; break;
                     case 'false_start':   nextState = 'ready'; break; // False start goes back to ready
-                    case 'false_restart': nextState = 'paused'; options = { showFalseRestart: true }; break; // False restart goes back to paused
+                    case 'false_restart': nextState = 'paused'; break; // False restart goes back to paused
                 }
 
                 updateButtonVisibility(nextState, options); // Update UI based on FSM

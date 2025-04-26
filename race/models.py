@@ -285,7 +285,7 @@ class Round(models.Model):
 
     def false_start(self):
         sessions = self.session_set.filter(
-            round=self, register__isnull=False, start=self.started, end__isnull=True
+            round=self, register__isnull=False, start__isnull=False, end__isnull=True
         )
         for session in sessions:
             session.start = None
