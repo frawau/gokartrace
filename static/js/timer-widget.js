@@ -4,6 +4,8 @@ const timerRegistry = {
     allTimers: [],
     countdownTimers: [],
     byDriverId: {},
+    lastGlobalTickTime: null,
+    isTickRunning: false,
 
     registerTimer: function(timer) {
         this.allTimers.push(timer);
@@ -20,6 +22,34 @@ const timerRegistry = {
             }
             this.byDriverId[timer.targetId].push(timer);
         }
+
+        // Start the global tick if not already running
+        if (!this.isTickRunning) {
+            this.startGlobalTick();
+        }
+    },
+
+    startGlobalTick: function() {
+        this.isTickRunning = true;
+        this.lastGlobalTickTime = Date.now();
+        this.globalTick();
+    },
+
+    globalTick: function() {
+        // Calculate time delta once
+        const now = Date.now();
+        const delta = (now - this.lastGlobalTickTime) / 1000;
+        this.lastGlobalTickTime = now;
+
+        // Update all active timers with the same delta
+        this.allTimers.forEach(timer => {
+            if (!timer.paused && timer.isactive) {
+                timer.update(delta);
+            }
+        });
+
+        // Continue the global tick
+        requestAnimationFrame(() => this.globalTick());
     }
 };
 
@@ -32,85 +62,27 @@ class TimerWidget {
         this.targetId = options.targetId; // Store driver ID for session updates
         this.precision = options.precision || 0; // Decimal places
         this.currentValue = this.startValue;
-        this.lastUpdateTime = null;
         this.timerType = options.timerType || 'countdownDisplay'; // 'totaltime', 'sessiontime', 'countdownDisplay'
-        if ( this.timerType == 'countdownDisplay' ) {
+        if (this.timerType == 'countdownDisplay') {
             this.isactive = true;
         } else {
-            if ( this.paused ) {
-                this.isactive = false;
-            } else {
-                this.isactive=true;
-            }
+            this.isactive = !this.paused;
         }
 
         // Format options
         this.showHours = options.showHours !== undefined ? options.showHours : true;
         this.showMinutes = options.showMinutes !== undefined ? options.showMinutes : true;
         this.showSeconds = true;
-        // Frozen state
 
         // Initial render
         this.render();
-
-        // Start timer if not paused
-        if (!this.paused) {
-            this.start();
-        }
 
         // Register with the global registry
         timerRegistry.registerTimer(this);
     }
 
-    start() {
-        if ( this.isactive ) {
-            this.paused = false;
-            this.lastUpdateTime = Date.now();
-            this.tick();
-        }
-    }
-
-    pause() {
-        this.paused = true;
-    }
-
-    resume() {
-        if ( this.isactive && this.paused ) {
-            this.paused = false;
-            this.lastUpdateTime = Date.now();
-            this.tick();
-        }
-    }
-
-    activate() {
-        if ( this.targetId ) {
-            this.isactive = true;
-            if ( ! this.paused ) {
-                this.lastUpdateTime = Date.now();
-                this.tick();
-            }
-        }
-    }
-
-    deactivate() {
-        if ( this.targetId ) {
-            this.isactive = false;
-            this.paused = true;
-        }
-    }
-
-    reset(newStartValue) {
-        this.currentValue = newStartValue !== undefined ? newStartValue : this.startValue;
-        this.render();
-    }
-
-    tick() {
-        if (this.paused) return;
-
-        const now = Date.now();
-        const delta = (now - this.lastUpdateTime) / 1000;
-        this.lastUpdateTime = now;
-
+    // New method - update currentValue based on delta time
+    update(delta) {
         if (this.countDirection === 'up') {
             this.currentValue += delta;
         } else {
@@ -121,9 +93,42 @@ class TimerWidget {
                 this.pause();
             }
         }
-
         this.render();
-        requestAnimationFrame(() => this.tick());
+    }
+
+    start() {
+        if (this.isactive) {
+            this.paused = false;
+        }
+    }
+
+    pause() {
+        this.paused = true;
+    }
+
+    resume() {
+        if (this.isactive) {
+            this.paused = false;
+        }
+    }
+
+    activate() {
+        if (this.targetId) {
+            this.isactive = true;
+            this.paused = false;
+        }
+    }
+
+    deactivate() {
+        if (this.targetId) {
+            this.isactive = false;
+            this.paused = true;
+        }
+    }
+
+    reset(newStartValue) {
+        this.currentValue = newStartValue !== undefined ? newStartValue : this.startValue;
+        this.render();
     }
 
     formatTime(totalSeconds) {
@@ -193,7 +198,7 @@ class TimerWidget {
         }
     }
 
-    handleSessionUpdate(status,tspent) {
+    handleSessionUpdate(status, tspent) {
         if (this.timerType === 'sessiontime') {
             if (status === "start") {
                 this.reset(0);
@@ -202,12 +207,12 @@ class TimerWidget {
                 if (this.element) {
                     this.element.style.visibility = 'visible';
                 }
-            } else if (status === "end"){
+            } else if (status === "end") {
                 this.deactivate();
                 if (this.element) {
                     this.element.style.visibility = 'hidden';
                 }
-            } else if (status === "register"){
+            } else if (status === "register") {
                 if (this.element) {
                     this.element.style.visibility = 'visible';
                 }
@@ -224,12 +229,12 @@ class TimerWidget {
                 this.activate();
                 this.reset(tspent);
                 this.start();
-            } else if (status === "end"){
+            } else if (status === "end") {
                 this.deactivate();
-            } else if (status === "reset"){
+            } else if (status === "reset") {
                 this.deactivate();
                 this.reset(0)
-            } else if (status === "register"){
+            } else if (status === "register") {
                 this.reset(0)
             }
         }
