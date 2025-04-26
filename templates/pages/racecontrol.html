@@ -178,7 +178,7 @@ data-ready="{{ round.is_ready|yesno:'true,false' }}">
                                     timer.updateRemainingTime(data.remaining_seconds);
                                     timer.updatePauseState(isPaused);
                                 });
-
+                            }
                             // --- Determine State from WS Data ---
                             const isStarted = data.started === true;
                             const isEnded = data.ended === true;
@@ -192,7 +192,6 @@ data-ready="{{ round.is_ready|yesno:'true,false' }}">
 
                             // --- Update Button Visibility using Helper Function ---
                             updateButtonVisibility(currentState); // Call the function from racecontrol.js
-
                         }
                     } catch (err) {
                         console.error("Error processing round WS message:", err, e.data);
