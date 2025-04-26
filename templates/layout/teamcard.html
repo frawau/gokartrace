@@ -19,16 +19,15 @@
                             <tr id="driver-row-{{ member.id }}" data-driver-id="{{ member.id }}" data-ontrack="{{ member.ontrack|yesno:'true,false' }}" data-team-id="{{ round_team.id }}">
                                 <td style="border: 10px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">{{ member.member.nickname }}</td>
                                 <td style="border: 10px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">
-                                    {% timer_widget "total-time-"|add:member.id|stringformat:"s" "totaltime" member %}
+                                    {% timer_widget "total-time-" "totaltime" member %}
                                 </td>
                                 <td style="border: 10px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;" id="session-cell-{{ member.id }}">
                                     {# Always render the session timer widget #}
                                     {# The JS will hide/show its content via visibility style #}
                                     {# The template tag should set initialPaused based on member.ontrack #}
-                                    {% timer_widget "session-time-"|add:member.id|stringformat:"s" "sessiontime" member %}
+                                    {% timer_widget "session-time-" "sessiontime" member %}
 
                                     {# Example of how you might visually hide if not ontrack initially #}
-                                    {# This could also be done by adding a class based on data-ontrack #}
                                     <style>
                                       #session-time-{{ member.id }}:not([style*="visibility: visible"]) {
                                           visibility: {% if not member.ontrack %}hidden{% else %}visible{% endif %};
