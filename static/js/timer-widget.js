@@ -211,6 +211,7 @@ class TimerWidget {
                 if (this.element) {
                     this.element.style.visibility = 'visible';
                 }
+                this.reset(0)
             } else { //reset
                 this.deactivate();
                 this.reset(0)
@@ -227,6 +228,8 @@ class TimerWidget {
                 this.deactivate();
             } else if (status === "reset"){
                 this.deactivate();
+                this.reset(0)
+            } else if (status === "register"){
                 this.reset(0)
             }
         }
