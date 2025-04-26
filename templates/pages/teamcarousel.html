@@ -134,7 +134,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const driverRow = document.getElementById(`driver-row-${data.driver_id}`);
                 if (driverRow) {
                     driverRow.setAttribute('data-ontrack', newOntrack ? 'true' : 'false');
-                    }
+                }
 
                 // Update timer widgets
                 if (driverTimers) {
@@ -142,10 +142,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         console.log(`Updating timer ${timer.element.id} (type: ${timer.timerType}) for driver ${data.driver_id}`);
                         timer.handleSessionUpdate(data.driver_status, data.time_spent);
                         });
-                    } else {
-                        console.warn(`No timers found in registry for driver ${data.driver_id}`);
-                        }
-                    }
+                } else {
+                    console.warn(`No timers found in registry for driver ${data.driver_id}`);
+                }
             } else {
                 const isPaused = data.is_paused;
 
