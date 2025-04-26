@@ -156,14 +156,14 @@
             const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
 
             // --- Round Update WebSocket ---
-            const roundSocketUrl = `${wsScheme}://${window.location.host}/ws/roundpause/${roundId}/`;
+            const roundSocketUrl = `${wsScheme}://${window.location.host}/ws/round/${roundId}/`;
             const roundSocket = createWebSocketWithReconnect(
                 roundSocketUrl,
                 function(e) { // onmessage
                     try {
                         const data = JSON.parse(e.data);
                         console.log("Round WS received:", data);
-                        if (data.type === 'round_update') {
+                        if ( ! data.session_update) {
                             // --- Timer Update ---
                             if (data.remaining_seconds !== undefined && window.timerRegistry && window.timerRegistry.countdownTimers) {
                                 window.timerRegistry.countdownTimers.forEach(timer => {
