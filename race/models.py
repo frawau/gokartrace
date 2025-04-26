@@ -671,11 +671,11 @@ class team_member(models.Model):
 
     @property
     def current_session(self):
+        total_time = dt.timedelta(0)
         try:
             sessions = self.session_set.filter(
                 driver=self, start__isnull=False, end__isnull=True
             )
-            total_time = dt.timedelta(0)
             now = dt.datetime.now()
             for session in sessions:
                 session_time = now - session.start
@@ -696,11 +696,13 @@ class team_member(models.Model):
                 return total_time
         except ObjectDoesNotExist:
             # Handle the case where no session is found
-            return dt.timedelta(0)
-
+            pass
         except MultipleObjectsReturned:
             _log.critical("There should be only one active session per team/driver")
-            return dt.timedelta(0)
+        except Exception as e:
+            _log.critical(f"Active session exception: {e}")
+        finally:
+            return total_time
 
     @property
     def ontrack(self):
