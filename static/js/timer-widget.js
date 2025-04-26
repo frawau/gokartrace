@@ -37,7 +37,11 @@ class TimerWidget {
         if ( this.timerType == 'countdownDisplay' ) {
             this.isactive = true;
         } else {
-            this.isactive = false;
+            if ( this.paused ) {
+                this.isactive = false;
+            } else {
+                this.isactive=true;
+            }
         }
 
         // Format options

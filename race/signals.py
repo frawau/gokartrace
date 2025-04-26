@@ -165,3 +165,21 @@ def handle_session_change(sender, instance, **kwargs):
             "driver status": dstatus,
         },
     )
+
+@receiver(pre_delete, sender=Session)
+def handle_session_delete(sender, instance, **kwargs):
+    round_instance = instance.round
+    driver = instance.driver
+    dstatus = "reset"
+    channel_layer = get_channel_layer()
+    # First update the round timer
+    async_to_sync(channel_layer.group_send)(
+        f"round_{round_instance.id}",
+        {
+            "type": "session_update",
+            "is paused": round_instance.is_paused,
+            "time spent": driver.time_spent.total_seconds(),
+            "driver id": driver.id,
+            "driver status": dstatus,
+        },
+    )
