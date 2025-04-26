@@ -236,7 +236,7 @@ class RoundConsumer(AsyncWebsocketConsumer):
                     "is_paused": event["is paused"],
                     "time_spent": event["time spent"],
                     "session_update": True,
-                    "driver_id": event["driver_id"],
+                    "driver_id": event["driver id"],
                     "driver_status": event["driver status"],
                 }
             )
