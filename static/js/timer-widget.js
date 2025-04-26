@@ -199,6 +199,9 @@ class TimerWidget {
                 this.reset(0);
                 this.activate();
                 this.start();
+                if (this.element) {
+                    this.element.style.visibility = 'visible';
+                }
             } else if (status === "end"){
                 this.deactivate();
                 if (this.element) {
@@ -211,6 +214,9 @@ class TimerWidget {
             } else { //reset
                 this.deactivate();
                 this.reset(0)
+                if (this.element) {
+                    this.element.style.visibility = 'hidden';
+                }
             }
         } else if (this.timerType === 'totaltime') {
             if (status === "start") {
@@ -221,9 +227,6 @@ class TimerWidget {
                 this.deactivate();
             } else if (status === "reset"){
                 this.deactivate();
-                if (this.element) {
-                    this.element.style.visibility = 'hidden';
-                }
                 this.reset(0)
             }
         }
