@@ -168,7 +168,7 @@ function hideFalseRestartButton() {
     if (btn && !btn.hidden) {
         console.log("Hiding False Restart button due to timeout or state change.");
         btn.hidden = true;
-        if ( falseRetartTimeoutExpired) {
+        if ( falseRestartTimeoutExpired) {
             document.getElementById('pauseButton')?.removeAttribute('hidden');
         }
     }

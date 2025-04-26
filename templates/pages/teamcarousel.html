@@ -159,7 +159,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // For all other timers, update based on round state
                     // Only update non-session timers here
                     timerRegistry.allTimers
-                        .filter(timer => timer.countDirection !== 'down' && timer.timerType !== 'sessiontime')
+                        .filter(timer => ['sessiontime', 'totaltime'].includes(timer.timerType))
                         .forEach(timer => {
                             timer.updatePauseState(isPaused);
                         });
