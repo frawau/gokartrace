@@ -124,7 +124,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = JSON.parse(event.data);
             console.log("WebSocket received:", data);
 
-            if (data.session_upddate) {
+            if (data.session_update) {
                 // Handle driver session updates
                 console.log(`Handling session update for driver ${data.driver_id}, active: ${data.driver_active}, status ${data.driver_status}`);
                 const driverTimers = timerRegistry.byDriverId[data.driver_id];
