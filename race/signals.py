@@ -111,45 +111,57 @@ def handle_pause_change(sender, instance, **kwargs):
     async_to_sync(channel_layer.group_send)(
         f"roundpause_{round.id}",
         {
-            "type": "round_update",
-            "is_paused": is_paused,
-            "remaining_seconds": remaining,
+            "type": "round update",
+            "is paused": is_paused,
+            "remaining seconds": remaining,
         },
     )
+
 
 @receiver(post_save, sender=Round)
 def handle_round_change(sender, instance, **kwargs):
     """Handle round state changes (started, ended) for timer updates"""
     is_paused = instance.is_paused
-    remaining = (instance.duration - instance.time_elapsed).total_seconds() if instance.started else instance.duration.total_seconds()
+    remaining = (
+        (instance.duration - instance.time_elapsed).total_seconds()
+        if instance.started
+        else instance.duration.total_seconds()
+    )
 
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
         f"round_{instance.id}",
         {
-            "type": "round_update",
-            "is_paused": is_paused,
-            "remaining_seconds": remaining,
+            "type": "round update",
+            "is paused": is_paused,
+            "remaining seconds": remaining,
         },
     )
+
 
 @receiver(post_save, sender=Session)
 def handle_session_change(sender, instance, **kwargs):
     """Handle session changes for driver timer updates"""
     round_instance = instance.round
     driver = instance.driver
+    if instance.end:
+        dstatus = "end"
+    elif instance.start:
+        dstatus = "start"
+    elif instance.register:
+        dstatus = "register"
+    else:
+        dstatus = "reset"
 
     channel_layer = get_channel_layer()
-
     # First update the round timer
     async_to_sync(channel_layer.group_send)(
         f"round_{round_instance.id}",
         {
-            "type": "round_update",
-            "is_paused": round_instance.is_paused,
-            "remaining_seconds": (round_instance.duration - round_instance.time_elapsed).total_seconds(),
-            "session_update": True,
-            "driver_id": driver.id,
-            "driver_active": bool(instance.start and not instance.end),
+            "type": "session update",
+            "is paused": round_instance.is_paused,
+            "time spent": driver.time_spent.total_seconds(),
+            "driver id": driver.id,
+            "driver status": dstatus,
         },
     )

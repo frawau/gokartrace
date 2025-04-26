@@ -273,7 +273,11 @@ class Round(models.Model):
         Resets the 'end' attribute of the latest round_pause only if there are no open round_pauses.
         """
 
-        latest_pause = self.round_pause_set.filter(round=self, end__isnull=True).order_by("-start").first()
+        latest_pause = (
+            self.round_pause_set.filter(round=self, end__isnull=True)
+            .order_by("-start")
+            .first()
+        )
 
         if latest_pause:
             latest_pause.end = dt.datetime.now()
@@ -634,9 +638,7 @@ class team_member(models.Model):
 
     @property
     def time_spent(self):
-        sessions = self.session_set.filter(
-            driver=self, start__isnull=False
-        )
+        sessions = self.session_set.filter(driver=self, start__isnull=False)
         total_time = dt.timedelta(0)
         now = dt.datetime.now()
         for session in sessions:
@@ -654,10 +656,8 @@ class team_member(models.Model):
                 )
             else:
                 pauses = self.team.round.round_pause_set.filter(
-                    Q(start__lte=now),
-                    Q(end__gte=session.start) | Q(end__isnull=True)
+                    Q(start__lte=now), Q(end__gte=session.start) | Q(end__isnull=True)
                 )
-
 
             for pause in pauses:
                 pause_start = max(pause.start, session.start)
@@ -684,8 +684,7 @@ class team_member(models.Model):
                 # Calculate paused time within the session duration
 
                 pauses = self.team.round.round_pause_set.filter(
-                    Q(start__lte=now),
-                    Q(end__gte=session.start) | Q(end__isnull=True)
+                    Q(start__lte=now), Q(end__gte=session.start) | Q(end__isnull=True)
                 )
 
                 for pause in pauses:
@@ -706,8 +705,8 @@ class team_member(models.Model):
     @property
     def ontrack(self):
         return self.session_set.filter(
-                driver=self, start__isnull=False, end__isnull=True
-            ).exists()
+            driver=self, start__isnull=False, end__isnull=True
+        ).exists()
 
     def save(self, *args, **kwargs):
         self.clean()

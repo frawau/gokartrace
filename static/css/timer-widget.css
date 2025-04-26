@@ -8,6 +8,9 @@
     color: #f59e0b; /* Amber color for paused state */
     animation: blink 1s infinite;
     }
+.timer.timer-frozeb {
+    color: #f59e0b; /* Amber color for paused state */
+    }
 
 .timer.timer-ended {
     color: #ef4444; /* Red color for ended state */

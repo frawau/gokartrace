@@ -124,59 +124,46 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = JSON.parse(event.data);
             console.log("WebSocket received:", data);
 
-            if (data.type === 'round_update') {
+            if (data.session_upddate) {
+                // Handle driver session updates
+                console.log(`Handling session update for driver ${data.driver_id}, active: ${data.driver_active}, status ${data.driver_status}`);
+                const driverTimers = timerRegistry.byDriverId[data.driver_id];
+                const newOntrack = data.driver_active;
+
+                // Update UI elements
+                const driverRow = document.getElementById(`driver-row-${data.driver_id}`);
+                if (driverRow) {
+                    driverRow.setAttribute('data-ontrack', newOntrack ? 'true' : 'false');
+                    }
+
+                // Update timer widgets
+                if (driverTimers) {
+                    driverTimers.forEach(timer => {
+                        console.log(`Updating timer ${timer.element.id} (type: ${timer.timerType}) for driver ${data.driver_id}`);
+                        timer.handleSessionUpdate(data.driver_status, data.time_spent);
+                        });
+                    } else {
+                        console.warn(`No timers found in registry for driver ${data.driver_id}`);
+                        }
+                    }
+            } else {
                 const isPaused = data.is_paused;
 
                 // Handle countdown timer updates
                 if (data.remaining_seconds !== undefined && data.remaining_seconds !== null) {
-                    // Special case for remaining <= 120 seconds
-                    if (data.remaining_seconds <= 120) {
-                        // Pause all timers but keep countdown showing remaining time
-                        timerRegistry.allTimers.forEach(timer => {
-                            timer.pause();
-                        });
+                    // Normal case - update all timers based on pause state
+                    timerRegistry.countdownTimers.forEach(timer => {
+                        timer.updateRemainingTime(data.remaining_seconds);
+                        timer.updatePauseState(isPaused);
+                    });
 
-                        timerRegistry.countdownTimers.forEach(timer => {
-                            timer.updateRemainingTime(data.remaining_seconds);
-                        });
-                    } else {
-                        // Normal case - update all timers based on pause state
-                        timerRegistry.countdownTimers.forEach(timer => {
-                            timer.updateRemainingTime(data.remaining_seconds);
+                    // For all other timers, update based on round state
+                    // Only update non-session timers here
+                    timerRegistry.allTimers
+                        .filter(timer => timer.countDirection !== 'down' && timer.timerType !== 'sessiontime')
+                        .forEach(timer => {
                             timer.updatePauseState(isPaused);
                         });
-
-                        // For all other timers, update based on round state
-                        // Only update non-session timers here
-                        timerRegistry.allTimers
-                            .filter(timer => timer.countDirection !== 'down' && timer.timerType !== 'sessiontime')
-                            .forEach(timer => {
-                                timer.updatePauseState(isPaused);
-                            });
-                    }
-                }
-
-                // Handle driver session updates
-                if (data.session_update && data.driver_id) {
-                    console.log(`Handling session update for driver ${data.driver_id}, active: ${data.driver_active}`);
-                    const driverTimers = timerRegistry.byDriverId[data.driver_id];
-                    const newOntrack = data.driver_active;
-
-                    // Update UI elements
-                    const driverRow = document.getElementById(`driver-row-${data.driver_id}`);
-                    if (driverRow) {
-                        driverRow.setAttribute('data-ontrack', newOntrack ? 'true' : 'false');
-                    }
-
-                    // Update timer widgets
-                    if (driverTimers) {
-                        driverTimers.forEach(timer => {
-                            console.log(`Updating timer ${timer.element.id} (type: ${timer.timerType}) for driver ${data.driver_id}`);
-                            timer.handleSessionUpdate(newOntrack);
-                        });
-                    } else {
-                        console.warn(`No timers found in registry for driver ${data.driver_id}`);
-                    }
                 }
             }
         };

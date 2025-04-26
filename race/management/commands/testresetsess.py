@@ -6,16 +6,16 @@ from django.contrib.auth.models import Group
 from django.core.validators import MinValueValidator, MaxValueValidator
 from race.models import (
     Session,
-    )
+)
 
 
 class Command(BaseCommand):
     help = "Creates a championship, rounds, teams, and team members."
 
     def handle(self, *args, **options):
-        seenteam=[]
+        seenteam = []
         todel = True
-        now=dt.datetime.now()
+        now = dt.datetime.now()
         for asess in list(Session.objects.all()):
             if not asess.end:
                 if asess.start:
@@ -27,6 +27,6 @@ class Command(BaseCommand):
             if todel:
                 asess.delete()
             else:
-                asess.start=None
+                asess.start = None
                 asess.register = now
                 asess.save()

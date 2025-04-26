@@ -33,12 +33,18 @@ class TimerWidget {
         this.precision = options.precision || 0; // Decimal places
         this.currentValue = this.startValue;
         this.lastUpdateTime = null;
-        this.timerType = options.timerType || 'default'; // 'totaltime', 'sessiontime', 'countdownDisplay'
+        this.timerType = options.timerType || 'countdownDisplay'; // 'totaltime', 'sessiontime', 'countdownDisplay'
+        if ( this.timerType == 'countdownDisplay' ) {
+            this.isacive = true;
+        } else {
+            tis.isactive = false;
+        }
 
         // Format options
         this.showHours = options.showHours !== undefined ? options.showHours : true;
         this.showMinutes = options.showMinutes !== undefined ? options.showMinutes : true;
         this.showSeconds = true;
+        // Frozen state
 
         // Initial render
         this.render();
@@ -53,9 +59,11 @@ class TimerWidget {
     }
 
     start() {
-        this.paused = false;
-        this.lastUpdateTime = Date.now();
-        this.tick();
+        if ( this.isactive ) {
+            this.paused = false;
+            this.lastUpdateTime = Date.now();
+            this.tick();
+        }
     }
 
     pause() {
@@ -63,10 +71,27 @@ class TimerWidget {
     }
 
     resume() {
-        if (this.paused) {
+        if ( this.isactive && this.paused ) {
             this.paused = false;
             this.lastUpdateTime = Date.now();
             this.tick();
+        }
+    }
+
+    activate() {
+        if ( this.targetId ) {
+            this.isactive = true;
+            if ( ! this.paused ) {
+                this.lastUpdateTime = Date.now();
+                this.tick();
+            }
+        }
+    }
+
+    deactivate() {
+        if ( this.targetId ) {
+            this.isactive = false;
+            this.paused = true;
         }
     }
 
@@ -134,9 +159,17 @@ class TimerWidget {
             }
 
             if (this.paused) {
-                this.element.classList.add('timer-paused');
+                if (this.countDirection === 'up') {
+                    this.element.classList.add('timer-frozen');
+                } else {
+                    this.element.classList.add('timer-paused');
+                }
             } else {
-                this.element.classList.remove('timer-paused');
+                if (this.countDirection === 'up') {
+                    this.element.classList.remove('timer-frozen');
+                } else {
+                    this.element.classList.remove('timer-paused');
+                }
             }
         }
     }
@@ -156,25 +189,35 @@ class TimerWidget {
         }
     }
 
-    handleSessionUpdate(isActive) {
+    handleSessionUpdate(status,tspent) {
         if (this.timerType === 'sessiontime') {
-            if (isActive) {
+            if (status === "start") {
                 this.reset(0);
-                this.paused = false;
+                this.activate();
                 this.start();
-                if (this.element) {
-                    this.element.style.visibility = 'visible';
-                }
-            } else {
-                this.pause();
+            } else if (status === "end"){
+                this.deactivate();
                 if (this.element) {
                     this.element.style.visibility = 'hidden';
                 }
+            } else if (status === "register"){
+                if (this.element) {
+                    this.element.style.visibility = 'visible';
+                }
+            } else { //reset
+                this.deactivate();
+                this.reset(0)
             }
         } else if (this.timerType === 'totaltime') {
-            this.paused = !isActive;
-            if (!this.paused) {
+            if (status === "start") {
+                this.activate();
+                this.reset(tspent);
                 this.start();
+            } else if (status === "end"){
+                this.deactivate();
+            } else if (status === "reset"){
+                this.deactivate();
+                this.reset(0)
             }
         }
     }
