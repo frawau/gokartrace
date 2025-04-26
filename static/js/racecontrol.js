@@ -219,7 +219,7 @@ function updateButtonVisibility(state, options = {}) {
             };
             break;
 
-        case paused': // Started, paused
+        case 'paused': // Started, paused
             if (options.showFalseRestart ) {
             document.getElementById('falseRestartButton')?.removeAttribute('hidden'); // Show initially
                 // Start timeout to hide False Restart button after a delay
