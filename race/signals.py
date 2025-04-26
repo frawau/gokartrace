@@ -103,12 +103,12 @@ def change_lane_deleted(sender, instance, **kwargs):
 
 @receiver(post_save, sender=round_pause)
 def handle_pause_change(sender, instance, **kwargs):
-    round = instance.round
-    is_paused = round.is_paused
-    is_ready = round.ready
-    started = round.started != None
-    ended = round.ended != None
-    remaining = (round.duration - round.time_elapsed).total_seconds()
+    cround = instance.round
+    is_paused = cround.is_paused
+    is_ready = cround.ready
+    started = cround.started != None
+    ended = cround.ended != None
+    remaining = round(cround.duration - round(cround.time_elapsed).total_seconds())
 
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
@@ -131,7 +131,7 @@ def handle_round_change(sender, instance, **kwargs):
     is_ready = instance.ready
     started = instance.started != None
     ended = instance.ended != None
-    remaining = (
+    remaining = round(
         (instance.duration - instance.time_elapsed).total_seconds()
         if instance.started
         else instance.duration.total_seconds()
@@ -172,7 +172,7 @@ def handle_session_change(sender, instance, **kwargs):
         {
             "type": "session_update",
             "is paused": round_instance.is_paused,
-            "time spent": driver.time_spent.total_seconds(),
+            "time spent": round(driver.time_spent.total_seconds()),
             "driver id": driver.id,
             "driver status": dstatus,
         },
@@ -191,7 +191,7 @@ def handle_session_delete(sender, instance, **kwargs):
         {
             "type": "session_update",
             "is paused": round_instance.is_paused,
-            "time spent": driver.time_spent.total_seconds(),
+            "time spent": round(driver.time_spent.total_seconds()),
             "driver id": driver.id,
             "driver status": dstatus,
         },

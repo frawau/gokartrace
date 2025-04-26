@@ -83,10 +83,10 @@ def get_team_card(request):
     cround = round_team_instance.round
     is_paused = cround.round_pause_set.filter(end__isnull=True).exists()
     if cround.started:
-        elapsed = cround.time_elapsed.total_seconds()
-        remaining = int(max(0, cround.duration.total_seconds() - elapsed))
+        elapsed = round(cround.time_elapsed.total_seconds())
+        remaining = int(max(0, round(cround.duration.total_seconds() - elapsed)))
     else:
-        remaining = int(cround.duration.total_seconds())
+        remaining = round(cround.duration.total_seconds())
         is_paused = True
 
     context = {
