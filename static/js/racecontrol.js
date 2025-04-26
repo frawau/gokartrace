@@ -214,14 +214,8 @@ function updateButtonVisibility(state, options = {}) {
                         hideFalseStartButton();
                     }, 15000); // 15 seconds
                 }
-            } else {
-                document.getElementById('pauseButton')?.removeAttribute('hidden');
-            };
-            break;
-
-        case 'paused': // Started, paused
-            if (options.showFalseRestart ) {
-            document.getElementById('falseRestartButton')?.removeAttribute('hidden'); // Show initially
+            } else if (options.showFalseRestart ) {
+                document.getElementById('falseRestartButton')?.removeAttribute('hidden'); // Show initially
                 // Start timeout to hide False Restart button after a delay
                 if (!options.keepFalseRestart) { // Avoid restarting timeout
                     falseRestartTimeoutId = setTimeout(() => {
@@ -230,8 +224,12 @@ function updateButtonVisibility(state, options = {}) {
                     }, 15000); // 15 seconds
                 }
             } else {
-                document.getElementById('pauseButton')?.removeAttribute('hidden'); // Show initially
+                document.getElementById('pauseButton')?.removeAttribute('hidden');
             };
+            break;
+
+        case 'paused': // Started, paused
+            document.getElementById('resumeButton')?.removeAttribute('hidden'); // Show initially
             break;
         case 'ended': // Ended
             // No buttons shown by default in 'ended' state
@@ -311,7 +309,7 @@ async function handleRaceAction(event) {
                     case 'pre_check':     nextState = 'ready'; break;
                     case 'start':         nextState = 'running'; options = { showFalseStart: true }; break;
                     case 'pause':         nextState = 'paused'; break;
-                    case 'resume':        nextState = 'paused'; options = { showFalseRestart: true }; break; // Resume goes back to running
+                    case 'resume':        nextState = 'running'; options = { showFalseRestart: true }; break; // Resume goes back to running
                     case 'end':           nextState = 'ended'; break;
                     case 'false_start':   nextState = 'ready'; break; // False start goes back to ready
                     case 'false_restart': nextState = 'paused'; break; // False restart goes back to paused
