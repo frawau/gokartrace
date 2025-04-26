@@ -108,7 +108,7 @@ def handle_pause_change(sender, instance, **kwargs):
     is_ready = cround.ready
     started = cround.started != None
     ended = cround.ended != None
-    remaining = round(cround.duration - round(cround.time_elapsed).total_seconds())
+    remaining = round((cround.duration - cround.time_elapsed).total_seconds())
 
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
