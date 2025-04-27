@@ -68,3 +68,7 @@ class RaceTasks:
         else:
             # bail out
             return
+
+def run_race_events():
+    """Wrapper function to run the async race_events task."""
+    aio.run(RaceTasks.race_events())
