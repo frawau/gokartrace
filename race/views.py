@@ -305,7 +305,7 @@ def agent_login(request):
         elif user.groups.filter(name="Driver Scanner").exists():
             token, created = Token.objects.get_or_create(user=user)
             return Response(
-                {"status": "ok", "token": token.key, "url": servurl + "driver_change/"},
+                {"status": "ok", "token": token.key, "url": servurl + "/driver_change/"},
                 status=status.HTTP_200_OK,
             )
         else:
