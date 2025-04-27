@@ -21,6 +21,6 @@ def racing_start():
     thread.start()
 
 def start_loop(loop, scheduler):
-    asyncio.set_event_loop(loop)
+    aio.set_event_loop(loop)
     scheduler.start()
     loop.run_forever()
