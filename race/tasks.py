@@ -33,12 +33,12 @@ class RaceTasks:
                 elapsed = await cround.async_time_elapsed()
                 if elapsed < cround.pitlane_open_after:
                     # Do we wait for it?
-                    if (elapsed - cround.pitlane_open_after) <= dt.timedelta(
+                    if (cround.pitlane_open_after) - elapsed <= dt.timedelta(
                         seconds=65
                     ):
                         # Let's wwait
                         await aio.sleep(
-                            (elapsed - cround.pitlane_open_after).total_seconds()
+                            (cround.pitlane_open_after-elapsed).total_seconds()
                         )
                         change_lanes = await sync_to_async(list)(
                             ChangeLane.objects.filter(round=cround, open=False)
