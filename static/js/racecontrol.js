@@ -175,10 +175,18 @@ function connectToLaneSockets() {
             try {
               const data = JSON.parse(event.data);
               if (data.type === "lane.update") {
-                const el = document.getElementById(`lane-${laneNumber}`);
-                if (el) {
-                  el.innerHTML = data.lane_html;
-                }
+                  fetch(`/pitlanedetail/${laneNumber}/`)
+                  .then(response => {
+                      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                      return response.text();
+                  })
+                  .then(htmlData => {
+                      const el = document.getElementById(`lane-${laneNumber}`);
+                      if (el) el.innerHTML = htmlData;
+                  })
+                  .catch(error => {
+                      console.error(`Failed to update lane ${laneNumber}:`, error);
+                  })
               }
             } catch (error) {
               console.error(
