@@ -99,7 +99,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "race.context_processors.active_round_data",
+                "race.context_processor.active_round_data",
             ],
         },
     },
