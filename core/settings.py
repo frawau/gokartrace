@@ -67,12 +67,10 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "fontawesomefree",
     "django_apscheduler",
-    "debug_toolbar",
 ]
 
 
 MIDDLEWARE = [
-    "debug_toolbar.middleware.DebugToolbarMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
