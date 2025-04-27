@@ -22,5 +22,7 @@ def start_scheduler(scheduler):
     # Create loop here in the thread
     loop = aio.new_event_loop()
     aio.set_event_loop(loop)
-    scheduler.start()
+
+    # Run the loop first
+    loop.call_soon_threadsafe(scheduler.start)
     loop.run_forever()
