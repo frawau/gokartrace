@@ -21,7 +21,7 @@ urlpatterns = [
     # path("", include("theme_material_kit.urls")),
     path("login/jwt/", view=obtain_auth_token),
     path("accounts/", include("django.contrib.auth.urls")),
-] + debug_toolbar_urls()
+]
 
 
 # Lazy-load on routing is needed
