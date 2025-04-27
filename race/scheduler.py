@@ -2,25 +2,25 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from django_apscheduler.jobstores import DjangoJobStore
 import asyncio as aio
+import threading
 
 def racing_start():
-
-    loop = aio.new_event_loop()
-    aio.set_event_loop(loop)
+    # Don't create a new event loop here
     scheduler = AsyncIOScheduler()
     scheduler.add_jobstore(DjangoJobStore(), "default")
 
-    # Schedule your task
-    from race.tasks import RaceTasks  # import here to avoid circular imports
-
+    # Import task
+    from race.tasks import RaceTasks
     scheduler.add_job(RaceTasks.race_events, "interval", minutes=1, id="race-event-task")
+
     # Start in a background thread
-    import threading
-    thread = threading.Thread(target=start_loop, args=(loop, scheduler))
+    thread = threading.Thread(target=start_scheduler, args=(scheduler,))
     thread.daemon = True
     thread.start()
 
-def start_loop(loop, scheduler):
+def start_scheduler(scheduler):
+    # Create loop here in the thread
+    loop = aio.new_event_loop()
     aio.set_event_loop(loop)
     scheduler.start()
     loop.run_forever()
