@@ -200,8 +200,8 @@ class Round(models.Model):
 
         now = dt.datetime.now()
 
-        # Use aawait_sync() for the querysets
-        pauses = await self.round_pause_set.all()
+        # Use aall() for the querysets
+        pauses = await self.round_pause_set.aall()
 
         totalpause = dt.timedelta()
         for pause in pauses:
