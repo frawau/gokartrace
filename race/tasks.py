@@ -38,7 +38,7 @@ class RaceTasks:
                     ):
                         # Let's wwait
                         await aio.sleep(
-                            (cround.pitlane_open_after-elapsed).total_seconds()
+                            (cround.pitlane_open_after - elapsed).total_seconds()
                         )
                         change_lanes = await sync_to_async(list)(
                             ChangeLane.objects.filter(round=cround, open=False)

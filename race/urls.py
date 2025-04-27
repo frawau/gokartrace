@@ -42,4 +42,5 @@ urlpatterns = [
     path("team/add/", views.create_team, name="add_team"),
     path("get_round_status/", views.get_round_status, name="get_round_status"),
     path("get_race_lanes/", views.get_race_lanes, name="get_race_lane"),
+    path("singleteam/", views.singleteam_view, name="single_team"),
 ]

@@ -52,7 +52,7 @@ def index(request):
             {"label": "Drivers on Track", "url": "/driverontrack/"},
         ],
         [
-            {"label": "Monitor One Team", "url": "/oneteam/"},
+            {"label": "Monitor One Team", "url": "/singleteam/"},
             {"label": "Monitor One Driver", "url": "/onedriver/"},
             {"label": "ekskip", "url": ""},
         ],
@@ -532,18 +532,18 @@ def get_round_status(request):
     # Get the current active round (you can use your existing method)
     end_date = dt.date.today()
     start_date = end_date - dt.timedelta(days=1)
-    current_round = Round.objects.filter(
+    cround = Round.objects.filter(
         Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
     ).first()
 
-    if not current_round:
+    if not cround:
         return JsonResponse({"ready": False, "ongoing": False, "is_paused": True})
 
     return JsonResponse(
         {
-            "ready": current_round.ready,
-            "ongoing": current_round.ongoing,
-            "is_paused": current_round.is_paused,
+            "ready": cround.ready,
+            "ongoing": cround.ongoing,
+            "is_paused": cround.is_paused,
         }
     )
 
@@ -553,15 +553,15 @@ def get_race_lanes(request):
     # Get the current active round (use your existing method)
     end_date = dt.date.today()
     start_date = end_date - dt.timedelta(days=1)
-    current_round = Round.objects.filter(
+    cround = Round.objects.filter(
         Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
     ).first()
 
-    if not current_round:
+    if not cround:
         return JsonResponse({"lanes": []})
 
     # Get lanes for this round
-    lanes = ChangeLane.objects.filter(round=current_round).values("id", "lane")
+    lanes = ChangeLane.objects.filter(round=cround).values("id", "lane")
 
     return JsonResponse({"lanes": list(lanes)})
 
@@ -574,3 +574,46 @@ def driver_session_timer(request, driver_id):
     template = loader.get_template("layout/session_timer_snippet.html")
     context = {"member": driver}
     return HttpResponse(template.render(context, request))
+
+
+def singleteam_view(request):
+    """
+    View to display a single team selected from a dropdown
+    """
+
+    end_date = dt.date.today()
+    start_date = end_date - dt.timedelta(days=1)
+    try:
+        cround = Round.objects.filter(
+            Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
+        ).first()
+    except:
+        cround = None
+
+    # Get teams where is_round_team is True
+    if cround:
+        teams = (
+            cround.round_team_set.all().select_related("team").order_by("team__number")
+        )
+
+        # Handle team selection
+        selected_team_id = request.GET.get("team_id")
+        selected_team = None
+
+        if selected_team_id:
+            try:
+                selected_team = teams.get(team_id=selected_team_id)
+            except round_team.DoesNotExist:
+                pass
+        elif teams.exists():
+            # Default to first team if none selected
+            selected_team = teams.first()
+
+        context = {
+            "round": cround,
+            "teams": teams,
+            "selected_team": selected_team,
+        }
+        return render(request, "pages/singleteam.html", context)
+    else:
+        return render(request, "pages/norace.html")

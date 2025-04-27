@@ -1,0 +1,204 @@
+{% extends "layout/fscontent.html" %}
+{% load timer_tags %}
+
+{% block extra_style %}
+@media (max-width: 768px) {
+    .card-title {
+        font-size: 2.5rem !important;
+    }
+    table {
+        font-size: 2rem !important;
+    }
+    th, td {
+        padding: 8px !important;
+        border: 6px solid #ddd !important;
+    }
+    table thead tr th:nth-child(3),
+    table tbody tr td:nth-child(3) {
+        display: none;
+    }
+    table tbody tr td:nth-child(2) {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    table tbody tr td:nth-child(2)::after{
+        content: attr(data-current-session);
+    }
+}
+
+.team-selection-container {
+    margin-bottom: 2rem;
+}
+
+.team-selection-form select {
+    max-width: 300px;
+    margin-right: 10px;
+}
+{% endblock extra_style %}
+
+{% block main_content %}
+<div class="container-fluid">
+    {% if round is None %}
+        <h2>Hu?</h2>
+        <div class="card" style="background-color: transparent;">
+            <div class="card-body">
+                <h1>No race today</h1>
+            </div>
+        </div>
+    {% else %}
+        <div class="row mb-4">
+            <div class="col-12 text-left">
+                <h1>{{ round.name }}&nbsp;&nbsp;Remaining Time: {% timer_widget "race-countdown" "countdownDisplay" round %}</h1>
+            </div>
+        </div>
+
+        <div class="row mb-4 team-selection-container">
+            <div class="col-12">
+                <form method="get" class="form-inline team-selection-form">
+                    <div class="form-group">
+                        <select name="team_id" class="form-select" id="team-select">
+                            <option value="">-- Select a Team --</option>
+                            {% for team in teams %}
+                                <option value="{{ team.id }}" {% if selected_team and selected_team.id == team.id %}selected{% endif %}>
+                                    {{ team.name }} ({{ team.number }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="teamDisplay">
+            {% if selected_team %}
+                {% with round_team=selected_team %}
+                    {% include "layout/teamcard.html" with round_team=round_team %}
+                {% endwith %}
+            {% else %}
+                <div class="alert alert-info">
+                    Please select a team to view details
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock main_content %}
+
+{% block extra_js %}
+{% if round is not None %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle team selection change
+    const teamSelect = document.getElementById('team-select');
+    if (teamSelect) {
+        teamSelect.addEventListener('change', function() {
+            // Submit the form when selection changes
+            this.form.submit();
+        });
+    }
+
+    // Connect to WebSocket for round updates
+    const roundId = {{ round.id }};
+    let socket = null;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 50;
+    const reconnectDelay = 3000;
+
+    function connectWebSocket() {
+        const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const wsPath = `${wsScheme}://${window.location.host}/ws/round/${roundId}/`;
+
+        if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+            socket.close();
+        }
+
+        socket = new WebSocket(wsPath);
+
+        socket.onopen = function() {
+            console.log('WebSocket connection established');
+            reconnectAttempts = 0;
+        };
+
+        socket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            console.log("WebSocket received:", data);
+
+            if (data.session_update) {
+                // Handle driver session updates
+                console.log(`Handling session update for driver ${data.driver_id}, active: ${data.driver_active}, status ${data.driver_status}`);
+                const driverTimers = timerRegistry.byDriverId[data.driver_id];
+                const newOntrack = data.driver_status == "start";
+
+                // Update UI elements
+                const driverRow = document.getElementById(`driver-row-${data.driver_id}`);
+                if (driverRow) {
+                    driverRow.setAttribute('data-ontrack', newOntrack ? 'true' : 'false');
+                }
+
+                // Update timer widgets
+                if (driverTimers) {
+                    driverTimers.forEach(timer => {
+                        console.log(`Updating timer ${timer.element.id} (type: ${timer.timerType}) for driver ${data.driver_id}`);
+                        timer.handleSessionUpdate(data.driver_status, data.time_spent);
+                    });
+                } else {
+                    console.warn(`No timers found in registry for driver ${data.driver_id}`);
+                }
+            } else {
+                const isPaused = data.is_paused;
+
+                // Handle countdown timer updates
+                if (data.remaining_seconds !== undefined && data.remaining_seconds !== null) {
+                    // Normal case - update all timers based on pause state
+                    timerRegistry.countdownTimers.forEach(timer => {
+                        timer.updateRemainingTime(data.remaining_seconds);
+                        timer.updatePauseState(isPaused);
+                    });
+
+                    // For all other timers, update based on round state
+                    // Only update non-session timers here
+                    timerRegistry.allTimers
+                        .filter(timer => ['sessiontime', 'totaltime'].includes(timer.timerType))
+                        .forEach(timer => {
+                            timer.updatePauseState(isPaused);
+                        });
+                }
+            }
+        };
+
+        socket.onclose = function(event) {
+            if (event.wasClean) {
+                console.log(`WebSocket connection closed cleanly, code=${event.code}, reason=${event.reason}`);
+                return;
+            }
+            console.warn('WebSocket connection lost, attempting to reconnect...');
+            if (reconnectAttempts < maxReconnectAttempts) {
+                const delay = Math.min(reconnectDelay * Math.pow(1.5, reconnectAttempts), 30000);
+                reconnectAttempts++;
+                console.log(`Reconnecting in ${delay/1000} seconds... (attempt ${reconnectAttempts}/${maxReconnectAttempts})`);
+                setTimeout(connectWebSocket, delay);
+            } else {
+                console.error('Maximum reconnection attempts reached. Please refresh the page.');
+            }
+        };
+
+        socket.onerror = function(error) {
+            console.error('WebSocket error:', error);
+            if (reconnectAttempts < maxReconnectAttempts) {
+                const delay = Math.min(reconnectDelay * Math.pow(1.5, reconnectAttempts), 30000);
+                reconnectAttempts++;
+                console.log(`Reconnecting in ${delay/1000} seconds... (attempt ${reconnectAttempts}/${maxReconnectAttempts})`);
+                setTimeout(connectWebSocket, delay);
+            } else {
+                console.error('Maximum reconnection attempts reached after error. Please refresh the page.');
+            }
+        };
+    }
+
+    // Initial connection
+    connectWebSocket();
+});
+</script>
+{% endif %}
+{% endblock extra_js %}
