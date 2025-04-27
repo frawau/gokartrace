@@ -23,9 +23,9 @@ class RaceTasks:
                         Q(start__date__range=[start_date, end_date])
                         & Q(ended__isnull=True)
                     )
-                    .first()
                     .aawait_sync()
                 )
+                print(cround)
                 if not cround.ready:
                     # nothing to do
                     return
