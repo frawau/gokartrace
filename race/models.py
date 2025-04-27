@@ -386,6 +386,10 @@ class Round(models.Model):
         """
         Creates a Session for the given driver and sets the registered time to now.
         """
+        retval = {
+            "message": f"This should not have happened!",
+            "status": "error",
+        }
         if self.started and not self.pit_lane_open:
             raise ValidationError("The pit lane is closed.")
 
@@ -442,6 +446,11 @@ class Round(models.Model):
         """
         Ends the given driver's session and starts the next driver's session on the same team.
         """
+
+        retval = {
+            "message": f"This should not have happened!",
+            "status": "error",
+        }
         now = dt.datetime.now()
 
         # 1. End the current driver's session
@@ -478,12 +487,21 @@ class Round(models.Model):
                 next_session.start = now
                 next_session.save()
 
+            retval = {
+                "message": f"Driver {driver.member.nickname} from team {driver.team.number} ended session.",
+                "status": "ok",
+            }
         except ObjectDoesNotExist:
             # Driver is not associated with a round_team
             print(f"Driver {driver} is not associated with a round_team.")
+            retval["message"] = f"Driver {driver} is not associated with a round_team."
         except MultipleObjectsReturned:
             # Driver is associated with multiple round_teams (unexpected)
             print(f"Driver {driver} is associated with multiple round_teams.")
+            retval[
+                "message"
+            ] = f"Driver {driver} is associated with multiple round_teams."
+        return retval
 
     def driver_time_limit(self, rteam):
         """

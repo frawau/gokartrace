@@ -305,7 +305,11 @@ def agent_login(request):
         elif user.groups.filter(name="Driver Scanner").exists():
             token, created = Token.objects.get_or_create(user=user)
             return Response(
-                {"status": "ok", "token": token.key, "url": servurl + "/driver_change/"},
+                {
+                    "status": "ok",
+                    "token": token.key,
+                    "url": servurl + "/driver_change/",
+                },
                 status=status.HTTP_200_OK,
             )
         else:
@@ -366,20 +370,36 @@ def change_kart_driver(request):
     API endpoint that requires authentication using a token.
     """
     try:
-        data = json.loads(request.body)  # or request.data if using DRF parsers
+        end_date = dt.date.today()
+        start_date = end_date - dt.timedelta(days=1)
+        cround = Round.objects.filter(
+            Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
+        ).first()
+        payload = json.loads(request.body)  # or request.data if using DRF parsers
+
+        tmpk = datadecode(cround, payload["data"])
+        tmember = team_member.objects.get(pk=tmpk)
         # Process the data and perform the desired actions
-        result = {
-            "message": "Data received and processed successfully",
-            "received_data": data,
-        }
+        try:
+            result = cround.driver_endsession(tmember)
+        except Exception as e:
+            result = {
+                "message": f"Error for {tmember}: {e}",
+                "status": "error",
+            }
+        # print(result)
         return Response(result, status=status.HTTP_200_OK)
 
     except json.JSONDecodeError:
         return Response(
-            {"error": "Invalid JSON data"}, status=status.HTTP_400_BAD_REQUEST
+            {"status": "error", "message": "Invalid JSON data"},
+            status=status.HTTP_400_BAD_REQUEST,
         )
     except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(
+            {"status": "error", "message": f"Exception: {e}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
 
 @login_required
@@ -580,7 +600,6 @@ def singleteam_view(request):
     """
     View to display a single team selected from a dropdown
     """
-
     end_date = dt.date.today()
     start_date = end_date - dt.timedelta(days=1)
     try:
@@ -590,23 +609,23 @@ def singleteam_view(request):
     except:
         cround = None
 
-    # Get teams where is_round_team is True
     if cround:
         teams = (
             cround.round_team_set.all().select_related("team").order_by("team__number")
         )
-
-        # Handle team selection
-        selected_team_id = request.GET.get("team_id")
         selected_team = None
 
-        if selected_team_id:
-            try:
-                selected_team = teams.get(team_id=selected_team_id)
-            except round_team.DoesNotExist:
-                pass
-        elif teams.exists():
-            # Default to first team if none selected
+        # Handle team selection from POST instead of GET
+        if request.method == "POST":
+            selected_team_id = request.POST.get("team_id")
+            if selected_team_id and selected_team_id.isdigit():
+                try:
+                    selected_team = teams.get(team_id=selected_team_id)
+                except round_team.DoesNotExist:
+                    pass
+
+        # Default to first team if none selected
+        if not selected_team and teams.exists():
             selected_team = teams.first()
 
         context = {
