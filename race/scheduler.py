@@ -8,8 +8,8 @@ def racing_start():
     scheduler.add_jobstore(DjangoJobStore(), "default")
 
     # Schedule your task
-    from race.tasks import race_events  # import here to avoid circular imports
+    from race.tasks import RaceTasks  # import here to avoid circular imports
 
-    scheduler.add_job(race_events, "interval", minutes=1, id="race-event-task")
+    scheduler.add_job(RaceTasks.race_events, "interval", minutes=1, id="race-event-task")
 
     scheduler.start()
