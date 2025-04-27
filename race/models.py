@@ -728,6 +728,12 @@ class team_member(models.Model):
             driver=self, start__isnull=False, end__isnull=True
         ).exists()
 
+    @property
+    def isready(self):
+        return self.session_set.filter(
+            driver=self, end__isnull=True
+        ).exists()
+
     def save(self, *args, **kwargs):
         self.clean()
         super().save(*args, **kwargs)

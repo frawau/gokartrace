@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Handle driver session updates
                 console.log(`Handling session update for driver ${data.driver_id}, active: ${data.driver_active}, status ${data.driver_status}`);
                 const driverTimers = timerRegistry.byDriverId[data.driver_id];
-                const newOntrack = data.driver_active;
+                const newOntrack = data.driver_status == "start";
 
                 // Update UI elements
                 const driverRow = document.getElementById(`driver-row-${data.driver_id}`);

@@ -30,7 +30,7 @@
                                     {# Example of how you might visually hide if not ontrack initially #}
                                     <style>
                                       #session-time-{{ member.id }}:not([style*="visibility: visible"]) {
-                                          visibility: {% if not member.ontrack %}hidden{% else %}visible{% endif %};
+                                          visibility: {% if not member.isready %}hidden{% else %}visible{% endif %};
                                       }
                                     </style>
 
