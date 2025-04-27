@@ -2,7 +2,7 @@
 import datetime as dt
 from django.db.models import Q
 from django.core.cache import cache
-from yourapp.models import Round
+from race.models import Round
 
 
 def active_round_data(request):
