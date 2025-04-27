@@ -22,4 +22,4 @@ def active_round_data(request):
         # Cache the value for 1 hour (or however long you need)
         cache.set("active_round_change_lanes", change_lanes, 3 * 60 * 60)
 
-        return {"active_round_change_lanes": change_lanes}
+    return {"active_round_change_lanes": change_lanes}
