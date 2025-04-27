@@ -9,10 +9,11 @@ class RaceTasks:
 
     _lock = aio.Semaphore(1)
 
-    async def race_events(self):
+    @classmethod
+    async def race_events(cls):
         # Try to acquire the semaphore
-        if not self._lock.locked():
-            async with self._lock:
+        if not cls._lock.locked():
+            async with cls._lock:
                 from .models import Round, ChangeLane
 
                 end_date = dt.date.today()
@@ -49,12 +50,12 @@ class RaceTasks:
                         for alane in change_lanes:
                             alane.open = True
                             await alane.asave()
-                elif self.duration - elapsed - self.pitlane_close_before < dt.timedelta(
+                elif cround.duration - elapsed - cround.pitlane_close_before < dt.timedelta(
                     seconds=65
                 ):
                     await aio.sleep(
                         (
-                            self.duration - elapsed - self.pitlane_close_before
+                            cround.duration - elapsed - cround.pitlane_close_before
                         ).total_seconds()
                     )
                     change_lanes = await ChangeLane.objects.filter(
