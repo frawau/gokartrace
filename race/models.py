@@ -10,6 +10,7 @@ from django.core.exceptions import (
 from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
 from cryptography.fernet import Fernet
+from asgiref.sync import sync_to_async
 
 import datetime as dt
 import logging
@@ -194,23 +195,9 @@ class Round(models.Model):
                 totalpause += pause.end - pause.start
         return now - self.started - totalpause
 
-    async def async_time_elapsed(self):
-        if not self.started:
-            return dt.timedelta()
-
-        now = dt.datetime.now()
-
-        # Use aall() for the querysets
-        pauses = await self.round_pause_set.aall()
-
-        totalpause = dt.timedelta()
-        for pause in pauses:
-            if pause.end is None:
-                now = pause.start
-            else:
-                totalpause += pause.end - pause.start
-
-        return now - self.started - totalpause
+    @sync_to_async
+    def async_time_elapsed(self):
+        return self.time_elapsed
 
     @property
     def pit_lane_open(self):
