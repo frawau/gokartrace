@@ -1,6 +1,7 @@
 from django.apps import AppConfig
 import threading
 
+
 class RaceConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "race"
@@ -13,8 +14,10 @@ class RaceConfig(AppConfig):
             # Use a slightly delayed start to avoid DB access during initialization
             def delayed_start():
                 import time
+
                 time.sleep(5)  # Wait 5 seconds for Django to fully initialize
                 from race.scheduler import racing_start
+
                 racing_start()
 
             t = threading.Thread(target=delayed_start)

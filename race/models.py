@@ -717,9 +717,7 @@ class team_member(models.Model):
 
     @property
     def isready(self):
-        return self.session_set.filter(
-            driver=self, end__isnull=True
-        ).exists()
+        return self.session_set.filter(driver=self, end__isnull=True).exists()
 
     def save(self, *args, **kwargs):
         self.clean()

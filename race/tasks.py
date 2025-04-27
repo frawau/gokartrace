@@ -19,13 +19,9 @@ class RaceTasks:
 
                 end_date = dt.date.today()
                 start_date = end_date - dt.timedelta(days=1)
-                cround = (
-                    await Round.objects.filter(
-                        Q(start__date__range=[start_date, end_date])
-                        & Q(ended__isnull=True)
-                    )
-                    .afirst()
-                )
+                cround = await Round.objects.filter(
+                    Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
+                ).afirst()
                 if not cround.ready:
                     # nothing to do
                     return
@@ -44,23 +40,26 @@ class RaceTasks:
                         await aio.sleep(
                             (elapsed - cround.pitlane_open_after).total_seconds()
                         )
-                        change_lanes = await sync_to_async(ChangeLane.objects.filter(
-                            round=cround, open=False
-                        ))
+                        change_lanes = await sync_to_async(list)(
+                            ChangeLane.objects.filter(round=cround, open=False)
+                        )
                         for alane in change_lanes:
                             alane.open = True
                             await alane.asave()
-                elif cround.duration - elapsed - cround.pitlane_close_before < dt.timedelta(
-                    seconds=65
+                elif (
+                    cround.duration - elapsed - cround.pitlane_close_before
+                    < dt.timedelta(seconds=65)
                 ):
                     await aio.sleep(
                         (
                             cround.duration - elapsed - cround.pitlane_close_before
                         ).total_seconds()
                     )
-                    change_lanes = await sync_to_async(ChangeLane.objects.filter(
-                        round=cround, open=True, driver__isnull=True
-                    ))
+                    change_lanes = await sync_to_async(list)(
+                        ChangeLane.objects.filter(
+                            round=cround, open=True, driver__isnull=True
+                        )
+                    )
                     for alane in change_lanes:
                         alane.open = False
                         await alane.asave()
@@ -68,6 +67,7 @@ class RaceTasks:
         else:
             # bail out
             return
+
 
 def run_race_events():
     """Wrapper function to run the async race_events task."""
