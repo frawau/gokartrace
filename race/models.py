@@ -194,6 +194,24 @@ class Round(models.Model):
                 totalpause += pause.end - pause.start
         return now - self.started - totalpause
 
+    async def async_time_elapsed(self):
+        if not self.started:
+            return dt.timedelta()
+
+        now = dt.datetime.now()
+
+        # Use aawait_sync() for the querysets
+        pauses = await self.round_pause_set.all().aawait_sync()
+
+        totalpause = dt.timedelta()
+        for pause in pauses:
+            if pause.end is None:
+                now = pause.start
+            else:
+                totalpause += pause.end - pause.start
+
+        return now - self.started - totalpause
+
     @property
     def pit_lane_open(self):
         elapsed = self.time_elapsed
