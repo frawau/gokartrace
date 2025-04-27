@@ -610,29 +610,28 @@ def singleteam_view(request):
         cround = None
 
     if cround:
-        teams = (
-            cround.round_team_set.all().select_related("team").order_by("team__number")
-        )
-        selected_team = None
+        # Always get all teams for the dropdown
+        teams = cround.round_team_set.all().order_by("team__number")
 
-        # Handle team selection from POST instead of GET
+        # Handle team selection from POST
+        selected_team = None
         if request.method == "POST":
             selected_team_id = request.POST.get("team_id")
             if selected_team_id and selected_team_id.isdigit():
                 try:
-                    selected_team = teams.get(team_id=selected_team_id)
+                    # Get just the specific round_team by ID
+                    selected_team = cround.round_team_set.get(id=selected_team_id)
                 except round_team.DoesNotExist:
-                    pass
-
-        # Default to first team if none selected
-        if not selected_team and teams.exists():
+                    selected_team = None
+        # For initial page load, optionally default to first team
+        elif teams.exists():
             selected_team = teams.first()
 
         context = {
-            "round": cround,
-            "teams": teams,
-            "selected_team": selected_team,
+            'round': cround,
+            'teams': teams,
+            'selected_team': selected_team,
         }
-        return render(request, "pages/singleteam.html", context)
+        return render(request, 'pages/singleteam.html', context)
     else:
-        return render(request, "pages/norace.html")
+        return render(request, 'pages/norace.html')
