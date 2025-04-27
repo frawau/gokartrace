@@ -3,6 +3,7 @@
 import asyncio as aio
 import datetime as dt
 from django.db.models import Q
+from asgiref.sync import sync_to_async
 
 
 class RaceTasks:
@@ -43,9 +44,9 @@ class RaceTasks:
                         await aio.sleep(
                             (elapsed - cround.pitlane_open_after).total_seconds()
                         )
-                        change_lanes = await ChangeLane.objects.filter(
+                        change_lanes = await sync_to_async(ChangeLane.objects.filter(
                             round=cround, open=False
-                        ).aall()
+                        ))
                         for alane in change_lanes:
                             alane.open = True
                             await alane.asave()
@@ -57,9 +58,9 @@ class RaceTasks:
                             cround.duration - elapsed - cround.pitlane_close_before
                         ).total_seconds()
                     )
-                    change_lanes = await ChangeLane.objects.filter(
+                    change_lanes = await sync_to_async(ChangeLane.objects.filter(
                         round=cround, open=True, driver__isnull=True
-                    ).aall()
+                    ))
                     for alane in change_lanes:
                         alane.open = False
                         await alane.asave()
