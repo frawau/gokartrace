@@ -77,6 +77,7 @@
         <div class="row mb-4 team-selection-container">
             <div class="col-12">
                 <form method="post" class="form-inline team-selection-form">
+                    {% csrf_token %}
                     <div class="form-group">
                         <select name="team_id" class="form-select" id="team-select">
                             <option value="">-- Select a Team --</option>
