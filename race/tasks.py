@@ -45,7 +45,7 @@ class RaceTasks:
                         )
                         change_lanes = await ChangeLane.objects.filter(
                             round=cround, open=False
-                        ).aawait_sync()
+                        ).aall()
                         for alane in change_lanes:
                             alane.open = True
                             await alane.asave()
@@ -59,7 +59,7 @@ class RaceTasks:
                     )
                     change_lanes = await ChangeLane.objects.filter(
                         round=cround, open=True, driver__isnull=True
-                    ).aawait_sync()
+                    ).aall()
                     for alane in change_lanes:
                         alane.open = False
                         await alane.asave()
