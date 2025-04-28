@@ -13,7 +13,10 @@
     }
 
 .timer.timer-ended {
-    color: #ef4444; /* Red color for ended state */
+    color: #87cefa ; /* Light blue color for ended state */
+    }
+.timer.timer-over {
+    color: #ef4444; /* Red color for over state */
     }
 
 @keyframes blink {

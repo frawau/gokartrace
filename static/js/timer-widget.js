@@ -172,12 +172,14 @@ class TimerWidget {
                     this.element.classList.add('timer-frozen');
                 } else {
                     this.element.classList.add('timer-paused');
+                    this.element.classList.add('blink');
                 }
             } else {
                 if (this.countDirection === 'up') {
                     this.element.classList.remove('timer-frozen');
                 } else {
                     this.element.classList.remove('timer-paused');
+                    this.element.classList.remove('blink');
                 }
             }
         }

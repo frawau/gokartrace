@@ -410,7 +410,7 @@ class Round(models.Model):
             driver=driver, register__isnull=False, start__isnull=True, end__isnull=True
         ).first()
         if session:
-            if session in top_sessions:
+            if self.started and session in top_sessions:
                 return {
                     "message": f"Driver {driver.member.nickname} from team {driver.team.number} is due in pit lane. Cannot be removed.",
                     "status": "error",
