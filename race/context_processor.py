@@ -33,7 +33,7 @@ def active_round_data(request):
         for aprop in props:
             locv += "," + aprop.name.replace(" ", "_")
             myvals[aprop.name.replace(" ", "_")] = aprop.value
-            cache.set("config " + aprop.name, aprop.value, 3 * 60 * 60)
+            cache.set(aprop.name.replace(" ", "_"), aprop.value, 3 * 60 * 60)
 
         cache.set("active_cache_keys", locv, 3 * 60 * 60)
     else:
