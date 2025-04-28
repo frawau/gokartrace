@@ -476,17 +476,18 @@ class Round(models.Model):
 
         # 2. Find and start the next driver's session
         try:
-            related_team_members = team_member.objects.filter(
-                team=driver.team
-            )
+            related_team_members = team_member.objects.filter(team=driver.team)
 
             # Find the oldest active session among these team members
-            next_session = Session.objects.filter(
-                driver__in=related_team_members,
-                start__isnull=True,
-                end__isnull=True
-            ).order_by('register').first()
-
+            next_session = (
+                Session.objects.filter(
+                    driver__in=related_team_members,
+                    start__isnull=True,
+                    end__isnull=True,
+                )
+                .order_by("register")
+                .first()
+            )
 
             if next_session:
                 current_session.end = now
@@ -498,6 +499,14 @@ class Round(models.Model):
                     "message": f"Driver {driver.member.nickname} from team {driver.team.number} ended session.",
                     "status": "ok",
                 }
+                # Update change lane
+                alane = ChangeLane.objects.filter(
+                    round=self, driver=next_session.driver
+                ).first()
+                if alane:
+                    alane.next_driver()
+                else:
+                    print(f"Error: Could not find lane for {next_session.driver}")
             else:
                 retval = {
                     "message": f"Keeo driving no one is waiting for teasm {driver.team.number}.",
