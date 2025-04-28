@@ -397,6 +397,14 @@ class Round(models.Model):
             raise ValidationError(f"{driver.member.nickname} is not a driver.")
 
         now = dt.datetime.now()
+        asession = self.session_set.filter(
+            driver=driver, register__isnull=False, start__isnull=False, end__isnull=True
+        ).first()
+        if asession:
+            return {
+                "message": f"Driver {driver.member.nickname} from team {driver.team.number} is currently driving!",
+                "status": "error",
+            }
         #
         # Did we already register?
         pending_sessions = self.session_set.filter(
@@ -470,7 +478,7 @@ class Round(models.Model):
 
         # 2. Find and start the next driver's session
         try:
-            round_team = driver.round_team.get()
+            round_team = driver.team
             next_session = (
                 round_team.session_set.filter(
                     driver__driver=True,
