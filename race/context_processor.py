@@ -11,7 +11,6 @@ def active_round_data(request):
     myvals = {}
 
     if locv is None:
-        print("Not cached")
         locv = "active_round_change_lanes"
         # Value not in cache, fetch from database
         end_date = dt.date.today()
@@ -37,9 +36,7 @@ def active_round_data(request):
 
         cache.set("active_cache_keys", locv, 3 * 60 * 60)
     else:
-        print("Cached")
         for k in locv.split(","):
             myvals[k] = cache.get(k)
 
-    print(myvals)
     return myvals
