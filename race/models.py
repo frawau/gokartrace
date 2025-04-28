@@ -469,8 +469,6 @@ class Round(models.Model):
                 start__isnull=False,
                 end__isnull=True,
             )
-            current_session.end = now
-            current_session.save()
         except ObjectDoesNotExist:
             raise ValidationError(f"Driver {driver} has no current session.")
         except MultipleObjectsReturned:
@@ -478,27 +476,34 @@ class Round(models.Model):
 
         # 2. Find and start the next driver's session
         try:
-            round_team = driver.team
-            next_session = (
-                round_team.session_set.filter(
-                    driver__driver=True,
-                    round=self,
-                    start__isnull=True,
-                    end__isnull=True,
-                    register__isnull=False,
-                )
-                .order_by("register")
-                .first()
+            related_team_members = team_member.objects.filter(
+                team=driver.team
             )
 
+            # Find the oldest active session among these team members
+            next_session = Session.objects.filter(
+                driver__in=related_team_members,
+                start__isnull=True,
+                end__isnull=True
+            ).order_by('register').first()
+
+
             if next_session:
+                current_session.end = now
+                current_session.save()
                 next_session.start = now
                 next_session.save()
 
-            retval = {
-                "message": f"Driver {driver.member.nickname} from team {driver.team.number} ended session.",
-                "status": "ok",
-            }
+                retval = {
+                    "message": f"Driver {driver.member.nickname} from team {driver.team.number} ended session.",
+                    "status": "ok",
+                }
+            else:
+                retval = {
+                    "message": f"Keeo driving no one is waiting for teasm {driver.team.number}.",
+                    "status": "error",
+                }
+
         except ObjectDoesNotExist:
             # Driver is not associated with a round_team
             print(f"Driver {driver} is not associated with a round_team.")
