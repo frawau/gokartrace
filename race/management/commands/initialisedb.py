@@ -148,7 +148,7 @@ class Command(BaseCommand):
 
         configs = [("page size", "A4"), ("card size", "A6"), ("display timeout", "5")]
         for key, val in configs:
-            Config.objects.get_or_create(name=val, value=val)
+            Config.objects.get_or_create(name=key, value=val)
             self.stdout.write(self.style.SUCCESS(f'Config "{key}" = "{val}" created.'))
 
         self.stdout.write(self.style.SUCCESS("All tasks completed successfully."))

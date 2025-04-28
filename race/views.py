@@ -628,10 +628,10 @@ def singleteam_view(request):
             selected_team = teams.first()
 
         context = {
-            'round': cround,
-            'teams': teams,
-            'selected_team': selected_team,
+            "round": cround,
+            "teams": teams,
+            "selected_team": selected_team,
         }
-        return render(request, 'pages/singleteam.html', context)
+        return render(request, "pages/singleteam.html", context)
     else:
-        return render(request, 'pages/norace.html')
+        return render(request, "pages/norace.html")
