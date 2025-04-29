@@ -63,6 +63,7 @@ class TimerWidget {
         this.precision = options.precision || 0; // Decimal places
         this.currentValue = this.startValue;
         this.timerType = options.timerType || 'countdownDisplay'; // 'totaltime', 'sessiontime', 'countdownDisplay'
+        this.limit = options.limit || null; // Optional limit value in seconds
         if (this.timerType == 'countdownDisplay') {
             this.isactive = true;
         } else {
@@ -160,27 +161,31 @@ class TimerWidget {
         if (this.element) {
             this.element.textContent = this.formatTime(this.currentValue);
 
+            // Reset all classes first
+            this.element.classList.remove('timer-ended', 'timer-paused', 'timer-frozen', 'timer-over');
+
             // Add classes for styling
             if (this.currentValue <= 0 && this.countDirection === 'down') {
                 this.element.classList.add('timer-ended');
-            } else {
-                this.element.classList.remove('timer-ended');
             }
 
+            // Handle paused state styling
             if (this.paused) {
-                if (this.countDirection === 'up') {
-                    this.element.classList.add('timer-frozen');
-                } else {
+                if (this.countDirection === 'down') {
+                    // Countdown timers get timer-paused
                     this.element.classList.add('timer-paused');
-                    this.element.classList.add('blink');
-                }
-            } else {
-                if (this.countDirection === 'up') {
-                    this.element.classList.remove('timer-frozen');
                 } else {
-                    this.element.classList.remove('timer-paused');
-                    this.element.classList.remove('blink');
+                    // Count-up timers get timer-frozen
+                    this.element.classList.add('timer-frozen');
                 }
+            }
+
+            // Add timer-over class if limit is set and exceeded
+            if (this.limit !== null) {
+                if ((this.countDirection === 'up' && this.currentValue > this.limit) ||
+                    (this.countDirection === 'down' && this.currentValue < this.limit)) {
+                    this.element.classList.add('timer-over');
+                    }
             }
         }
     }

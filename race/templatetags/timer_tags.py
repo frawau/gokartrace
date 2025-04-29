@@ -17,6 +17,7 @@ def timer_widget(
     initial_value=None,
     show_hours=True,
     show_minutes=True,
+    limit=None,
 ):
     """
     Renders a timer widget span element for initialization by timer-widget.js.
@@ -30,6 +31,7 @@ def timer_widget(
         initial_value (float, optional): Override calculated startValue. Defaults to None.
         show_hours (bool): Whether to include hours in the display format. Defaults to True.
         show_minutes (bool): Whether to include minutes in the display format. Defaults to True.
+        limit (float, optional): Optional limit value (in seconds) for the timer to mark as "over". Defaults to None.
     """
     # If no instance provided, we cannot configure the timer properly.
     # Return a placeholder or an error comment.
@@ -66,6 +68,15 @@ def timer_widget(
         "initialPaused": True,  # Default to paused
         "targetId": None,
     }
+
+    # Add limit to config if provided
+    if limit is not None:
+        try:
+            config["limit"] = float(limit)
+        except (ValueError, TypeError):
+            print(
+                f"Warning: Invalid limit value '{limit}' for timer {final_element_id}. Ignoring limit."
+            )
 
     try:
         # --- Configure based on timer_type and instance type ---
@@ -226,3 +237,35 @@ def timer_widget(
     html = f'<span id="{final_element_id}" class="timer" data-timer="true" data-config=\'{json_config}\'>{initial_display_text}</span>'
 
     return mark_safe(html)
+
+
+@register.filter
+def call(obj, arg):
+    """Call a method of an object with the given argument.
+
+    Example:
+        {% with mode, value = obj.method|call:arg %}
+    """
+    try:
+        if callable(obj):
+            return obj(arg)
+        return None
+    except Exception as e:
+        print(f"Error calling method: {e}")
+        return None, None
+
+
+@register.filter
+def total_seconds(timedelta_obj):
+    """Convert a timedelta object to total seconds.
+
+    Example:
+        {% with seconds = timedelta_obj|total_seconds %}
+    """
+    try:
+        if timedelta_obj is not None:
+            return timedelta_obj.total_seconds()
+        return None
+    except Exception as e:
+        print(f"Error converting timedelta to seconds: {e}")
+        return None

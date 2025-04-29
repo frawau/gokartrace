@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             // Bootstrap 4 (fallback)
             $(carousel).carousel({
-                interval: 5000,
+                interval: {{ display_timeout|default:5 }} * 1000,
                 wrap: true,
                 pause: false
             });

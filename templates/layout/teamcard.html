@@ -4,6 +4,8 @@
 <div class="card" style="background-color: transparent;">
     <div class="card-body">
         <h5 class="card-title" style="font-size: 4rem;">{{ round_team.team.number }} -- {{ round_team.team.team.name }}</h5>
+        {% with time_limit_mode, time_limit_delta = round_team.team.round.driver_time_limit|call:round_team.team %}
+        {% with time_limit_value = time_limit_delta|total_seconds %}
         <div class="table-responsive">
             <table class="table w-100" style="font-size: 3rem; border-collapse: collapse; background-color: transparent;">
                 <thead>
@@ -19,15 +21,20 @@
                             <tr id="driver-row-{{ member.id }}" data-driver-id="{{ member.id }}" data-ontrack="{{ member.ontrack|yesno:'true,false' }}" data-team-id="{{ round_team.id }}">
                                 <td style="border: 10px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">{{ member.member.nickname }}</td>
                                 <td style="border: 10px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">
-                                    {% timer_widget "total-time-" "totaltime" member %}
+                                    {% if time_limit_mode == "race" %}
+                                        {% timer_widget "total-time-" "totaltime" member limit=time_limit_value %}
+                                    {% else %}
+                                        {% timer_widget "total-time-" "totaltime" member %}
+                                    {% endif %}
                                 </td>
                                 <td style="border: 10px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;" id="session-cell-{{ member.id }}">
-                                    {# Always render the session timer widget #}
-                                    {# The JS will hide/show its content via visibility style #}
-                                    {# The template tag should set initialPaused based on member.ontrack #}
-                                    {% timer_widget "session-time-" "sessiontime" member %}
+                                    {% if time_limit_mode == "session" %}
+                                        {% timer_widget "session-time-" "sessiontime" member limit=time_limit_value %}
+                                    {% else %}
+                                        {% timer_widget "session-time-" "sessiontime" member %}
+                                    {% endif %}
 
-                                    {# Example of how you might visually hide if not ontrack initially #}
+                                    {# Visually hide if not ontrack initially #}
                                     <style>
                                       #session-time-{{ member.id }}:not([style*="visibility: visible"]) {
                                           visibility: {% if not member.isready %}hidden{% else %}visible{% endif %};

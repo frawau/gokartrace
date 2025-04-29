@@ -280,7 +280,7 @@ class GenerateCardPDF(View):
             self.rotate = False
 
         buffer = BytesIO()
-        p = canvas.Canvas(buffer, pagesize=sizelist[pagea])  # Use A4 for 2 cards
+        p = canvas.Canvas(buffer, pagesize=sizelist[pagea])
         pdfmetrics.registerFont(
             TTFont("THFont", "/usr/local/share/fonts/NotoSansThai-Regular.ttf")
         )
