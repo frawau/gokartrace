@@ -239,33 +239,32 @@ def timer_widget(
     return mark_safe(html)
 
 
-@register.filter
-def call(obj, arg):
-    """Call a method of an object with the given argument.
 
-    Example:
-        {% with mode, value = obj.method|call:arg %}
+@register.simple_tag
+def get_driver_time_limit(round_obj, team):
+    """
+    Get driver time limit information from a round object for a specific team.
+    Returns a dict with mode and seconds.
+
+    Usage:
+    {% get_driver_time_limit round team as driver_limit %}
+    {{ driver_limit.mode }} - {{ driver_limit.seconds }}
     """
     try:
-        if callable(obj):
-            return obj(arg)
-        return None
+        # Call the driver_time_limit method
+        mode, time_delta = round_obj.driver_time_limit(team)
+
+        # Convert timedelta to seconds if it's a timedelta
+        seconds = time_delta.total_seconds() if hasattr(time_delta, 'total_seconds') else None
+
+        # Return as a dictionary for easy access in template
+        return {
+            'mode': mode,
+            'seconds': seconds
+        }
     except Exception as e:
-        print(f"Error calling method: {e}")
-        return None, None
-
-
-@register.filter
-def total_seconds(timedelta_obj):
-    """Convert a timedelta object to total seconds.
-
-    Example:
-        {% with seconds = timedelta_obj|total_seconds %}
-    """
-    try:
-        if timedelta_obj is not None:
-            return timedelta_obj.total_seconds()
-        return None
-    except Exception as e:
-        print(f"Error converting timedelta to seconds: {e}")
-        return None
+        print(f"Error getting driver time limit: {e}")
+        return {
+            'mode': None,
+            'seconds': None
+        }
