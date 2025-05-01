@@ -39,6 +39,7 @@ class RaceTasks:
                         dowait = (cround.pitlane_open_after - elapsed).total_seconds()
                         while int(dowait) > 0:
                             await aio.sleep(dowait)
+                            elapsed = await cround.async_time_elapsed()
                             dowait = (
                                 cround.pitlane_open_after - elapsed
                             ).total_seconds()
@@ -57,6 +58,7 @@ class RaceTasks:
                     ).total_seconds()
                     while int(dowait) > 0:
                         await aio.sleep(dowait)
+                        elapsed = await cround.async_time_elapsed()
                         dowait = (
                             cround.duration - elapsed - cround.pitlane_close_before
                         ).total_seconds()
@@ -72,6 +74,7 @@ class RaceTasks:
                     dowait = (cround.duration - elapsed).total_seconds()
                     while int(dowait) > 0:
                         await aio.sleep(dowait)
+                        elapsed = await cround.async_time_elapsed()
                         dowait = (cround.duration - elapsed).total_seconds()
                         cround.end_race()
 
