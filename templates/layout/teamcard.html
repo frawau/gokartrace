@@ -4,7 +4,7 @@
 <div class="card" style="background-color: transparent;">
     <div class="card-body">
         <h5 class="card-title" style="font-size: 4rem;">{{ round_team.team.number }} -- {{ round_team.team.team.name }}</h5>
-        {% get_driver_time_limit round_team.round round_team.team as driver_limit %}
+        {% get_driver_time_limit round_team.round round_team as driver_limit %}
         <div class="table-responsive">
             <table class="table w-100" style="font-size: 3rem; border-collapse: collapse; background-color: transparent;">
                 <thead>
