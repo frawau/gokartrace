@@ -1,32 +1,31 @@
 import datetime as dt
-import random
 from django.core.management.base import BaseCommand
-from django.utils import timezone
-from django.contrib.auth.models import Group
-from django.core.validators import MinValueValidator, MaxValueValidator
+from django.db.models import Q
 from race.models import (
     Session,
+    Round,
 )
 
 
 class Command(BaseCommand):
-    help = "Creates a championship, rounds, teams, and team members."
+    help = "Register first driver for each team."
 
     def handle(self, *args, **options):
-        seenteam = []
-        todel = True
-        now = dt.datetime.now()
-        for asess in list(Session.objects.all()):
-            if not asess.end:
-                if asess.start:
-                    seenteam.append(asess.driver.team)
-                    todel = False
-                elif asess.register:
-                    seenteam.append(asess.driver.team)
-                    todel = False
-            if todel:
-                asess.delete()
-            else:
-                asess.start = None
-                asess.register = now
-                asess.save()
+
+        end_date = dt.date.today() + dt.timedelta(days=60)
+        start_date = end_date - dt.timedelta(days=1)
+        cround = Round.objects.filter(
+            Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
+        ).first()
+        if cround:
+            # Register one driver per team
+            teams = cround.round_team_set.all().order_by("team__number")
+            now = dt.datetime.now()
+            for team in teams:
+                driver = team.team_member_set.filter(driver=True).order_by("?").first()
+                asess = Session.objects.create(
+                    round=cround, driver=driver, register=now
+                )
+                print(f"Added {driver}")
+        else:
+            print("Could not fine a round")

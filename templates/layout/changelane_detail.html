@@ -1,3 +1,4 @@
+{% load driver_tags %}
     <div id="lane-{{ change_lane.id }}" class="row w-100 m-0" style="flex-grow: 1;">
         {% if change_lane.open %}
             {% if change_lane.driver %}
@@ -10,9 +11,10 @@
                         <div class="d-flex align-items-center">
                             <img src="{{ change_lane.driver.member.mugshot.url }}" alt="Driver Snapshot"
                                 class="rounded-circle" style="width: 250px; height: 320px; object-fit: cover; position: absolute; left: -20px; top: 60%; transform: translateY(-50%);">
+                            {% get_weight_penalty change_lane.driver as weight_penalty %}
                             <div class="d-flex flex-column justify-content-center" style="margin-left: 220px;">
                                 <p class="text-dark" style="font-size: 8rem;">{{ change_lane.driver.member.nickname }}</p>
-                                <p class="text-dark" style="font-size: 8rem;">Weight: {{ change_lane.driver.weight }} Kg</p>
+                                <p class="text-dark" style="font-size: 8rem;">Penalty:{{ weight_penalty }} Kg</p>
                             </div>
                         </div>
                 </div>
