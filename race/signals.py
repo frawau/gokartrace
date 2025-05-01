@@ -164,6 +164,13 @@ def handle_session_change(sender, instance, **kwargs):
         dstatus = "register"
     else:
         dstatus = "reset"
+    # Get the round_team for this driver
+    round_team = driver.team
+
+    # Count completed sessions for this team
+    completed_sessions_count = Session.objects.filter(
+        driver__team=round_team, end__isnull=False
+    ).count()
 
     channel_layer = get_channel_layer()
     # First update the round timer
@@ -175,6 +182,7 @@ def handle_session_change(sender, instance, **kwargs):
             "time spent": round(driver.time_spent.total_seconds()),
             "driver id": driver.id,
             "driver status": dstatus,
+            "completed sessions": completed_sessions_count,
         },
     )
 

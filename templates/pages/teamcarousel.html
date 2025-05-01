@@ -145,6 +145,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     console.warn(`No timers found in registry for driver ${data.driver_id}`);
                 }
+
+                // Update the completed sessions count in header for the specific team
+                if (data.team_id && data.completed_sessions !== undefined) {
+                    // Find the team slide in the carousel
+                    const teamSlide = document.getElementById(`team-slide-${data.team_id}`);
+                    if (teamSlide) {
+                        // Find the header in this team's table
+                        const changesHeader = teamSlide.querySelector('table thead tr th:first-child');
+                        if (changesHeader) {
+                            changesHeader.textContent = `${data.completed_sessions} Changes`;
+                        }
+                    }
+                }
             } else {
                 const isPaused = data.is_paused;
 

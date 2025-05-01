@@ -241,6 +241,7 @@ class RoundConsumer(AsyncWebsocketConsumer):
                     "session_update": True,
                     "driver_id": event["driver id"],
                     "driver_status": event["driver status"],
+                    "completed_sessions": event["completed sessions"],
                 }
             )
         )
