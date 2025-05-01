@@ -308,7 +308,7 @@ class GenerateCardPDF(View):
         end_date = dt.date.today()
         start_date = end_date - dt.timedelta(days=3)
         cround = Round.objects.filter(
-            Q(start__date__range=[start_date, end_date]) & Q(started__isnull=True)
+            Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
         ).first()
         if cround is None:
             return JsonResponse({"error": "No active round found"}, status=400)
