@@ -373,10 +373,17 @@ class Round(models.Model):
     def next_driver_change(self):
         if not self.pit_lane_open:
             return None
+        # Get drivers currently in a ChangeLane
+        drivers_in_lanes = ChangeLane.objects.filter(
+            round=self, driver__isnull=False
+        ).values_list("driver_id", flat=True)
+
+        # Get the next session excluding those drivers
         session = (
             self.session_set.filter(
                 register__isnull=False, start__isnull=True, end__isnull=True
             )
+            .exclude(driver_id__in=drivers_in_lanes)
             .order_by("register")
             .first()
         )
