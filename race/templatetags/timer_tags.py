@@ -3,8 +3,10 @@
 
 from django import template
 from django.utils.safestring import mark_safe
+from race.models import Session  # Import your Session model
 import json
 import datetime as dt  # Import datetime for type checking and timedelta operations
+
 
 register = template.Library()
 
@@ -264,3 +266,13 @@ def get_driver_time_limit(round_obj, team):
     except Exception as e:
         print(f"Error getting driver time limit: {e}")
         return {"mode": None, "seconds": None}
+
+
+@register.simple_tag
+def get_completed_sessions_count(round_team):
+    """Return count of completed sessions (with end not NULL) for a round_team"""
+
+    # Get all completed sessions for drivers in this round_team
+    count = Session.objects.filter(driver__team=round_team, end__isnull=False).count()
+
+    return count
