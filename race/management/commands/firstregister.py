@@ -12,8 +12,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
 
-        end_date = dt.date.today() + dt.timedelta(days=60)
-        start_date = end_date - dt.timedelta(days=1)
+        start_date = dt.date.today() - dt.timedelta(days=1)
+        end_date = start_date + dt.timedelta(days=60)
         cround = Round.objects.filter(
             Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
         ).first()
@@ -28,4 +28,4 @@ class Command(BaseCommand):
                 )
                 print(f"Added {driver}")
         else:
-            print("Could not fine a round")
+            print("Could not find a round")
