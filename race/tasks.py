@@ -36,10 +36,12 @@ class RaceTasks:
                     if (cround.pitlane_open_after) - elapsed <= dt.timedelta(
                         seconds=65
                     ):
-                        # Let's wwait
-                        await aio.sleep(
-                            (cround.pitlane_open_after - elapsed).total_seconds()
-                        )
+                        dowait = (cround.pitlane_open_after - elapsed).total_seconds()
+                        while int(dowait) > 0:
+                            await aio.sleep(dowait)
+                            dowait = (
+                                cround.pitlane_open_after - elapsed
+                            ).total_seconds()
                         change_lanes = await sync_to_async(list)(
                             ChangeLane.objects.filter(round=cround, open=False)
                         )
@@ -50,11 +52,14 @@ class RaceTasks:
                     cround.duration - elapsed - cround.pitlane_close_before
                     < dt.timedelta(seconds=65)
                 ):
-                    await aio.sleep(
-                        (
+                    dowait = (
+                        cround.duration - elapsed - cround.pitlane_close_before
+                    ).total_seconds()
+                    while int(dowait) > 0:
+                        await aio.sleep(dowait)
+                        dowait = (
                             cround.duration - elapsed - cround.pitlane_close_before
                         ).total_seconds()
-                    )
                     change_lanes = await sync_to_async(list)(
                         ChangeLane.objects.filter(
                             round=cround, open=True, driver__isnull=True
@@ -63,6 +68,12 @@ class RaceTasks:
                     for alane in change_lanes:
                         alane.open = False
                         await alane.asave()
+                elif cround.duration - elapsed < dt.timedelta(seconds=65):
+                    dowait = (cround.duration - elapsed).total_seconds()
+                    while int(dowait) > 0:
+                        await aio.sleep(dowait)
+                        dowait = (cround.duration - elapsed).total_seconds()
+                        cround.end_race()
 
         else:
             # bail out
