@@ -166,15 +166,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 // Update the completed sessions count in header for the specific team
-                if (data.team_id && data.completed_sessions !== undefined) {
-                    // Find the team slide in the carousel
-                    const teamSlide = document.getElementById(`team-slide-${data.team_id}`);
-                    if (teamSlide) {
-                        // Find the header in this team's table
-                        const changesHeader = teamSlide.querySelector('table thead tr th:first-child');
-                        if (changesHeader) {
-                            changesHeader.textContent = `${data.completed_sessions} Changes`;
-                        }
+                if ( newOntrack && driverRow && data.completed_sessions !== undefined) {
+                    let table = driverRow.closest('table');
+                    if (!table) return;
+                    // Find the header row in this table
+                    let headerRow = table.querySelector('thead tr');
+                    if (!headerRow) return;
+                    let changesHeader = headerRow.querySelector('th:first-child');
+                    if (changesHeader) {
+                        changesHeader.textContent = `${data.completed_sessions} Changes`;
+                    console.log(`Updated header to: ${data.completed_sessions} Changes`);
                     }
                 }
             } else {
