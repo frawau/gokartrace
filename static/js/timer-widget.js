@@ -181,7 +181,6 @@ class TimerWidget {
             }
 
             // Add timer-over class if limit is set and exceeded
-            console.log(`Checking ${this.currentValue} against ${this.limit}`);
             if (this.limit !== null) {
                 if ((this.countDirection === 'up' && this.currentValue > this.limit) ||
                     (this.countDirection === 'down' && this.currentValue < this.limit)) {
