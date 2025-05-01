@@ -367,7 +367,7 @@ class Round(models.Model):
     def change_queue(self):
         sessions = self.session_set.filter(
             register__isnull=False, start__isnull=True, end__isnull=True
-        ).order_by("registered")
+        ).order_by("register")
         return sessions
 
     def next_driver_change(self):
@@ -377,7 +377,7 @@ class Round(models.Model):
             self.session_set.filter(
                 register__isnull=False, start__isnull=True, end__isnull=True
             )
-            .order_by("registered")
+            .order_by("register")
             .first()
         )
         return session
