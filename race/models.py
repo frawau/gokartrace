@@ -333,14 +333,14 @@ class Round(models.Model):
                 if sessions.exists():
                     registered_drivers.append(driver)
 
-                if driver.weight <= 20:
+                if driver.weight <= 10:
                     errors.append(
                         f"Driver {driver.member.nickname} in team {round_team_instance.team.team.name} has an unlikely weight."
                     )
 
             if len(registered_drivers) != 1:
                 errors.append(
-                    f"Team {round_team_instance.team.team.name} has {len(registered_drivers)} registered to start. Expected 1."
+                    f"Team {round_team_instance.team.team.name} ({round_team_instance.team.number}) has {len(registered_drivers)} registered to start. Expected 1."
                 )
 
         if errors:

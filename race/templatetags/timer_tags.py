@@ -239,7 +239,6 @@ def timer_widget(
     return mark_safe(html)
 
 
-
 @register.simple_tag
 def get_driver_time_limit(round_obj, team):
     """
@@ -255,16 +254,12 @@ def get_driver_time_limit(round_obj, team):
         mode, time_delta = round_obj.driver_time_limit(team)
 
         # Convert timedelta to seconds if it's a timedelta
-        seconds = time_delta.total_seconds() if hasattr(time_delta, 'total_seconds') else None
+        seconds = (
+            time_delta.total_seconds() if hasattr(time_delta, "total_seconds") else None
+        )
 
         # Return as a dictionary for easy access in template
-        return {
-            'mode': mode,
-            'seconds': seconds
-        }
+        return {"mode": mode, "seconds": seconds}
     except Exception as e:
         print(f"Error getting driver time limit: {e}")
-        return {
-            'mode': None,
-            'seconds': None
-        }
+        return {"mode": None, "seconds": None}

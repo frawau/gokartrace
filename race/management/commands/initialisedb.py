@@ -132,7 +132,7 @@ class Command(BaseCommand):
                             member=person,
                             driver=True,
                             manager=False,
-                            weight=random.uniform(50, 100),
+                            weight=round(random.uniform(50, 100), 1),
                         )
                     self.stdout.write(
                         self.style.SUCCESS(
