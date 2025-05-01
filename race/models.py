@@ -501,12 +501,12 @@ class Round(models.Model):
                 }
                 # Update change lane
                 alane = ChangeLane.objects.filter(
-                    round=self, driver=next_session.driver
+                    round=self, driver=current_session.driver
                 ).first()
                 if alane:
                     alane.next_driver()
                 else:
-                    print(f"Error: Could not find lane for {next_session.driver}")
+                    print(f"Error: Could not find lane for {current_session.driver}")
             else:
                 retval = {
                     "message": f"Keeo driving no one is waiting for teasm {driver.team.number}.",
