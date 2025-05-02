@@ -635,3 +635,51 @@ def singleteam_view(request):
         return render(request, "pages/singleteam.html", context)
     else:
         return render(request, "pages/norace.html")
+
+
+def pending_drivers(request):
+    """View to display all pending sessions for the current round"""
+
+    # Get the current round
+    end_date = dt.date.today()
+    start_date = end_date - dt.timedelta(days=1)
+    try:
+        round_instance = Round.objects.filter(
+            Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
+        ).first()
+    except:
+        round_instance = None
+
+    # If no round is found
+    if not round_instance:
+        return render(request, "oages/pending_drivers.html", {"round": None})
+
+    # Get all sessions that are registered but not started or ended
+    pending_sessions = (
+        Session.objects.filter(
+            round=round_instance,
+            register__isnull=False,
+            start__isnull=True,
+            end__isnull=True,
+        )
+        .select_related(
+            "driver", "driver__team", "driver__member", "driver__team__team"
+        )
+        .order_by("register")
+    )  # Order by registration time
+
+    # For each session, get the team's completed sessions count
+    for session in pending_sessions:
+        completed_count = Session.objects.filter(
+            driver__team=session.driver.team, end__isnull=False
+        ).count()
+
+        # Add as property to the session object
+        session.team_completed_count = completed_count
+
+    context = {
+        "round": round_instance,
+        "pending_sessions": pending_sessions,
+    }
+
+    return render(request, "pages/pending_drivers.html", context)
