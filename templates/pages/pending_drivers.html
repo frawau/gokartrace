@@ -228,13 +228,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 changeCell.textContent = data.completed_sessions + 1;
                 newRow.appendChild(changeCell);
 
-                // Insert at the beginning of the table
-                if (tableBody.firstChild) {
-                    tableBody.insertBefore(newRow, tableBody.firstChild);
-                } else {
-                    tableBody.appendChild(newRow);
-                }
 
+                tableBody.appendChild(newRow);
                 // Remove highlight after a second
                 setTimeout(() => {
                     newRow.classList.remove('highlight');
