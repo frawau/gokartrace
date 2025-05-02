@@ -72,7 +72,7 @@ def timer_widget(
     }
 
     # Add limit to config if provided
-    print(f"Generating time for {final_element_id} with limit {limit}")
+    # print(f"Generating time for {final_element_id} with limit {limit}")
     if limit is not None:
         try:
             config["limit"] = float(limit)

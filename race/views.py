@@ -691,9 +691,11 @@ def driver_info_api(request, driver_id):
     driver = get_object_or_404(team_member, pk=driver_id)
 
     # Return the needed information for the front-end
-    return JsonResponse({
-        'driver_id': driver.id,
-        'team_id': driver.team.id,
-        'team_number': driver.team.team.number,
-        'nickname': driver.member.nickname
-    })
+    return JsonResponse(
+        {
+            "driver_id": driver.id,
+            "team_id": driver.team.id,
+            "team_number": driver.team.team.number,
+            "nickname": driver.member.nickname,
+        }
+    )
