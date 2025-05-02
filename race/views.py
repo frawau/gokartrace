@@ -34,6 +34,7 @@ from .models import (
     round_team,
     team_member,
     ChangeLane,
+    Session,
 )
 from .serializers import ChangeLaneSerializer
 from .utils import datadecode
