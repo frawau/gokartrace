@@ -645,20 +645,20 @@ def pending_drivers(request):
     end_date = dt.date.today()
     start_date = end_date - dt.timedelta(days=1)
     try:
-        round_instance = Round.objects.filter(
+        cround = Round.objects.filter(
             Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
         ).first()
     except:
-        round_instance = None
+        cround = None
 
     # If no round is found
-    if not round_instance:
+    if not cround:
         return render(request, "oages/pending_drivers.html", {"round": None})
 
     # Get all sessions that are registered but not started or ended
     pending_sessions = (
         Session.objects.filter(
-            round=round_instance,
+            round=cround,
             register__isnull=False,
             start__isnull=True,
             end__isnull=True,
@@ -679,8 +679,21 @@ def pending_drivers(request):
         session.team_completed_count = completed_count
 
     context = {
-        "round": round_instance,
+        "round": cround,
         "pending_sessions": pending_sessions,
     }
 
     return render(request, "pages/pending_drivers.html", context)
+
+
+def driver_info_api(request, driver_id):
+    """API endpoint to get driver info for the pending sessions table"""
+    driver = get_object_or_404(team_member, pk=driver_id)
+
+    # Return the needed information for the front-end
+    return JsonResponse({
+        'driver_id': driver.id,
+        'team_id': driver.team.id,
+        'team_number': driver.team.team.number,
+        'nickname': driver.member.nickname
+    })
