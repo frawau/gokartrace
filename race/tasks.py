@@ -22,6 +22,8 @@ class RaceTasks:
                 cround = await Round.objects.filter(
                     Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
                 ).afirst()
+                if not cround:
+                    return
                 if not cround.ready:
                     # nothing to do
                     return
