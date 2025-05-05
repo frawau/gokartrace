@@ -111,8 +111,8 @@ class GenerateCardPDF(View):
         canvas.drawString(x_number, y_number, team_number_str)
 
         # --- Mugshot (Right) ---
-        mugshot_width = 35 * scaledmm
-        mugshot_height = 45 * scaledmm
+        mugshot_width = 45 * scaledmm
+        mugshot_height = 55 * scaledmm
         mugshot_x = card_w - mugshot_width - 30 * scaledmm
         mugshot_y = card_h - 30 * scaledmm - mugshot_height
 
@@ -174,10 +174,10 @@ class GenerateCardPDF(View):
                 "data": dataencode(teammember.team.round, teammember.pk),
             }
         )
-        qr_size = card_h * 0.2
+        qr_size = card_h * 0.3
         qr_code = QRCodeImage(qr_data, qr_size)
-        qr_x = 15 * scaledmm
-        qr_y = 15 * scaledmm
+        qr_x = 10 * scaledmm
+        qr_y = 10 * scaledmm
         if teammember.driver:
             qr_code.drawOn(canvas, qr_x, qr_y)
 
@@ -257,6 +257,9 @@ class GenerateCardPDF(View):
             "A4": pagesz.A4,
             "A5": pagesz.A5,
             "A6": pagesz.A6,
+            "A7": pagesz.A7,
+            "A8": pagesz.A8,
+            "A9": pagesz.A9,
         }
         try:
             pagea = Config.objects.filter(name="page size").first().value
