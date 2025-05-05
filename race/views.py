@@ -743,6 +743,7 @@ def join_championship_view(request):
 @user_passes_test(is_admin_user)
 @require_POST
 def get_available_teams(request):
+    print(f"Available teams with {request}")
     championship_id = request.POST.get("championship_id")
     if not championship_id:
         return JsonResponse({"teams": []})
@@ -760,6 +761,7 @@ def get_available_teams(request):
 @user_passes_test(is_admin_user)
 @require_POST
 def get_available_numbers(request):
+    print(f"Available number with {request}")
     championship_id = request.POST.get("championship_id")
     if not championship_id:
         return JsonResponse({"numbers": []})
