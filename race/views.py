@@ -23,6 +23,7 @@ from rest_framework.decorators import (
 )
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
+from django.db import IntegrityError
 from django.db.models import Q
 from django.views.decorators.csrf import csrf_exempt
 from .models import (
