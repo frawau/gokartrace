@@ -217,7 +217,7 @@ class GenerateCardPDF(View):
             if not wp is None:
                 canvas.setFont("Helvetica-Bold", int(48 * scalefactor + 0.5))
                 pweight_text = f"{wp:.1f} kg"
-                pweight_x = qr_x + qr_size + 25 * scaledmm
+                pweight_x = qr_x + qr_size + 17 * scaledmm
                 pweight_y = qr_y + qr_size - 20 * scaledmm  # Adjust for spacing
                 canvas.drawString(pweight_x, pweight_y, pweight_text)
 
