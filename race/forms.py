@@ -1,7 +1,7 @@
 # forms.py
 import datetime as dt
 from django import forms
-from .models import Person, Team, Championship
+from .models import Person, Team, Championship, championship_team
 
 
 class DriverForm(forms.ModelForm):
