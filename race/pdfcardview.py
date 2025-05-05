@@ -175,10 +175,10 @@ class GenerateCardPDF(View):
             }
         )
         qr_size = card_h * 0.3
-        qr_code = QRCodeImage(qr_data, qr_size)
-        qr_x = 10 * scaledmm
-        qr_y = 10 * scaledmm
+        qr_x = 5 * scaledmm
+        qr_y = 5 * scaledmm
         if teammember.driver:
+            qr_code = QRCodeImage(qr_data, qr_size)
             qr_code.drawOn(canvas, qr_x, qr_y)
 
         # --- Flag and Weight ---
@@ -218,13 +218,13 @@ class GenerateCardPDF(View):
                 canvas.setFont("Helvetica-Bold", int(48 * scalefactor + 0.5))
                 pweight_text = f"{wp:.1f} kg"
                 pweight_x = qr_x + qr_size + 25 * scaledmm
-                pweight_y = qr_y + qr_size - 10 * scaledmm  # Adjust for spacing
+                pweight_y = qr_y + qr_size - 20 * scaledmm  # Adjust for spacing
                 canvas.drawString(pweight_x, pweight_y, pweight_text)
 
                 canvas.setFont("Helvetica", int(18 * scalefactor + 0.5))
                 weight_text = f"Weight {teammember.weight:.1f} kg"
                 weight_x = pweight_x
-                weight_y = pweight_y - 12 * scaledmm  # Adjust for spacing
+                weight_y = pweight_y - 22 * scaledmm  # Adjust for spacing
                 canvas.drawString(weight_x, weight_y, weight_text)
 
         maxtw, maxt = teammember.team.round.driver_time_limit(team)
@@ -243,7 +243,7 @@ class GenerateCardPDF(View):
                 manager_text, "Helvetica-Bold", int(32 * scalefactor + 0.5)
             )
             manager_x = qr_x + qr_size + 25 * scaledmm
-            manager_y = qr_y + qr_size - 37 * scaledmm  # Adjust for spacing
+            manager_y = qr_y + qr_size - 47 * scaledmm  # Adjust for spacing
             canvas.drawString(manager_x, manager_y, manager_text)
 
         canvas.restoreState()
