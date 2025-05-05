@@ -128,7 +128,7 @@ class GenerateCardPDF(View):
                 print(f"Error loading mugshot: {e}")
 
         # --- Nickname ---  Centered
-        x_nick = mugshot_x - 20 * scaledmm
+        x_nick = mugshot_x - 10 * scaledmm
         y_nick = mugshot_y - 30 * scaledmm  # Adjust for spacing
         nickname = person.nickname if person.nickname else "N/A"
         sz = self.textFit(
@@ -159,7 +159,7 @@ class GenerateCardPDF(View):
         else:
             ufont = "ENFont"
 
-        x_full = mugshot_x - 20 * scaledmm
+        x_full = mugshot_x - 10 * scaledmm
         y_full = y_nick - 47 * scalefactor  # Adjust for spacing
         ftsz = self.textFit(
             full_name, canvas, card_w - x_full, int(24 * scalefactor + 0.5), ufont
