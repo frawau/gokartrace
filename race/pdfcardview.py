@@ -108,14 +108,14 @@ class GenerateCardPDF(View):
         team_number_str = str(teammember.team.number) if teammember.team.number else "#"
         text_width_number = canvas.stringWidth(team_number_str, "Helvetica-Bold", 100)
         # x_number = 20 * scaledmm
-        x_number = (self.card_width * 0.32 - text_width_number) / 2 + 0.2 * scaledmm
+        x_number = (self.card_width * 0.32 - text_width_number) / 2 + 3 * scaledmm
         y_number = card_h * 0.7 - 10 * scaledmm
         canvas.drawString(x_number, y_number, team_number_str)
 
         # --- Mugshot (Right) ---
         mugshot_width = 45 * scaledmm
         mugshot_height = 55 * scaledmm
-        mugshot_x = card_w - mugshot_width - 30 * scaledmm
+        mugshot_x = card_w - mugshot_width - 20 * scaledmm
         mugshot_y = card_h - 30 * scaledmm - mugshot_height
 
         if person.mugshot:
@@ -130,7 +130,7 @@ class GenerateCardPDF(View):
                 print(f"Error loading mugshot: {e}")
 
         # --- Nickname ---  Centered
-        x_nick = mugshot_x - 10 * scaledmm
+        x_nick = mugshot_x - 20 * scaledmm
         y_nick = mugshot_y - 30 * scaledmm  # Adjust for spacing
         nickname = person.nickname if person.nickname else "N/A"
         sz = self.textFit(
@@ -161,7 +161,7 @@ class GenerateCardPDF(View):
         else:
             ufont = "ENFont"
 
-        x_full = mugshot_x - 10 * scaledmm
+        x_full = mugshot_x - 20 * scaledmm
         y_full = y_nick - 47 * scalefactor  # Adjust for spacing
         ftsz = self.textFit(
             full_name, canvas, card_w - x_full, int(24 * scalefactor + 0.5), ufont
