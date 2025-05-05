@@ -149,10 +149,11 @@ class GenerateCardPDF(View):
             lang = detect(full_name)
         except LangDetectException:
             lang = "unknown"
-
+        print(f"Language is {lang}")
         if lang == "th":
             ufont = "THFont"
         elif lang == "jp":
+            print("Japanese it is")
             ufont = "JPFont"
         elif lang == "kr":
             ufont = "KRFont"
