@@ -734,11 +734,11 @@ def join_championship_view(request):
                 championship_team.objects.create(
                     championship=championship, team=team, number=number
                 )
-                messages.success(
-                    request,
-                    f"Successfully added {team.name} to {championship.name} with number {number}!",
-                )
-                return redirect("join_championship")  # Redirect to same view
+                # Store success message in session
+                request.session[
+                    "success_message"
+                ] = f"Successfully added {team.name} to {championship.name} with number {number}!"
+                return redirect("join_championship")
             except Team.DoesNotExist:
                 form.add_error("team", "Selected team does not exist.")
             except IntegrityError:
@@ -748,7 +748,14 @@ def join_championship_view(request):
     else:
         form = JoinChampionshipForm()
 
-    return render(request, "pages/join_championship.html", {"form": form})
+        # Get and clear success message from session
+        success_message = request.session.pop("success_message", None)
+
+    return render(
+        request,
+        "pages/join_championship.html",
+        {"form": form, "success_message": success_message},
+    )
 
 
 @login_required
