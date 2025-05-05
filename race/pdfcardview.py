@@ -191,7 +191,7 @@ class GenerateCardPDF(View):
             if person.country:
                 country = pycountry.countries.get(alpha_2=person.country.code)
                 if country:
-                    nationality_name = country.name
+                    nationality_name = country.name.split(",")[0].strip()
                     flagf = FLAGDIR / f"{country.alpha_2.lower()}.png"
                     if not flagf.exists():
                         flagf = FLAGDIR / "un.png"
@@ -204,7 +204,7 @@ class GenerateCardPDF(View):
             flag_y = card_h * 0.4
             if flag_img:
                 canvas.drawImage(flag_img, flag_x, flag_y, img_width, img_height)
-            nat_y = flag_y - 10 * scaledmm
+            nat_y = flag_y + img_height + 5 * scaledmm
             canvas.setFont("Helvetica", int(18 * scalefactor + 0.5))
             canvas.drawString(flag_x, nat_y, nationality_name)
         except AttributeError as e:
@@ -230,7 +230,7 @@ class GenerateCardPDF(View):
         maxtw, maxt = teammember.team.round.driver_time_limit(team)
         if maxtw:
             maxt_x = x_nick - 10 * scaledmm
-            maxt_y = qr_y - 10 * scaledmm
+            maxt_y = qr_y - 5 * scaledmm
             tl_text = f"{maxtw.title()} driving limit: {(dt.datetime(2025,4,1) + maxt).strftime('%H:%M:%S')}"
             canvas.setFont("Helvetica", int(18 * scalefactor + 0.5))
             canvas.drawString(maxt_x, maxt_y, tl_text)
