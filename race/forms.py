@@ -102,15 +102,14 @@ class JoinChampionshipForm(forms.Form):
             attrs={"class": "form-control", "id": "championship-select"}
         ),
     )
-    team = forms.ModelChoiceField(
-        queryset=Team.objects.none(),
+    team = forms.IntegerField(
         required=True,
-        empty_label="Select a team",
         widget=forms.Select(attrs={"class": "form-control", "id": "team-select"}),
     )
-    number = forms.ChoiceField(
-        choices=[],
+    number = forms.IntegerField(
         required=True,
+        min_value=1,
+        max_value=99,
         widget=forms.Select(attrs={"class": "form-control", "id": "number-select"}),
     )
 

@@ -726,13 +726,25 @@ def join_championship_view(request):
         form = JoinChampionshipForm(request.POST)
         if form.is_valid():
             championship = form.cleaned_data["championship"]
-            team = form.cleaned_data["team"]
-            number = int(form.cleaned_data["number"])
+            team_id = form.cleaned_data["team"]
+            number = form.cleaned_data["number"]
 
-            championship_team.objects.create(
-                championship=championship, team=team, number=number
-            )
-            return redirect("success_page")
+            try:
+                team = Team.objects.get(id=team_id)
+                championship_team.objects.create(
+                    championship=championship, team=team, number=number
+                )
+                messages.success(
+                    request,
+                    f"Successfully added {team.name} to {championship.name} with number {number}!",
+                )
+                return redirect("pages/join_championship")  # Redirect to same view
+            except Team.DoesNotExist:
+                form.add_error("team", "Selected team does not exist.")
+            except IntegrityError:
+                form.add_error(
+                    None, "This team or number is already taken in this championship."
+                )
     else:
         form = JoinChampionshipForm()
 
