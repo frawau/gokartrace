@@ -224,13 +224,13 @@ class GenerateCardPDF(View):
                 canvas.setFont("Helvetica", int(18 * scalefactor + 0.5))
                 weight_text = f"Weight {teammember.weight:.1f} kg"
                 weight_x = pweight_x
-                weight_y = pweight_y - 17 * scaledmm  # Adjust for spacing
+                weight_y = pweight_y - 14 * scaledmm  # Adjust for spacing
                 canvas.drawString(weight_x, weight_y, weight_text)
 
         maxtw, maxt = teammember.team.round.driver_time_limit(team)
         if maxtw:
             maxt_x = x_nick - 10 * scaledmm
-            maxt_y = qr_y - 7 * scaledmm
+            maxt_y = qr_y - 10 * scaledmm
             tl_text = f"{maxtw.title()} driving limit: {(dt.datetime(2025,4,1) + maxt).strftime('%H:%M:%S')}"
             canvas.setFont("Helvetica", int(18 * scalefactor + 0.5))
             canvas.drawString(maxt_x, maxt_y, tl_text)
