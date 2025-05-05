@@ -71,7 +71,7 @@ class GenerateCardPDF(View):
         canvas.translate(margin, margin)
         card_w = self.card_width - 2 * margin
         card_h = self.card_height - 2 * margin
-        # canvas.rect(0, 0, card_w, card_h)  # Optional: Draw border
+        canvas.rect(0, 0, card_w, card_h)  # Optional: Draw border
 
         person = teammember.member
         team = teammember.team
