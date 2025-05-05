@@ -39,7 +39,7 @@ from .models import (
 )
 from .serializers import ChangeLaneSerializer
 from .utils import datadecode
-from .forms import DriverForm, TeamForm
+from .forms import DriverForm, TeamForm, JoinChampionshipForm
 from django.template import loader
 
 # Create your views here.
