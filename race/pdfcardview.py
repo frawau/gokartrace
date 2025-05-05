@@ -71,9 +71,9 @@ class GenerateCardPDF(View):
         canvas.translate(margin, margin)
         card_w = self.card_width - 2 * margin
         card_h = self.card_height - 2 * margin
-        canvas.rect(
-            0 - margin, 0 - margin, card_w + margin, card_h + margin
-        )  # Optional: Draw border
+        # canvas.rect(
+        #     0 - margin, 0 - margin, card_w + margin, card_h + margin
+        # )  # Optional: Draw border
 
         person = teammember.member
         team = teammember.team
@@ -109,7 +109,7 @@ class GenerateCardPDF(View):
         text_width_number = canvas.stringWidth(team_number_str, "Helvetica-Bold", 100)
         # x_number = 20 * scaledmm
         x_number = (self.card_width * 0.32 - text_width_number) / 2
-        y_number = card_h * 0.7 - 10 * scaledmm
+        y_number = card_h * 0.7 - 7 * scaledmm
         canvas.drawString(x_number, y_number, team_number_str)
 
         # --- Mugshot (Right) ---
