@@ -93,7 +93,6 @@ class TeamForm(forms.ModelForm):
         return cleaned_data
 
 
-# In your forms.py
 class JoinChampionshipForm(forms.Form):
     championship = forms.ModelChoiceField(
         queryset=Championship.objects.none(),
