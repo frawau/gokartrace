@@ -541,6 +541,23 @@ def create_team(request):
         form = TeamForm(request.POST, request.FILES)
         if form.is_valid():
             form.save()
+
+            championship = form.cleaned_data.get("championship")
+            team_number = form.cleaned_data.get("team_number")
+
+            if championship and team_number:
+                try:
+                    championship_team.objects.create(
+                        championship=championship, team=team, number=team_number
+                    )
+                except IntegrityError:
+                    # Handle the rare case where someone else took the number
+                    # between form validation and saving
+                    form.add_error(
+                        "team_number", "This team number is no longer available."
+                    )
+                    team.delete()  # Clean up the team if registration failed
+                    return render(request, "pages/add_team.html", {"form": form})
             messages.success(request, "Team added successfully!")
             return redirect("add_team")  # Redirect to a page listing persons
     else:
