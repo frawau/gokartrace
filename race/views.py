@@ -541,7 +541,7 @@ def create_team(request):
     if request.method == "POST":
         form = TeamForm(request.POST, request.FILES)
         if form.is_valid():
-            form.save()
+            team = form.save()
 
             championship = form.cleaned_data.get("championship")
             team_number = form.cleaned_data.get("team_number")
