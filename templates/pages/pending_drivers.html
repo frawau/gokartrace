@@ -48,7 +48,7 @@
 {% block main_content %}
 <div class="container-fluid">
     {% if round is None %}
-        <h2>No race selected</h2>
+        <h2>No race today.</h2>
     {% else %}
         <div class="row mb-4">
             <div class="col-12 text-left">
@@ -75,7 +75,12 @@
                             data-team-number="{{ session.driver.team.team.number }}">
                             <td>{{ session.driver.team.team.number }}</td>
                             <td>{{ session.driver.member.nickname }}</td>
-                            <td class="next-change-number">{{ session.team_completed_count|add:1 }}</td>
+                            {% if round.started %}
+                                <td class="next-change-number">{{ session.team_completed_count|add:1 }}</td>
+                            {% else %}
+                                <td class="next-change-number">{{ session.team_completed_count }}</td>
+                            {% endif %}
+                            </tr>
                         </tr>
                     {% empty %}
                         <tr id="no-sessions-row">

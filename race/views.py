@@ -49,7 +49,7 @@ def index(request):
     button_matrix = [
         [
             {"label": "Team Carousel", "url": "/teamcarousel/"},
-            {"label": "Driver's Queue", "url": "/driverqueue/"},
+            {"label": "Driver's Queue", "url": "/pending_drivers/"},
             {"label": "Drivers on Track", "url": "/driverontrack/"},
         ],
         [
