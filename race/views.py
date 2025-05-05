@@ -717,3 +717,57 @@ def driver_info_api(request, driver_id):
             "nickname": driver.member.nickname,
         }
     )
+
+
+@login_required
+@user_passes_test(is_admin_user)
+def join_championship_view(request):
+    if request.method == "POST":
+        form = JoinChampionshipForm(request.POST)
+        if form.is_valid():
+            championship = form.cleaned_data["championship"]
+            team = form.cleaned_data["team"]
+            number = int(form.cleaned_data["number"])
+
+            championship_team.objects.create(
+                championship=championship, team=team, number=number
+            )
+            return redirect("success_page")
+    else:
+        form = JoinChampionshipForm()
+
+    return render(request, "pages/join_championship.html", {"form": form})
+
+
+@login_required
+@user_passes_test(is_admin_user)
+@require_POST
+def get_available_teams(request):
+    championship_id = request.POST.get("championship_id")
+    if not championship_id:
+        return JsonResponse({"teams": []})
+
+    joined_teams = championship_team.objects.filter(
+        championship_id=championship_id
+    ).values_list("team_id", flat=True)
+
+    available_teams = Team.objects.exclude(id__in=joined_teams).values("id", "name")
+
+    return JsonResponse({"teams": list(available_teams)})
+
+
+@login_required
+@user_passes_test(is_admin_user)
+@require_POST
+def get_available_numbers(request):
+    championship_id = request.POST.get("championship_id")
+    if not championship_id:
+        return JsonResponse({"numbers": []})
+
+    used_numbers = championship_team.objects.filter(
+        championship_id=championship_id
+    ).values_list("number", flat=True)
+
+    available_numbers = [str(i) for i in range(1, 100) if i not in used_numbers]
+
+    return JsonResponse({"numbers": available_numbers})

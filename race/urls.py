@@ -49,4 +49,7 @@ urlpatterns = [
     path("get_round_status/", views.get_round_status, name="get_round_status"),
     path("get_race_lanes/", views.get_race_lanes, name="get_race_lane"),
     path("singleteam/", views.singleteam_view, name="single_team"),
+    path("join_championship/", views.join_championship_view, name="join_championship"),
+    path("api/get_teams/", views.get_available_teams, name="get_available_teams"),
+    path("api/get_numbers/", views.get_available_numbers, name="get_available_numbers"),
 ]

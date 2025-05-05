@@ -91,3 +91,36 @@ class TeamForm(forms.ModelForm):
                 )
 
         return cleaned_data
+
+
+# In your forms.py
+class JoinChampionshipForm(forms.Form):
+    championship = forms.ModelChoiceField(
+        queryset=Championship.objects.none(),
+        required=True,
+        empty_label="Select a championship",
+        widget=forms.Select(
+            attrs={"class": "form-control", "id": "championship-select"}
+        ),
+    )
+    team = forms.ModelChoiceField(
+        queryset=Team.objects.none(),
+        required=True,
+        empty_label="Select a team",
+        widget=forms.Select(attrs={"class": "form-control", "id": "team-select"}),
+    )
+    number = forms.ChoiceField(
+        choices=[],
+        required=True,
+        widget=forms.Select(attrs={"class": "form-control", "id": "number-select"}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Get active championships
+        today = dt.date.today()
+        active_championships = Championship.objects.filter(
+            start__lte=today, end__gte=today
+        )
+        self.fields["championship"].queryset = active_championships

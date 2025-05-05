@@ -634,7 +634,7 @@ class championship_team(models.Model):
         verbose_name_plural = _("Championship Teams")
 
     def __str__(self):
-        return f"{self.team.name} in {self.championship.name}."
+        return f"({self.number} ){self.team.name} in {self.championship.name}."
 
 
 class round_team(models.Model):
