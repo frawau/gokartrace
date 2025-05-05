@@ -738,7 +738,7 @@ def join_championship_view(request):
                     request,
                     f"Successfully added {team.name} to {championship.name} with number {number}!",
                 )
-                return redirect("pages/join_championship")  # Redirect to same view
+                return redirect("join_championship")  # Redirect to same view
             except Team.DoesNotExist:
                 form.add_error("team", "Selected team does not exist.")
             except IntegrityError:
