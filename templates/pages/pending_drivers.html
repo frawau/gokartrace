@@ -52,8 +52,7 @@
     {% else %}
         <div class="row mb-4">
             <div class="col-12 text-left">
-                <h1>{{ round.name }} - Driver Queue</h1>
-                <h2>Remaining Time: {% timer_widget "race-countdown" "countdownDisplay" round %} Waiting Drivers: <span id="pending-drivers-count">{{ pending_sessions|length }}</span></h2>
+                <h2>Remaining Time: {% timer_widget "race-countdown" "countdownDisplay" round %}&nbsp;&nbsp;&nbsp;Waiting Drivers: <span id="pending-drivers-count">{{ pending_sessions|length }}</span></h2>
             </div>
         </div>
 
