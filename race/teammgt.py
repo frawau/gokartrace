@@ -151,6 +151,7 @@ class TeamMembersView(View):
                 return redirect(request.path)
 
             try:
+                selected_team = championship_team.objects.get(id=selected_team_id)
                 member = team_member.objects.get(id=member_id)
                 member.delete()
                 messages.success(request, "Member removed successfully.")
