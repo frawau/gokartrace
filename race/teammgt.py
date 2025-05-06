@@ -7,6 +7,7 @@ from django.contrib import messages
 from django.db.models import Exists, OuterRef
 from django.contrib.auth.decorators import login_required, user_passes_test
 from .utils import is_admin_user
+from django.utils.decorators import method_decorator
 
 
 class TeamChoiceField(forms.ModelChoiceField):
@@ -73,6 +74,8 @@ class AddMemberForm(forms.Form):
             ).order_by("nickname")
 
 
+@method_decorator(login_required, name="dispatch")
+@method_decorator(user_passes_test(is_admin_user), name="dispatch")
 class TeamMembersView(View):
     template_name = "pages/team_members.html"
 
@@ -96,8 +99,6 @@ class TeamMembersView(View):
         }
         return render(request, self.template_name, context)
 
-    @login_required
-    @user_passes_test(is_admin_user)
     def post(self, request):
         current_round = self.get_current_round()
         if not current_round:
