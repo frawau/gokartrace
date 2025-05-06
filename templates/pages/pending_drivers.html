@@ -141,6 +141,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     // A session was started - remove the row
                     removePendingDriverRow(driverId);
                 }
+            } else {
+                const isPaused = data.is_paused;
+
+                // Handle countdown timer updates
+                if (data.remaining_seconds !== undefined && data.remaining_seconds !== null) {
+                    // Normal case - update all timers based on pause state
+                    timerRegistry.countdownTimers.forEach(timer => {
+                        timer.updateRemainingTime(data.remaining_seconds);
+                        timer.updatePauseState(isPaused);
+                    });
+                }
             }
         };
 
