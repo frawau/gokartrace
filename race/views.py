@@ -38,7 +38,7 @@ from .models import (
     Session,
 )
 from .serializers import ChangeLaneSerializer
-from .utils import datadecode
+from .utils import datadecode, is_admin_user
 from .forms import DriverForm, TeamForm, JoinChampionshipForm
 from django.template import loader
 
@@ -155,10 +155,6 @@ def changedriver_info(request):
 
 def is_race_director(user):
     return user.is_authenticated and user.groups.filter(name="Race Director").exists()
-
-
-def is_admin_user(user):
-    return user.is_authenticated and user.groups.filter(name="Admin").exists()
 
 
 @login_required

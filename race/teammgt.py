@@ -5,6 +5,8 @@ from django.shortcuts import render, redirect
 from django.views import View
 from django.contrib import messages
 from django.db.models import Exists, OuterRef
+from django.contrib.auth.decorators import login_required, user_passes_test
+from .utils import is_admin_user
 
 
 class TeamChoiceField(forms.ModelChoiceField):
@@ -94,6 +96,8 @@ class TeamMembersView(View):
         }
         return render(request, self.template_name, context)
 
+    @login_required
+    @user_passes_test(is_admin_user)
     def post(self, request):
         current_round = self.get_current_round()
         if not current_round:

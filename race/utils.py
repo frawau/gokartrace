@@ -11,3 +11,7 @@ def dataencode(cround, data):
 def datadecode(cround, data):
     docrypt = Fernet(cround.qr_fernet)
     return int(docrypt.decrypt(b64decode(data.encode())))
+
+
+def is_admin_user(user):
+    return user.is_authenticated and user.groups.filter(name="Admin").exists()
