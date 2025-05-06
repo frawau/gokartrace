@@ -53,7 +53,7 @@
         <div class="row mb-4">
             <div class="col-12 text-left">
                 <h1>{{ round.name }} - Driver Queue</h1>
-                <h2>Remaining Time: {% timer_widget "race-countdown" "countdownDisplay" round %}</h2>
+                <h2>Remaining Time: {% timer_widget "race-countdown" "countdownDisplay" round %} Waiting Drivers: <span id="pending-drivers-count">{{ pending_sessions|length }}</span></h2>
             </div>
         </div>
 
@@ -97,6 +97,9 @@
 {% block extra_js %}
 {% if round is not None %}
 <script>
+let pendingDriversCount = {{ pending_sessions|length }};
+const pendingDriversCountElement = document.getElementById('pending-drivers-count');
+
 document.addEventListener('DOMContentLoaded', function() {
     // Connect to WebSocket for round updates
     const roundId = {{ round.id }};
@@ -233,8 +236,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 changeCell.textContent = data.completed_sessions + 1;
                 newRow.appendChild(changeCell);
 
-
                 tableBody.appendChild(newRow);
+
+                // Update the counter
+                pendingDriversCount++;
+                pendingDriversCountElement.textContent = pendingDriversCount;
+
                 // Remove highlight after a second
                 setTimeout(() => {
                     newRow.classList.remove('highlight');
@@ -258,6 +265,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const tableBody = document.getElementById('pending-sessions-table').querySelector('tbody');
             if (row.parentNode) {
                 tableBody.removeChild(row);
+                // Update the counter
+                pendingDriversCount--;
+                pendingDriversCountElement.textContent = pendingDriversCount;
             }
 
             // If no more rows, add the "No pending sessions" row
@@ -267,7 +277,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 const noSessionsCell = document.createElement('td');
                 noSessionsCell.setAttribute('colspan', '3');
-                noSessionsCell.textContent = 'No pending sessions';
+                noSessionsCell.textContent = 'No waiting driver.';
 
                 noSessionsRow.appendChild(noSessionsCell);
                 tableBody.appendChild(noSessionsRow);
