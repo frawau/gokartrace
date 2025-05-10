@@ -168,9 +168,12 @@ def handle_session_change(sender, instance, **kwargs):
     round_team = driver.team
 
     # Count completed sessions for this team
-    completed_sessions_count = Session.objects.filter(
-        driver__team=round_team, end__isnull=False
-    ).count()
+    if round_instance.started:
+        completed_sessions_count = Session.objects.filter(
+            driver__team=round_team, end__isnull=False
+        ).count()
+    else:
+        completed_sessions_count = -1
 
     channel_layer = get_channel_layer()
     # First update the round timer

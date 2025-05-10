@@ -42,7 +42,21 @@ from .utils import datadecode, is_admin_user
 from .forms import DriverForm, TeamForm, JoinChampionshipForm
 from django.template import loader
 
-# Create your views here.
+
+def current_round():
+    end_date = dt.date.today()
+    start_date = end_date - dt.timedelta(days=1)
+    return Round.objects.filter(
+        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
+    ).first()
+
+
+def active_round():
+    end_date = dt.date.today()
+    start_date = end_date - dt.timedelta(days=1)
+    return Round.objects.filter(
+        Q(start__date__gte=start_date) & Q(ended__isnull=True)
+    ).first()
 
 
 def index(request):
@@ -59,30 +73,23 @@ def index(request):
             {"label": "ekskip", "url": ""},
         ],
     ]
-    end_date = dt.date.today()
-    start_date = end_date - dt.timedelta(days=1)
-    cround = Round.objects.filter(
-        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
-    ).first()
+    cround = current_round()
     return render(
         request, "pages/index.html", {"round": cround, "buttons": button_matrix}
     )
 
 
 def team_carousel(request):
-    end_date = dt.date.today()
-    start_date = end_date - dt.timedelta(days=1)
-    cround = Round.objects.filter(
-        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
-    ).first()
+    cround = current_round()
 
     return render(request, "pages/teamcarousel.html", {"round": cround})
 
 
 def get_team_card(request):
+    cround = current_round()
     team_id = request.GET.get("team_id")
     round_team_instance = get_object_or_404(round_team, pk=team_id)
-    cround = round_team_instance.round
+    assert cround == round_team_instance.round
     is_paused = cround.round_pause_set.filter(end__isnull=True).exists()
     if cround.started:
         elapsed = round(cround.time_elapsed.total_seconds())
@@ -103,20 +110,13 @@ def get_team_card(request):
 
 def changelane_info(request, lane_number):
     end_date = dt.date.today()
-    start_date = end_date - dt.timedelta(days=1)
-    cround = Round.objects.filter(
-        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
-    ).first()
+    cround = current_round()
     change_lane = get_object_or_404(ChangeLane, round=cround, lane=lane_number)
     return render(request, "layout/changelane_info.html", {"change_lane": change_lane})
 
 
 def changelane_detail(request, lane_number):
-    end_date = dt.date.today()
-    start_date = end_date - dt.timedelta(days=1)
-    cround = Round.objects.filter(
-        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
-    ).first()
+    cround = current_round()
     change_lane = get_object_or_404(ChangeLane, round=cround, lane=lane_number)
     return render(
         request, "layout/changelane_small_detail.html", {"change_lane": change_lane}
@@ -124,11 +124,7 @@ def changelane_detail(request, lane_number):
 
 
 def update_change_lane(request, lane_number):
-    end_date = dt.date.today()
-    start_date = end_date - dt.timedelta(days=1)
-    cround = Round.objects.filter(
-        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
-    ).first()
+    cround = current_round()
     change_lane = get_object_or_404(ChangeLane, round=cround, lane=lane_number)
     if change_lane.open == True:
         change_lane.next_driver()  # This is the function that updates the driver.
@@ -137,12 +133,8 @@ def update_change_lane(request, lane_number):
 
 
 def changedriver_info(request):
-    end_date = dt.date.today()
-    start_date = end_date - dt.timedelta(days=1)
     try:
-        cround = Round.objects.filter(
-            Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
-        ).first()
+        cround = current_round()
         change_lanes = ChangeLane.objects.filter(round=cround, open=True).order_by(
             "lane"
         )
@@ -160,12 +152,8 @@ def is_race_director(user):
 @login_required
 @user_passes_test(is_race_director)
 def racecontrol(request):
-    end_date = dt.date.today()
-    start_date = end_date - dt.timedelta(days=1)
+    cround = current_round()
     try:
-        cround = Round.objects.filter(
-            Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
-        ).first()
         lanes = cround.change_lanes
         return render(
             request, "pages/racecontrol.html", {"round": cround, "lanes": lanes}
@@ -177,11 +165,7 @@ def racecontrol(request):
 @login_required
 @user_passes_test(is_race_director)
 def preracecheck(request):
-    end_date = dt.date.today()
-    start_date = end_date - dt.timedelta(days=1)
-    cround = Round.objects.filter(
-        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
-    ).first()
+    cround = current_round()
     res = cround.pre_race_check()
     if res:
         return JsonResponse({"result": False, "error": res})
@@ -192,12 +176,7 @@ def preracecheck(request):
 @login_required
 @user_passes_test(is_race_director)
 def race_start(request):
-    # Your start race logic
-    end_date = dt.date.today()
-    start_date = end_date - dt.timedelta(days=1)
-    cround = Round.objects.filter(
-        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
-    ).first()
+    cround = current_round()
     cround.start_race()
     return JsonResponse({"result": True})
 
@@ -205,11 +184,7 @@ def race_start(request):
 @login_required
 @user_passes_test(is_race_director)
 def falsestart(request):
-    end_date = dt.date.today()
-    start_date = end_date - dt.timedelta(days=1)
-    cround = Round.objects.filter(
-        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
-    ).first()
+    cround = current_round()
     cround.false_start()
     return JsonResponse({"result": True})
 
@@ -217,11 +192,7 @@ def falsestart(request):
 @login_required
 @user_passes_test(is_race_director)
 def racepaused(request):
-    end_date = dt.date.today()
-    start_date = end_date - dt.timedelta(days=1)
-    cround = Round.objects.filter(
-        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
-    ).first()
+    cround = current_round()
     cround.pause_race()
     return JsonResponse({"result": True})
 
@@ -229,11 +200,7 @@ def racepaused(request):
 @login_required
 @user_passes_test(is_race_director)
 def racerestart(request):
-    end_date = dt.date.today()
-    start_date = end_date - dt.timedelta(days=1)
-    cround = Round.objects.filter(
-        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
-    ).first()
+    cround = current_round()
     cround.restart_race()
     return JsonResponse({"result": True})
 
@@ -241,12 +208,7 @@ def racerestart(request):
 @login_required
 @user_passes_test(is_race_director)
 def falserestart(request):
-    # Your false restart logic
-    end_date = dt.date.today()
-    start_date = end_date - dt.timedelta(days=1)
-    cround = Round.objects.filter(
-        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
-    ).first()
+    cround = current_round()
     cround.false_restart()
     return JsonResponse({"result": True})
 
@@ -254,7 +216,8 @@ def falserestart(request):
 @login_required
 @user_passes_test(is_race_director)
 def endofrace(request):
-    errs = self.end_race()
+    cround = current_round()
+    errs = cround.end_race()
     return JsonResponse({"result": True})
 
 
@@ -266,11 +229,7 @@ def agent_login(request):
     """
     API endpoint for user login and token generation.
     """
-    end_date = dt.date.today()
-    start_date = end_date - dt.timedelta(days=1)
-    cround = Round.objects.filter(
-        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
-    ).first()
+    cround = current_round()
     if cround is None:
         return Response(
             {"status": "error", "message": "No Championship Round today."},
@@ -329,11 +288,7 @@ def add_driver_to_queue(request):
     API endpoint that requires authentication using a token.
     """
     try:
-        end_date = dt.date.today()
-        start_date = end_date - dt.timedelta(days=1)
-        cround = Round.objects.filter(
-            Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
-        ).first()
+        cround = current_round()
         payload = json.loads(request.body)  # or request.data if using DRF parsers
 
         tmpk = datadecode(cround, payload["data"])
@@ -368,11 +323,7 @@ def change_kart_driver(request):
     API endpoint that requires authentication using a token.
     """
     try:
-        end_date = dt.date.today()
-        start_date = end_date - dt.timedelta(days=1)
-        cround = Round.objects.filter(
-            Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
-        ).first()
+        cround = current_round()
         payload = json.loads(request.body)  # or request.data if using DRF parsers
 
         tmpk = datadecode(cround, payload["data"])
@@ -565,11 +516,7 @@ def create_team(request):
 def get_round_status(request):
     """Return the current round status as JSON"""
     # Get the current active round (you can use your existing method)
-    end_date = dt.date.today()
-    start_date = end_date - dt.timedelta(days=1)
-    cround = Round.objects.filter(
-        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
-    ).first()
+    cround = current_round()
 
     if not cround:
         return JsonResponse({"ready": False, "ongoing": False, "is_paused": True})
@@ -586,11 +533,7 @@ def get_round_status(request):
 def get_race_lanes(request):
     """Return the lanes for the current race"""
     # Get the current active round (use your existing method)
-    end_date = dt.date.today()
-    start_date = end_date - dt.timedelta(days=1)
-    cround = Round.objects.filter(
-        Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
-    ).first()
+    cround = current_round()
 
     if not cround:
         return JsonResponse({"lanes": []})
@@ -615,12 +558,8 @@ def singleteam_view(request):
     """
     View to display a single team selected from a dropdown
     """
-    end_date = dt.date.today()
-    start_date = end_date - dt.timedelta(days=1)
     try:
-        cround = Round.objects.filter(
-            Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
-        ).first()
+        cround = current_round()
     except:
         cround = None
 
@@ -654,14 +593,8 @@ def singleteam_view(request):
 
 def pending_drivers(request):
     """View to display all pending sessions for the current round"""
-
-    # Get the current round
-    end_date = dt.date.today()
-    start_date = end_date - dt.timedelta(days=1)
     try:
-        cround = Round.objects.filter(
-            Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
-        ).first()
+        cround = current_round()
     except:
         cround = None
 
