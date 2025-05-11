@@ -63,7 +63,7 @@ class RaceTasks:
                         await aio.sleep(dowait)
                         elapsed = await cround.async_time_elapsed()
                         dowait = (cround.duration - elapsed).total_seconds()
-                        cround.end_race()
+                        await sync_to_async(cround.end_race)()
                 elif (
                     cround.duration - elapsed - cround.pitlane_close_before
                     < dt.timedelta(seconds=65)

@@ -10,7 +10,7 @@
             <table class="table w-100" style="font-size: 3rem; border-collapse: collapse; background-color: transparent;">
                 <thead>
                     <tr>
-                        <th class="col" style="border: 10px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">{{ changes_count }} Changes</th>
+                        <th class="col" style="border: 10px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">{{ changes_count|positive_only }} Changes</th>
                         <th class="col" style="border: 10px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">Drive Time</th>
                         <th class="col" style="border: 10px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: #333; background-color: transparent;">Current Session</th>
                     </tr>

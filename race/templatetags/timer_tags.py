@@ -276,3 +276,11 @@ def get_completed_sessions_count(round_team):
     count = Session.objects.filter(driver__team=round_team, end__isnull=False).count()
 
     return count
+
+
+@register.filter
+def positive_only(value):
+    try:
+        return max(int(value), 0)
+    except (ValueError, TypeError):
+        return 0
