@@ -7,7 +7,7 @@ from django_apscheduler.models import DjangoJobExecution
 
 def delete_old_job_executions():
     """Deletes job execution logs older than 24 hours"""
-    DjangoJobExecution.objects.delete_old_job_executions(24)
+    DjangoJobExecution.objects.delete_old_job_executions(24 * 60 * 60)
 
 
 def racing_start():

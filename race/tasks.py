@@ -32,6 +32,10 @@ class RaceTasks:
                     # Nothing to do
                     return
 
+                if cround.ended:
+                    # Nothing to do
+                    return
+
                 elapsed = await cround.async_time_elapsed()
                 if elapsed < cround.pitlane_open_after:
                     # Do we wait for it?
@@ -51,6 +55,15 @@ class RaceTasks:
                         for alane in change_lanes:
                             alane.open = True
                             await alane.asave()
+                elif cround.duration - elapsed < dt.timedelta(seconds=65):
+                    # Check for end before check for close pit lane. Would not be reached otherwise
+                    dowait = (cround.duration - elapsed).total_seconds()
+                    print(f"\n\n\nClosing in {dowait} seconds!\n\n\n")
+                    while int(dowait) > 0:
+                        await aio.sleep(dowait)
+                        elapsed = await cround.async_time_elapsed()
+                        dowait = (cround.duration - elapsed).total_seconds()
+                        cround.end_race()
                 elif (
                     cround.duration - elapsed - cround.pitlane_close_before
                     < dt.timedelta(seconds=65)
@@ -72,14 +85,6 @@ class RaceTasks:
                     for alane in change_lanes:
                         alane.open = False
                         await alane.asave()
-                elif cround.duration - elapsed < dt.timedelta(seconds=65):
-                    dowait = (cround.duration - elapsed).total_seconds()
-                    print(f"\n\n\nClosing in {dowait} seconds!\n\n\n")
-                    while int(dowait) > 0:
-                        await aio.sleep(dowait)
-                        elapsed = await cround.async_time_elapsed()
-                        dowait = (cround.duration - elapsed).total_seconds()
-                        cround.end_race()
 
         else:
             # bail out
