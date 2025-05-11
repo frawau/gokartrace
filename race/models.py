@@ -807,7 +807,7 @@ class team_member(models.Model):
 
 
 class Session(models.Model):
-    cround = models.ForeignKey(Round, on_delete=models.CASCADE)
+    round = models.ForeignKey(Round, on_delete=models.CASCADE)
     driver = models.ForeignKey(team_member, on_delete=models.CASCADE)
     register = models.DateTimeField(default=dt.datetime.now)
     start = models.DateTimeField(null=True, blank=True)
@@ -818,7 +818,7 @@ class Session(models.Model):
         verbose_name_plural = _("Sessions")
 
     def __str__(self):
-        return f"{self.driver.member.nickname} in {self.cround}"
+        return f"{self.driver.member.nickname} in {self.round}"
 
 
 class ChangeLane(models.Model):
@@ -852,4 +852,4 @@ class ChangeLane(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.cround.name} Lane {self.lane}"
+        return f"{self.round.name} Lane {self.lane}"
