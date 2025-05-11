@@ -74,6 +74,7 @@ class RaceTasks:
                         await alane.asave()
                 elif cround.duration - elapsed < dt.timedelta(seconds=65):
                     dowait = (cround.duration - elapsed).total_seconds()
+                    print(f"\n\n\nClosing in {dowait} seconds!\n\n\n")
                     while int(dowait) > 0:
                         await aio.sleep(dowait)
                         elapsed = await cround.async_time_elapsed()

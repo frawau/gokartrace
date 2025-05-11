@@ -2,6 +2,12 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from django_apscheduler.jobstores import DjangoJobStore
 from django.db import connection
+from django_apscheduler.models import DjangoJobExecution
+
+
+def delete_old_job_executions():
+    """Deletes job execution logs older than 24 hours"""
+    DjangoJobExecution.objects.delete_old_job_executions(24)
 
 
 def racing_start():
@@ -23,6 +29,14 @@ def racing_start():
         replace_existing=True,
     )
 
+    # Run cleanup every hour
+    scheduler.add_job(
+        delete_old_job_executions,
+        trigger="interval",
+        hours=1,
+        id="delete_old_job_executions",
+        replace_existing=True,
+    )
     # Only add the jobstore after defining jobs to avoid initialization DB access
     scheduler.add_jobstore(DjangoJobStore(), "default")
 

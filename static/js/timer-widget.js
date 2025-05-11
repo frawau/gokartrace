@@ -242,7 +242,7 @@ class TimerWidget {
                 this.deactivate();
                 this.reset(0)
             } else if (status === "register") {
-                this.reset(tspend)
+                this.reset(tspent)
             }
         }
     }

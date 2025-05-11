@@ -252,6 +252,7 @@ class Round(models.Model):
 
     def end_race(self):
         now = dt.datetime.now()
+        print(f"Ending race at {now}.")
         sessions = self.session_set.filter(
             register__isnull=False, start__isnull=False, end__isnull=True
         )
@@ -378,7 +379,7 @@ class Round(models.Model):
 
     def next_driver_change(self):
         if not self.pit_lane_open:
-            return None
+            return "close"
         # Get drivers currently in a ChangeLane
         drivers_in_lanes = ChangeLane.objects.filter(
             round=self, driver__isnull=False
@@ -806,7 +807,7 @@ class team_member(models.Model):
 
 
 class Session(models.Model):
-    round = models.ForeignKey(Round, on_delete=models.CASCADE)
+    cround = models.ForeignKey(Round, on_delete=models.CASCADE)
     driver = models.ForeignKey(team_member, on_delete=models.CASCADE)
     register = models.DateTimeField(default=dt.datetime.now)
     start = models.DateTimeField(null=True, blank=True)
@@ -817,11 +818,11 @@ class Session(models.Model):
         verbose_name_plural = _("Sessions")
 
     def __str__(self):
-        return f"{self.driver.member.nickname} in {self.round}"
+        return f"{self.driver.member.nickname} in {self.cround}"
 
 
 class ChangeLane(models.Model):
-    round = models.ForeignKey(Round, on_delete=models.CASCADE)
+    cround = models.ForeignKey(Round, on_delete=models.CASCADE)
     lane = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(4)])
     driver = models.ForeignKey(
         team_member, null=True, blank=True, on_delete=models.SET_NULL
@@ -829,9 +830,12 @@ class ChangeLane(models.Model):
     open = models.BooleanField(default=False)
 
     def next_driver(self):
-        sess = self.round.next_driver_change()
+        sess = self.cround.next_driver_change()
         print(f"Next driver from {sess}")
-        if sess:
+        if sess == "close":
+            self.open = False
+            self.driver = None
+        elif sess:
             self.driver = sess.driver
         else:
             self.driver = None
@@ -848,4 +852,4 @@ class ChangeLane(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.round.name} Lane {self.lane}"
+        return f"{self.cround.name} Lane {self.lane}"
