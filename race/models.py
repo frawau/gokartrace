@@ -253,13 +253,19 @@ class Round(models.Model):
     def end_race(self):
         now = dt.datetime.now()
         sessions = self.session_set.filter(
-            register__isnull=False, start__isnull=True, end__isnull=True
+            register__isnull=False, start__isnull=False, end__isnull=True
         )
         for session in sessions:
             session.end = now
             session.save()
         self.ended = now
         self.save()
+
+        sessions = self.session_set.filter(
+            round=self, register__isnull=False, start__isnull=True, end__isnull=True
+        )
+        for session in sessions:
+            session.delete()
         ChangeLane.object.all().delete()
         return self.post_race_check()
 

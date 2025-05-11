@@ -195,6 +195,13 @@ def handle_session_delete(sender, instance, **kwargs):
     round_instance = instance.round
     driver = instance.driver
     dstatus = "reset"
+    # Count completed sessions for this team
+    if round_instance.started:
+        completed_sessions_count = Session.objects.filter(
+            driver__team=round_team, end__isnull=False
+        ).count()
+    else:
+        completed_sessions_count = -1
     channel_layer = get_channel_layer()
     # First update the round timer
     async_to_sync(channel_layer.group_send)(
@@ -205,5 +212,6 @@ def handle_session_delete(sender, instance, **kwargs):
             "time spent": round(driver.time_spent.total_seconds()),
             "driver id": driver.id,
             "driver status": dstatus,
+            "completed sessions": completed_sessions_count,
         },
     )
