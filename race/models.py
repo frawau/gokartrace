@@ -822,7 +822,7 @@ class Session(models.Model):
 
 
 class ChangeLane(models.Model):
-    cround = models.ForeignKey(Round, on_delete=models.CASCADE)
+    round = models.ForeignKey(Round, on_delete=models.CASCADE)
     lane = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(4)])
     driver = models.ForeignKey(
         team_member, null=True, blank=True, on_delete=models.SET_NULL
@@ -830,7 +830,7 @@ class ChangeLane(models.Model):
     open = models.BooleanField(default=False)
 
     def next_driver(self):
-        sess = self.cround.next_driver_change()
+        sess = self.round.next_driver_change()
         print(f"Next driver from {sess}")
         if sess == "close":
             self.open = False
