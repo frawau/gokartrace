@@ -6,7 +6,7 @@
 <div class="container">
     <h1>Round Information</h1>
 
-    <form method="get" id="round-form">
+    <form method="get" id="round-form" >
         <div class="form-group">
             <label for="round-select">Select Round:</label>
             <select class="form-control" id="round-select" name="round_id" onchange="this.form.submit()">
@@ -109,6 +109,34 @@
     .round-stats-table .text-primary,
     .round-stats-table .text-secondary,
     .round-stats-table .text-dark {
+        color: #ffff99 !important;
+    }
+
+    #round-form label {
+        color: #ffff99 !important;
+    }
+
+    /* Style for the select dropdown */
+    #round-select {
+        color: #ffff99 !important;
+        background-color: rgba(0, 0, 0, 0.3) !important; /* Semi-transparent dark background */
+    }
+
+    /* Style for the dropdown options */
+    #round-select option {
+        color: #ffff99 !important;
+        background-color: #333 !important;
+    }
+
+    /* Override Material Kit styles with high specificity */
+    body .card-body .form-control,
+    body .card .card-body .form-control,
+    body .form-group .form-control {
+        color: #ffff99 !important;
+    }
+
+    /* Title styling */
+    h1 {
         color: #ffff99 !important;
     }
 </style>
