@@ -866,12 +866,12 @@ class Session(models.Model):
 
         # Calculate paused time within the session duration
         if self.end:
-            pauses = self.team.round.round_pause_set.filter(
+            pauses = self.round.round_pause_set.filter(
                 start__lte=self.end,
                 end__gte=self.start,
             )
         else:
-            pauses = self.team.round.round_pause_set.filter(
+            pauses = self.round.round_pause_set.filter(
                 Q(start__lte=now), Q(end__gte=self.start) | Q(end__isnull=True)
             )
 
