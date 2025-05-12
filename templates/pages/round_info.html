@@ -48,7 +48,7 @@
                 <!-- Driver rows and their sessions -->
                 {% for member in team.members %}
                 {% check_driver_transgression member as driver_has_transgression %}
-                <tr class="driver-row depth-1 team-{{ team.id }}" data-member-id="{{ member.id }}" style="display: none;">
+                <tr class="driver-row depth-1 team-{{ team.id }} {% cycle 'driver-odd' 'driver-even' as driver_colors %}" data-member-id="{{ member.id }}" style="display: none;">
                     <td class="color-label" style="background-color:
                         {% if selected_round.ended %}
                             {% if team_has_transgression %}#ff5252{% else %}#4caf50{% endif %}
@@ -64,7 +64,7 @@
                 <!-- Session rows for this driver -->
                 {% if selected_round.ended %}
                 {% for session in member.all_sessions %}
-                <tr class="session-row depth-2 member-{{ member.id }} team-{{ team.id }}" style="display: none;">
+                <tr class="session-row depth-2 member-{{ member.id }} team-{{ team.id }} {% cycle 'session-odd' 'session-even' as session_colors %}" style="display: none;">
                     <td class="color-label" style="background-color:
                         {% if team_has_transgression %}#ff5252{% else %}#4caf50{% endif %}">
                     </td>
@@ -72,8 +72,10 @@
                     <td colspan="2">{{ session.start|date:"Y-m-d H:i:s" }}</td>
                 </tr>
                 {% endfor %}
+                {% resetcycle session_colors %}
                 {% endif %}
                 {% endfor %}
+                {% resetcycle driver_colors %}
             </tbody>
             {% endfor %}
         </table>
@@ -103,29 +105,34 @@
         padding: 12px 15px;
     }
 
-    /* Row levels styling */
-    .round-stats-table tr.depth-0 {
-        background-color: rgba(50, 50, 70, 0.8);
+    /* Row levels styling with more distinctive alternating colors */
+    /* Team rows - dark greys */
+    .round-stats-table tr.team-row {
+        background-color: rgba(45, 45, 60, 0.9);
     }
 
-    .round-stats-table tr.depth-0:nth-child(odd) {
-        background-color: rgba(55, 55, 75, 0.8);
+    .round-stats-table tr.team-row:nth-child(even) {
+        background-color: rgba(60, 60, 75, 0.9);
     }
 
-    .round-stats-table tr.depth-1 {
-        background-color: rgba(60, 60, 80, 0.75);
+    /* Driver rows - pastel red and blue */
+    .round-stats-table tr.driver-odd {
+        background-color: rgba(90, 50, 70, 0.8); /* Pastel red */
+        color: rgba(240, 240, 250, 1) !important;
     }
 
-    .round-stats-table tr.depth-1:nth-child(odd) {
-        background-color: rgba(65, 65, 85, 0.75);
+    .round-stats-table tr.driver-even {
+        background-color: rgba(50, 70, 100, 0.8); /* Pastel blue */
+        color: rgba(240, 240, 250, 1) !important;
     }
 
-    .round-stats-table tr.depth-2 {
-        background-color: rgba(70, 70, 90, 0.7);
+    /* Session rows - back to greys but lighter */
+    .round-stats-table tr.session-odd {
+        background-color: rgba(70, 70, 80, 0.7);
     }
 
-    .round-stats-table tr.depth-2:nth-child(odd) {
-        background-color: rgba(75, 75, 95, 0.7);
+    .round-stats-table tr.session-even {
+        background-color: rgba(80, 80, 90, 0.7);
     }
 
     /* Text and content styling */
