@@ -358,9 +358,7 @@ def round_list_update(request):
     end_date = dt.date.today().replace(month=12).replace(day=31)
     start_date = dt.date.today().replace(month=1).replace(day=1)
     champ = Championship.objects.filter(start=start_date, end=end_date).get()
-    rounds = Round.objects.filter(championship=champ, ready__isnull=True).order_by(
-        "start"
-    )
+    rounds = Round.objects.filter(championship=champ, ready=False).order_by("start")
     context = {"rounds": rounds}
 
     if request.method == "GET" and "round_id" in request.GET:
