@@ -46,7 +46,7 @@
 
                 <!-- Hidden driver rows that will be toggled -->
                 {% for member in team.members %}
-                {% check_member_transgression member as member_has_transgression %}
+                {% check_driver_transgression member as driver_has_transgression %}
                 <tr class="driver-row team-{{ team.id }}" style="display: none;">
                     <td class="color-label" rowspan="1" style="background-color:
                         {% if selected_round.ended %}
@@ -55,7 +55,7 @@
                     </td>
                     <td colspan="1">{{ member.member.nickname }}</td>
                     <td>{{ member.sessions_count }}</td>
-                    <td style="color: {% if member_has_transgression %}red{% else %}black{% endif %}">
+                    <td style="color: {% if driver_has_transgression %}red{% else %}black{% endif %}">
                         {{ member.time_spent }}
                     </td>
                 </tr>
