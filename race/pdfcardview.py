@@ -308,15 +308,6 @@ class GenerateCardPDF(View):
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON data"}, status=400)
 
-        # Get current round
-        end_date = dt.date.today()
-        start_date = end_date - dt.timedelta(days=3)
-        cround = Round.objects.filter(
-            Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
-        ).first()
-        if cround is None:
-            return JsonResponse({"error": "No active round found"}, status=400)
-
         # Prepare PDF response
         filename = f"cards_{dt.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
         response = HttpResponse(content_type="application/pdf")
@@ -363,7 +354,15 @@ class GenerateCardPDF(View):
                     continue  # Skip invalid teams
 
         elif "person_id" in data:
-            # Single person
+            # Single perso
+            # Get current round
+            end_date = dt.date.today()
+            start_date = end_date - dt.timedelta(days=3)
+            cround = Round.objects.filter(
+                Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
+            ).first()
+            if cround is None:
+                return JsonResponse({"error": "No active round found"}, status=400)
             try:
                 person = Person.objects.get(id=data["person_id"])
                 tm = team_member.objects.get(member=person, team__round=cround)
