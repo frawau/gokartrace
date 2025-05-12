@@ -88,7 +88,6 @@
                 </div>
                 {% endif %}
             </form>
-
             <!-- Add Member Form -->
             <form method="post" class="mt-4">
                 {% csrf_token %}
@@ -98,8 +97,15 @@
                 <div class="row">
                     <div class="col-md-8">
                         <div class="form-group">
-                            {{ add_member_form.person.label_tag }}
-                            {{ add_member_form.person }}
+                            <label for="member-search">Add New Member</label>
+                            <input list="member-options" id="member-search" name="person"
+                                class="form-control" placeholder="Start typing to search...">
+                            <datalist id="member-options">
+                                {% for person in add_member_form.fields.person.queryset %}
+                                    <option value="{{ person.nickname }} ({{ person.firstname }} {{ person.surname }})"
+                                            data-id="{{ person.id }}">
+                                {% endfor %}
+                            </datalist>
                         </div>
                     </div>
                     <div class="col-md-4 d-flex align-items-end">
@@ -188,6 +194,7 @@
 </style>
 
 <script>
+
 document.addEventListener('DOMContentLoaded', function() {
     // Connect to WebSocket for round updates
     const roundId = "{{ current_round.id }}";
@@ -381,6 +388,11 @@ document.addEventListener('DOMContentLoaded', function() {
             // Remove any pseudo-elements if possible
             checkbox.setAttribute('style', 'content: none !important');
         });
+    });
+
+    // Datalist input event handler
+    document.getElementById('member-search').addEventListener('input', function() {
+        // The browser automatically filters the datalist options
     });
 });
 </script>
