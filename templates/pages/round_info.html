@@ -1,5 +1,6 @@
 <!-- templates/round_stats.html -->
 {% extends "layout/content.html" %}
+{% load round_tags %}
 
 {% block main_content %}
 <div class="container">
@@ -31,10 +32,11 @@
             </thead>
             <tbody>
                 {% for team in round_teams %}
+                {% check_team_transgression team.members as team_has_transgression %}
                 <tr class="team-row" data-team-id="{{ team.id }}" style="cursor: pointer;">
                     <td class="color-label" style="background-color:
                         {% if selected_round.ended %}
-                            {% if team.has_transgression %}red{% else %}green{% endif %}
+                            {% if team_has_transgression %}red{% else %}green{% endif %}
                         {% else %}transparent{% endif %}">
                     </td>
                     <td>{{ team.number }}</td>
@@ -44,25 +46,26 @@
 
                 <!-- Hidden driver rows that will be toggled -->
                 {% for member in team.members %}
+                {% check_member_transgression member as member_has_transgression %}
                 <tr class="driver-row team-{{ team.id }}" style="display: none;">
                     <td class="color-label" rowspan="1" style="background-color:
                         {% if selected_round.ended %}
-                            {% if team.has_transgression %}red{% else %}green{% endif %}
+                            {% if team_has_transgression %}red{% else %}green{% endif %}
                         {% else %}transparent{% endif %}">
                     </td>
                     <td colspan="1">{{ member.member.nickname }}</td>
                     <td>{{ member.sessions_count }}</td>
-                    <td style="color: {% if member.has_transgression %}red{% else %}black{% endif %}">
+                    <td style="color: {% if member_has_transgression %}red{% else %}black{% endif %}">
                         {{ member.time_spent }}
                     </td>
                 </tr>
 
                 <!-- Hidden session rows that will be toggled -->
                 {% if selected_round.ended %}
-                    {% for session in member.sessions %}
+                    {% for session in member.all_sessions %}
                     <tr class="session-row member-{{ member.id }} team-{{ team.id }}" style="display: none;">
                         <td class="color-label" rowspan="1" style="background-color:
-                            {% if team.has_transgression %}red{% else %}green{% endif %}">
+                            {% if team_has_transgression %}red{% else %}green{% endif %}">
                         </td>
                         <td colspan="2">{{ session.duration }}</td>
                         <td>{{ session.start|date:"Y-m-d H:i:s" }}</td>
@@ -138,11 +141,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             } else {
-                // Session updates - could be improved to update specific elements without reload
-                if (data.driver_id) {
-                    // Here you could update specific UI elements instead of reloading
-                    // For a complete implementation, you'd update driver time spent and status
-                }
+                // Session updates
+                location.reload(); // Simple approach for now
             }
         };
 
