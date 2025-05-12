@@ -53,10 +53,11 @@
                             {% if team_has_transgression %}red{% else %}green{% endif %}
                         {% else %}transparent{% endif %}">
                     </td>
-                    <td colspan="1">{{ member.member.nickname }}</td>
                     <td style="color: {% if driver_has_transgression %}red{% else %}black{% endif %}">
                         {{ member.time_spent|format_time  }}
                     </td>
+                    <td colspan="1">{{ member.member.nickname }}</td>
+
                     <td>{{ member.sessions_count }}</td>
                 </tr>
 
@@ -67,8 +68,8 @@
                         <td class="color-label" rowspan="1" style="background-color:
                             {% if team_has_transgression %}red{% else %}green{% endif %}">
                         </td>
-                        <td colspan="2">{{ session.duration|format_time  }}</td>
-                        <td>{{ session.start|date:"Y-m-d H:i:s" }}</td>
+                        <td>{{ session.duration|format_time  }}</td>
+                        <td colspan="2">{{ session.start|date:"Y-m-d H:i:s" }}</td>
                     </tr>
                     {% endfor %}
                 {% endif %}
