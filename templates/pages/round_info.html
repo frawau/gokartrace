@@ -29,9 +29,9 @@
                     <th>{% if selected_round.ended %}Changes{% endif %}</th>
                 </tr>
             </thead>
-            <tbody>
-                {% for team in round_teams %}
-                {% check_team_transgression team as team_has_transgression %}
+            {% for team in round_teams %}
+            {% check_team_transgression team as team_has_transgression %}
+            <tbody class="team-group">
                 <tr class="team-row depth-0" data-team-id="{{ team.id }}">
                     <td class="color-label" style="background-color:
                         {% if selected_round.ended %}
@@ -42,11 +42,8 @@
                     <td>{{ team.name }}</td>
                     <td>{% if selected_round.ended %}{{ team.completed_sessions_count }}{% endif %}</td>
                 </tr>
-                {% endfor %}
             </tbody>
 
-            {% for team in round_teams %}
-            {% check_team_transgression team as team_has_transgression %}
             <tbody class="driver-container team-{{ team.id }}-container" style="display: none;">
                 {% for member in team.members %}
                 {% check_driver_transgression member as driver_has_transgression %}
