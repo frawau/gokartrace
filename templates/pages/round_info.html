@@ -1,0 +1,155 @@
+<!-- templates/round_stats.html -->
+{% extends "layout/content.html" %}
+
+{% block main_content %}
+<div class="container">
+    <h1>Round Statistics</h1>
+
+    <form method="get" id="round-form">
+        <div class="form-group">
+            <label for="round-select">Select Round:</label>
+            <select class="form-control" id="round-select" name="round_id" onchange="this.form.submit()">
+                {% for round in rounds %}
+                    <option value="{{ round.id }}" {% if round.id == selected_round_id %}selected{% endif %}>
+                        {{ round.name }} ({{ round.start|date:"Y-m-d" }})
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+    </form>
+
+    {% if round_teams %}
+    <div class="round-teams mt-4">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th style="width: 20px;"></th>
+                    <th>Number</th>
+                    <th>Team Name</th>
+                    <th>{% if selected_round.ended %}Changes{% endif %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for team in round_teams %}
+                <tr class="team-row" data-team-id="{{ team.id }}" style="cursor: pointer;">
+                    <td class="color-label" style="background-color:
+                        {% if selected_round.ended %}
+                            {% if team.has_transgression %}red{% else %}green{% endif %}
+                        {% else %}transparent{% endif %}">
+                    </td>
+                    <td>{{ team.number }}</td>
+                    <td>{{ team.name }}</td>
+                    <td>{% if selected_round.ended %}{{ team.completed_sessions_count }}{% endif %}</td>
+                </tr>
+
+                <!-- Hidden driver rows that will be toggled -->
+                {% for member in team.members %}
+                <tr class="driver-row team-{{ team.id }}" style="display: none;">
+                    <td class="color-label" rowspan="1" style="background-color:
+                        {% if selected_round.ended %}
+                            {% if team.has_transgression %}red{% else %}green{% endif %}
+                        {% else %}transparent{% endif %}">
+                    </td>
+                    <td colspan="1">{{ member.member.nickname }}</td>
+                    <td>{{ member.sessions_count }}</td>
+                    <td style="color: {% if member.has_transgression %}red{% else %}black{% endif %}">
+                        {{ member.time_spent }}
+                    </td>
+                </tr>
+
+                <!-- Hidden session rows that will be toggled -->
+                {% if selected_round.ended %}
+                    {% for session in member.sessions %}
+                    <tr class="session-row member-{{ member.id }} team-{{ team.id }}" style="display: none;">
+                        <td class="color-label" rowspan="1" style="background-color:
+                            {% if team.has_transgression %}red{% else %}green{% endif %}">
+                        </td>
+                        <td colspan="2">{{ session.duration }}</td>
+                        <td>{{ session.start|date:"Y-m-d H:i:s" }}</td>
+                    </tr>
+                    {% endfor %}
+                {% endif %}
+                {% endfor %}
+
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">No round selected or no teams found.</div>
+    {% endif %}
+</div>
+{% endblock main_content %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle team members when clicking on a team row
+    const teamRows = document.querySelectorAll('.team-row');
+    teamRows.forEach(row => {
+        row.addEventListener('click', function() {
+            const teamId = this.getAttribute('data-team-id');
+            const driverRows = document.querySelectorAll(`.driver-row.team-${teamId}`);
+
+            driverRows.forEach(driverRow => {
+                driverRow.style.display = driverRow.style.display === 'none' ? 'table-row' : 'none';
+
+                // Hide session rows when toggling driver rows
+                const sessionRows = document.querySelectorAll(`.session-row.team-${teamId}`);
+                sessionRows.forEach(sessionRow => {
+                    sessionRow.style.display = 'none';
+                });
+            });
+        });
+    });
+
+    // Toggle sessions when clicking on a driver row
+    const driverRows = document.querySelectorAll('.driver-row');
+    driverRows.forEach(row => {
+        row.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent triggering the team row click
+
+            const memberId = this.classList[1].split('-')[1];
+            const teamId = this.classList[2].split('-')[1];
+            const sessionRows = document.querySelectorAll(`.session-row.member-${memberId}.team-${teamId}`);
+
+            sessionRows.forEach(sessionRow => {
+                sessionRow.style.display = sessionRow.style.display === 'none' ? 'table-row' : 'none';
+            });
+        });
+    });
+
+    // WebSocket connection
+    if (document.querySelector('#round-select').value) {
+        const roundId = document.querySelector('#round-select').value;
+        const ws_scheme = window.location.protocol === "https:" ? "wss" : "ws";
+        const roundSocket = new WebSocket(
+            `${ws_scheme}://${window.location.host}/ws/round/${roundId}/`
+        );
+
+        roundSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+
+            if (!data.session_update) {
+                // Round updates
+                if (data.ended !== undefined) {
+                    if (data.ended) {
+                        location.reload(); // Reload when round ends
+                    }
+                }
+            } else {
+                // Session updates - could be improved to update specific elements without reload
+                if (data.driver_id) {
+                    // Here you could update specific UI elements instead of reloading
+                    // For a complete implementation, you'd update driver time spent and status
+                }
+            }
+        };
+
+        roundSocket.onclose = function(e) {
+            console.error('Round socket closed unexpectedly');
+        };
+    }
+});
+</script>
+{% endblock extra_js %}

@@ -725,3 +725,72 @@ def get_available_numbers(request):
     available_numbers = [str(i) for i in range(1, 100) if i not in used_numbers]
 
     return JsonResponse({"numbers": available_numbers})
+
+
+def round_info_view(request):
+    # Get all rounds sorted by date
+    rounds = Round.objects.all().order_by("start")
+
+    # Find closest round to today
+    selected_round_id = request.GET.get("round_id")
+    if not selected_round_id:
+        today = dt.date.today()
+        closest_round = rounds.filter(start__date__gte=today).first()
+        if not closest_round:
+            closest_round = rounds.last()
+        selected_round_id = closest_round.id if closest_round else None
+
+    round_teams = []
+    if selected_round_id:
+        selected_round = Round.objects.get(id=selected_round_id)
+        round_teams = round_team.objects.filter(round=selected_round)
+
+        # Process each team
+        for rt in round_teams:
+            # Calculate if team has transgression
+            # This would depend on your business logic, example below:
+            rt.has_transgression = False
+
+            # Calculate completed sessions
+            rt.completed_sessions_count = Session.objects.filter(
+                round=selected_round, driver__team=rt, end__isnull=False
+            ).count()
+
+            # Get team members
+            rt.members = team_member.objects.filter(team=rt)
+            for member in rt.members:
+                # Calculate if member has transgression
+                time_limit, max_time = selected_round.driver_time_limit(rt)
+                if time_limit and max_time and member.time_spent > max_time:
+                    member.has_transgression = True
+                    # If any member has transgression, team has transgression
+                    rt.has_transgression = True
+                else:
+                    member.has_transgression = False
+
+                # Calculate sessions count
+                member.sessions_count = Session.objects.filter(
+                    driver=member, end__isnull=False
+                ).count()
+
+                # Get sessions data
+                member.sessions = Session.objects.filter(driver=member).order_by(
+                    "start"
+                )
+
+                # Calculate duration for each session
+                for session in member.sessions:
+                    if session.end and session.start:
+                        session.duration = session.end - session.start
+                    else:
+                        session.duration = "In progress"
+
+    context = {
+        "rounds": rounds,
+        "selected_round": Round.objects.get(id=selected_round_id)
+        if selected_round_id
+        else None,
+        "selected_round_id": int(selected_round_id) if selected_round_id else None,
+        "round_teams": round_teams,
+    }
+    return render(request, "pages/round_info.html", context)

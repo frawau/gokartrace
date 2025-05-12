@@ -39,6 +39,7 @@ urlpatterns = [
         views.driver_info_api,
         name="driver_info_api",
     ),
+    path("round_info/", views.round_stats_view, name="round_info"),
     # Admin stuffs
     path("rounds/update/", views.round_list_update, name="rounds_list"),
     path("rounds/form/", views.round_form, name="round_form"),

@@ -665,6 +665,20 @@ class round_team(models.Model):
     def __str__(self):
         return f"{self.team} in {self.round}"
 
+    @property
+    def has_transgression(self):
+        cround = self.team.round
+        sess_count = Session.objects.filter(
+            driver__team=self, end__isnull=False
+        ).count()
+        if sess_count < cround.required_changes:
+            return True
+        all_drivers = team_member.objects.filter(team=self, driver=True)
+        for driver in all_drivers:
+            if driver.has_transgression:
+                return True
+        return False
+
 
 class team_member(models.Model):
     team = models.ForeignKey(round_team, on_delete=models.CASCADE)
@@ -805,6 +819,27 @@ class team_member(models.Model):
             if checkme(self.weight, l):
                 return v
 
+    @property
+    def has_transgression(self):
+        cround = self.team.round
+        did_transgress = False
+        ltype, lval = cround.driver_time_limit(self.team)
+        time_spent = self.time_spent
+        if ltype == "session":
+            all_sessions = Session.objects.filter(driver=self)
+            for session in all_sessions:
+                if sess.duration > lval:
+                    did_transgress = True
+                    break
+            pass
+        elif ltype == "race":
+            did_transgress = lval < timespent
+
+        if not did_transgress:
+            if time_spent < cround.limit_time_min:
+                did_transgress = True
+        return did_transgress
+
 
 class Session(models.Model):
     round = models.ForeignKey(Round, on_delete=models.CASCADE)
@@ -819,6 +854,37 @@ class Session(models.Model):
 
     def __str__(self):
         return f"{self.driver.member.nickname} in {self.round}"
+
+    @property
+    def duration(self):
+        total_time = dt.timedelta(0)
+        now = dt.datetime.now()
+        if self.end:
+            session_time = self.end - self.start
+        else:
+            session_time = now - self.start
+        paused_time = dt.timedelta(0)
+
+        # Calculate paused time within the session duration
+        if self.end:
+            pauses = self.team.round.round_pause_set.filter(
+                start__lte=self.end,
+                end__gte=self.start,
+            )
+        else:
+            pauses = self.team.round.round_pause_set.filter(
+                Q(start__lte=now), Q(end__gte=self.start) | Q(end__isnull=True)
+            )
+
+        for pause in pauses:
+            pause_start = max(pause.start, self.start)
+            pause_end = min(
+                pause.end or now, self.end or now
+            )  # if pause.end is null, use now.
+            paused_time += pause_end - pause_start
+
+        total_time += session_time - paused_time
+        return total_time
 
 
 class ChangeLane(models.Model):
