@@ -604,7 +604,7 @@ def pending_drivers(request):
 
     # If no round is found
     if not cround:
-        return render(request, "oages/pending_drivers.html", {"round": None})
+        return render(request, "pages/pending_drivers.html", {"round": None})
 
     # Get all sessions that are registered but not started or ended
     pending_sessions = (
