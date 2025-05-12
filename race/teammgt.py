@@ -96,6 +96,7 @@ class TeamMembersView(View):
             "current_round": current_round,
             "team_form": team_form,
             "add_member_form": add_member_form,
+            "round_ready": current_round.ready,
         }
         return render(request, self.template_name, context)
 
@@ -104,6 +105,11 @@ class TeamMembersView(View):
         if not current_round:
             messages.error(request, "No current championship round found.")
             return redirect("Home")
+
+        # Check round ready status
+        if current_round.ready:
+            messages.error(request, "Race has started or is about to - no changes allowed.")
+            return redirect(request.path)
 
         if "select_team" in request.POST:
             # First clean up empty round_team records

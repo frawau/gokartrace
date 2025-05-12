@@ -179,63 +179,208 @@
     font-size: 1rem;
     vertical-align: middle;
 }
+
+/* Disabled Forms */
+.disabled-form {
+    opacity: 0.6;
+    pointer-events: none;
+}
 </style>
 
 <script>
-document.querySelectorAll('.remove-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const memberId = this.getAttribute('data-member');
-        document.getElementById('remove-form-' + memberId).submit();
-    });
-});
-
-document.getElementById('printCardsForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const formData = new FormData(this);
-    const data = {
-        round_team_id: formData.get('round_team_id')
-    };
-
-    fetch(this.action, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': formData.get('csrfmiddlewaretoken')
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.blob())
-    .then(blob => {
-        const url = URL.createObjectURL(blob);
-        window.open(url, '_blank').focus();
-    });
-});
-
-// Add script to ensure only one manager can be selected
 document.addEventListener('DOMContentLoaded', function() {
-    const managerCheckboxes = document.querySelectorAll('input[name$="-manager"]');
+    // Connect to WebSocket for round updates
+    const roundId = "{{ current_round.id }}";
+    let socket;
+    let reloadTimer;
+    const reconnectDelay = 3000; // 3 seconds
 
-    managerCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            if (this.checked) {
-                // Uncheck all other manager checkboxes
-                managerCheckboxes.forEach(otherCheckbox => {
-                    if (otherCheckbox !== this) {
-                        otherCheckbox.checked = false;
-                    }
-                });
+    function connectWebSocket() {
+        socket = new WebSocket(
+            'ws://' + window.location.host + '/ws/round/' + roundId + '/'
+        );
+
+        socket.onopen = function(e) {
+            console.log('WebSocket connection established');
+            if (reloadTimer) {
+                clearTimeout(reloadTimer);
+                reloadTimer = null;
+            }
+        };
+
+        socket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            if (data.ready !== undefined) {
+                updateFormStates(data.ready);
+            }
+        };
+
+        socket.onclose = function(e) {
+            if (e.wasClean) {
+                console.log('WebSocket connection closed cleanly');
+            } else {
+                console.warn('WebSocket connection interrupted');
+                // Only attempt to reconnect if this wasn't a clean close
+                if (!reloadTimer) {
+                    reloadTimer = setTimeout(() => {
+                        console.log('Attempting to reconnect WebSocket...');
+                        connectWebSocket();
+                    }, reconnectDelay);
+                }
+            }
+        };
+
+        socket.onerror = function(e) {
+            console.error('WebSocket error:', e);
+            socket.close(); // This will trigger onclose
+        };
+    }
+
+    // Initial connection
+    connectWebSocket();
+
+    function updateFormStates(isReady) {
+        const allForms = document.querySelectorAll('form:not(#printCardsForm)');
+        const allButtons = document.querySelectorAll('button:not(#printCardsForm button)');
+        const allInputs = document.querySelectorAll('input:not(#printCardsForm input), select:not(#printCardsForm select)');
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+
+        if (isReady) {
+            // Disable everything except Print Cards
+            allForms.forEach(form => {
+                form.classList.add('disabled-form');
+                form.addEventListener('submit', preventSubmit);
+            });
+
+            allButtons.forEach(button => button.disabled = true);
+            allInputs.forEach(input => input.disabled = true);
+            checkboxes.forEach(checkbox => {
+                checkbox.style.opacity = '0.6';
+                checkbox.style.pointerEvents = 'none';
+            });
+
+            // Show notification
+            showReadyNotification();
+        } else {
+            // Enable everything
+            allForms.forEach(form => {
+                form.classList.remove('disabled-form');
+                form.removeEventListener('submit', preventSubmit);
+            });
+
+            allButtons.forEach(button => button.disabled = false);
+            allInputs.forEach(input => input.disabled = false);
+            checkboxes.forEach(checkbox => {
+                checkbox.style.opacity = '';
+                checkbox.style.pointerEvents = '';
+            });
+
+            // Hide notification
+            hideReadyNotification();
+        }
+    }
+
+    function preventSubmit(e) {
+        e.preventDefault();
+        return false;
+    }
+
+    function showReadyNotification() {
+        // Create or update notification badge
+        let badge = document.querySelector('.ready-badge');
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'badge bg-success ready-badge';
+            badge.textContent = 'READY - VIEW ONLY';
+            document.querySelector('.card-header h4').appendChild(badge);
+        }
+    }
+
+    function hideReadyNotification() {
+        const badge = document.querySelector('.ready-badge');
+        if (badge) {
+            badge.remove();
+        }
+    }
+
+    // Initialize form states based on current round ready status
+    updateFormStates({{ round_ready|yesno:"true,false" }});
+
+    // Your existing JavaScript code for remove buttons, print cards, etc.
+    document.querySelectorAll('.remove-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (!{{ round_ready|yesno:"true,false" }}) {
+                const memberId = this.getAttribute('data-member');
+                document.getElementById('remove-form-' + memberId).submit();
             }
         });
     });
 
-    // Fix the FontAwesome checkmark issue by explicitly fixing any existing checkboxes
-    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-    checkboxes.forEach(checkbox => {
-        // Remove any content inside the checkbox
-        checkbox.innerHTML = '';
+    document.querySelectorAll('.remove-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const memberId = this.getAttribute('data-member');
+            document.getElementById('remove-form-' + memberId).submit();
+        });
+    });
 
-        // Remove any pseudo-elements if possible
-        checkbox.setAttribute('style', 'content: none !important');
+    document.getElementById('printCardsForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        const data = {
+            round_team_id: formData.get('round_team_id')
+        };
+
+        fetch(this.action, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.blob())
+        .then(blob => {
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank').focus();
+        });
+    });
+
+    // Clean up on page unload
+    window.addEventListener('beforeunload', function() {
+        if (socket) {
+            socket.close();
+        }
+        if (reloadTimer) {
+            clearTimeout(reloadTimer);
+        }
+    });
+
+    // Add script to ensure only one manager can be selected
+    document.addEventListener('DOMContentLoaded', function() {
+        const managerCheckboxes = document.querySelectorAll('input[name$="-manager"]');
+
+        managerCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                if (this.checked) {
+                    // Uncheck all other manager checkboxes
+                    managerCheckboxes.forEach(otherCheckbox => {
+                        if (otherCheckbox !== this) {
+                            otherCheckbox.checked = false;
+                        }
+                    });
+                }
+            });
+        });
+
+        // Fix the FontAwesome checkmark issue by explicitly fixing any existing checkboxes
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            // Remove any content inside the checkbox
+            checkbox.innerHTML = '';
+
+            // Remove any pseudo-elements if possible
+            checkbox.setAttribute('style', 'content: none !important');
+        });
     });
 });
 </script>
