@@ -667,11 +667,10 @@ class round_team(models.Model):
 
     @property
     def has_transgression(self):
-        cround = self.team.round
         sess_count = Session.objects.filter(
             driver__team=self, end__isnull=False
         ).count()
-        if sess_count < cround.required_changes:
+        if sess_count < self.round.required_changes:
             return True
         all_drivers = team_member.objects.filter(team=self, driver=True)
         for driver in all_drivers:
