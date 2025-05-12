@@ -42,11 +42,45 @@
                     <td>{{ team.name }}</td>
                     <td>{% if selected_round.ended %}{{ team.completed_sessions_count }}{% endif %}</td>
                 </tr>
-
-                <!-- Driver rows will be inserted dynamically by JS -->
-
                 {% endfor %}
             </tbody>
+
+            {% for team in round_teams %}
+            {% check_team_transgression team as team_has_transgression %}
+            <tbody class="driver-container team-{{ team.id }}-container" style="display: none;">
+                {% for member in team.members %}
+                {% check_driver_transgression member as driver_has_transgression %}
+                <tr class="driver-row depth-1 team-{{ team.id }}" data-member-id="{{ member.id }}">
+                    <td class="color-label" style="background-color:
+                        {% if selected_round.ended %}
+                            {% if team_has_transgression %}#ff5252{% else %}#4caf50{% endif %}
+                        {% else %}transparent{% endif %}">
+                    </td>
+                    <td style="color: {% if driver_has_transgression %}#ff8080{% else %}#e6e6fa{% endif %}">
+                        {{ member.time_spent|format_time }}
+                    </td>
+                    <td>{{ member.member.nickname }}</td>
+                    <td>{{ member.sessions_count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+
+            {% if selected_round.ended %}
+            {% for member in team.members %}
+            <tbody class="session-container member-{{ member.id }}-container" style="display: none;">
+                {% for session in member.all_sessions %}
+                <tr class="session-row depth-2 member-{{ member.id }} team-{{ team.id }}">
+                    <td class="color-label" style="background-color:
+                        {% if team_has_transgression %}#ff5252{% else %}#4caf50{% endif %}">
+                    </td>
+                    <td>{{ session.duration|format_time }}</td>
+                    <td colspan="2">{{ session.start|date:"Y-m-d H:i:s" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            {% endfor %}
+            {% endif %}
+            {% endfor %}
         </table>
     </div>
     {% else %}
@@ -106,10 +140,6 @@
         padding: 10px 15px;
     }
 
-    .round-stats-table .driver-status-red {
-        color: #ff8080 !important;
-    }
-
     .color-label {
         width: 8px;
         padding: 0 !important;
@@ -126,14 +156,16 @@
     }
 
     /* Animation styles */
+    .driver-container, .session-container {
+        transition: opacity 0.3s ease;
+    }
+
     .driver-row, .session-row {
-        transition: all 0.3s ease-out;
-        max-height: 0;
         opacity: 0;
+        transition: opacity 0.3s ease-out;
     }
 
     .driver-row.show, .session-row.show {
-        max-height: 50px;
         opacity: 1;
     }
 
@@ -185,93 +217,23 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const teamRows = document.querySelectorAll('.team-row');
-
-    // Generate the driver and session rows dynamically
-    teamRows.forEach(row => {
-        const teamId = row.getAttribute('data-team-id');
-        const teamHasTransgression = row.querySelector('.color-label').style.backgroundColor === 'rgb(255, 82, 82)' ||
-                                     row.querySelector('.color-label').style.backgroundColor === '#ff5252';
-
-        {% for team in round_teams %}
-        if ({{ team.id }} == teamId) {
-            // Create a container for driver rows of this team
-            const driverContainer = document.createElement('tbody');
-            driverContainer.classList.add(`team-${teamId}-container`);
-            driverContainer.style.display = 'none';
-
-            {% for member in team.members %}
-            {% check_driver_transgression member as driver_has_transgression %}
-
-            // Create driver row
-            const driverRow = document.createElement('tr');
-            driverRow.classList.add('driver-row', 'depth-1', `team-${teamId}`);
-            driverRow.setAttribute('data-member-id', '{{ member.id }}');
-
-            driverRow.innerHTML = `
-                <td class="color-label" style="background-color:
-                    {% if selected_round.ended %}
-                        {% if team_has_transgression %}#ff5252{% else %}#4caf50{% endif %}
-                    {% else %}transparent{% endif %}">
-                </td>
-                <td style="color: {% if driver_has_transgression %}#ff8080{% else %}#e6e6fa{% endif %}">
-                    {{ member.time_spent|format_time }}
-                </td>
-                <td>{{ member.member.nickname }}</td>
-                <td>{{ member.sessions_count }}</td>
-            `;
-
-            driverContainer.appendChild(driverRow);
-
-            {% if selected_round.ended %}
-            // Create session container
-            const sessionContainer = document.createElement('tbody');
-            sessionContainer.classList.add(`member-${member.id}-container`);
-            sessionContainer.style.display = 'none';
-
-            {% for session in member.all_sessions %}
-            // Create session row
-            const sessionRow = document.createElement('tr');
-            sessionRow.classList.add('session-row', 'depth-2', `member-${member.id}`, `team-${teamId}`);
-
-            sessionRow.innerHTML = `
-                <td class="color-label" style="background-color:
-                    {% if team_has_transgression %}#ff5252{% else %}#4caf50{% endif %}">
-                </td>
-                <td>{{ session.duration|format_time }}</td>
-                <td colspan="2">{{ session.start|date:"Y-m-d H:i:s" }}</td>
-            `;
-
-            sessionContainer.appendChild(sessionRow);
-            {% endfor %}
-
-            // Insert session container after driver container
-            row.parentNode.insertBefore(sessionContainer, driverContainer.nextSibling);
-            {% endif %}
-
-            {% endfor %}
-
-            // Insert driver container after team row
-            row.parentNode.insertBefore(driverContainer, row.nextSibling);
-        }
-        {% endfor %}
-    });
-
     // Add expand icon to team rows
-    teamRows.forEach(row => {
+    document.querySelectorAll('.team-row').forEach(row => {
         const firstCell = row.querySelector('td:nth-child(2)');
-        const expandIcon = document.createElement('span');
-        expandIcon.classList.add('expand-icon');
-        expandIcon.innerHTML = '▶';
-        if (firstCell.firstChild) {
-            firstCell.insertBefore(expandIcon, firstCell.firstChild);
-        } else {
-            firstCell.appendChild(expandIcon);
+        if (firstCell) {
+            const expandIcon = document.createElement('span');
+            expandIcon.classList.add('expand-icon');
+            expandIcon.innerHTML = '▶';
+            if (firstCell.firstChild) {
+                firstCell.insertBefore(expandIcon, firstCell.firstChild);
+            } else {
+                firstCell.appendChild(expandIcon);
+            }
         }
     });
 
     // Toggle team members when clicking on a team row
-    teamRows.forEach(row => {
+    document.querySelectorAll('.team-row').forEach(row => {
         row.addEventListener('click', function() {
             const teamId = this.getAttribute('data-team-id');
             const driverContainer = document.querySelector(`.team-${teamId}-container`);
@@ -287,20 +249,35 @@ document.addEventListener('DOMContentLoaded', function() {
                     const driverRows = driverContainer.querySelectorAll('.driver-row');
                     driverRows.forEach(dr => dr.classList.add('show'));
                 }, 10);
+
+                // Hide any open session containers
+                document.querySelectorAll('.session-container').forEach(sc => {
+                    sc.style.display = 'none';
+                    sc.querySelectorAll('.session-row').forEach(sr => sr.classList.remove('show'));
+                });
+
+                // Hide other team containers
+                document.querySelectorAll('.driver-container').forEach(dc => {
+                    if (dc !== driverContainer) {
+                        dc.style.display = 'none';
+                        dc.querySelectorAll('.driver-row').forEach(dr => dr.classList.remove('show'));
+                    }
+                });
+
+                // Remove expanded class from other team rows
+                document.querySelectorAll('.team-row').forEach(tr => {
+                    if (tr !== this) {
+                        tr.classList.remove('expanded');
+                    }
+                });
             } else {
                 const driverRows = driverContainer.querySelectorAll('.driver-row');
                 driverRows.forEach(dr => dr.classList.remove('show'));
 
                 // Hide session containers associated with this team
-                const sessionContainers = document.querySelectorAll(`[class*="member-"][class*="-container"]`);
-                sessionContainers.forEach(container => {
-                    if (container.querySelector(`.team-${teamId}`)) {
-                        container.style.display = 'none';
-
-                        // Remove show class from session rows
-                        const sessionRows = container.querySelectorAll('.session-row');
-                        sessionRows.forEach(sr => sr.classList.remove('show'));
-                    }
+                document.querySelectorAll(`.session-container`).forEach(container => {
+                    container.style.display = 'none';
+                    container.querySelectorAll('.session-row').forEach(sr => sr.classList.remove('show'));
                 });
 
                 // Hide driver container after animation completes
@@ -311,23 +288,31 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Add click event to driver rows (delegated)
-    document.addEventListener('click', function(e) {
-        const driverRow = e.target.closest('.driver-row');
-        if (driverRow) {
+    // Toggle sessions when clicking on a driver row
+    document.querySelectorAll('.driver-row').forEach(driverRow => {
+        driverRow.addEventListener('click', function(e) {
             e.stopPropagation(); // Prevent triggering the team row click
 
-            const memberId = driverRow.getAttribute('data-member-id');
-            const teamId = driverRow.classList[2].split('-')[1];
+            const memberId = this.getAttribute('data-member-id');
             const sessionContainer = document.querySelector(`.member-${memberId}-container`);
 
             if (sessionContainer) {
-                // Toggle expanded class for potential icon
-                driverRow.classList.toggle('expanded');
+                // Toggle expanded class for icon
+                this.classList.toggle('expanded');
 
                 // Toggle session rows with animation
                 if (sessionContainer.style.display === 'none') {
                     sessionContainer.style.display = 'table-row-group';
+
+                    // Hide other session containers
+                    document.querySelectorAll('.session-container').forEach(sc => {
+                        if (sc !== sessionContainer) {
+                            sc.style.display = 'none';
+                            sc.querySelectorAll('.session-row').forEach(sr => sr.classList.remove('show'));
+                        }
+                    });
+
+                    // Show the session rows with animation
                     setTimeout(() => {
                         const sessionRows = sessionContainer.querySelectorAll('.session-row');
                         sessionRows.forEach(sr => sr.classList.add('show'));
@@ -341,7 +326,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }, 300);
                 }
             }
-        }
+        });
     });
 
     // WebSocket connection
@@ -352,7 +337,7 @@ document.addEventListener('DOMContentLoaded', function() {
             `${ws_scheme}://${window.location.host}/ws/round/${roundId}/`
         );
 
-        roundSocket.onmessage = function(e) {
+        roundSocket.onmessage = function(e) {.
             const data = JSON.parse(e.data);
 
             if (!data.session_update) {
