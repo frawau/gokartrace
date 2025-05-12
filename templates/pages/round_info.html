@@ -29,9 +29,11 @@
                     <th>{% if selected_round.ended %}Changes{% endif %}</th>
                 </tr>
             </thead>
+
             {% for team in round_teams %}
             {% check_team_transgression team as team_has_transgression %}
-            <tbody class="team-group">
+            <tbody class="team-{{ team.id }}-group">
+                <!-- Team row -->
                 <tr class="team-row depth-0" data-team-id="{{ team.id }}">
                     <td class="color-label" style="background-color:
                         {% if selected_round.ended %}
@@ -42,12 +44,11 @@
                     <td>{{ team.name }}</td>
                     <td>{% if selected_round.ended %}{{ team.completed_sessions_count }}{% endif %}</td>
                 </tr>
-            </tbody>
 
-            <tbody class="driver-container team-{{ team.id }}-container" style="display: none;">
+                <!-- Driver rows and their sessions -->
                 {% for member in team.members %}
                 {% check_driver_transgression member as driver_has_transgression %}
-                <tr class="driver-row depth-1 team-{{ team.id }}" data-member-id="{{ member.id }}">
+                <tr class="driver-row depth-1 team-{{ team.id }}" data-member-id="{{ member.id }}" style="display: none;">
                     <td class="color-label" style="background-color:
                         {% if selected_round.ended %}
                             {% if team_has_transgression %}#ff5252{% else %}#4caf50{% endif %}
@@ -59,14 +60,11 @@
                     <td>{{ member.member.nickname }}</td>
                     <td>{{ member.sessions_count }}</td>
                 </tr>
-                {% endfor %}
-            </tbody>
 
-            {% if selected_round.ended %}
-            {% for member in team.members %}
-            <tbody class="session-container member-{{ member.id }}-container" style="display: none;">
+                <!-- Session rows for this driver -->
+                {% if selected_round.ended %}
                 {% for session in member.all_sessions %}
-                <tr class="session-row depth-2 member-{{ member.id }} team-{{ team.id }}">
+                <tr class="session-row depth-2 member-{{ member.id }} team-{{ team.id }}" style="display: none;">
                     <td class="color-label" style="background-color:
                         {% if team_has_transgression %}#ff5252{% else %}#4caf50{% endif %}">
                     </td>
@@ -74,9 +72,9 @@
                     <td colspan="2">{{ session.start|date:"Y-m-d H:i:s" }}</td>
                 </tr>
                 {% endfor %}
+                {% endif %}
+                {% endfor %}
             </tbody>
-            {% endfor %}
-            {% endif %}
             {% endfor %}
         </table>
     </div>
@@ -153,13 +151,9 @@
     }
 
     /* Animation styles */
-    .driver-container, .session-container {
-        transition: opacity 0.3s ease;
-    }
-
     .driver-row, .session-row {
         opacity: 0;
-        transition: opacity 0.3s ease-out;
+        transition: all 0.3s ease-out;
     }
 
     .driver-row.show, .session-row.show {
@@ -229,58 +223,88 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Also add icons to driver rows
+    document.querySelectorAll('.driver-row').forEach(row => {
+        const firstCell = row.querySelector('td:nth-child(2)');
+        if (firstCell) {
+            const expandIcon = document.createElement('span');
+            expandIcon.classList.add('expand-icon');
+            expandIcon.innerHTML = '▶';
+            if (firstCell.firstChild) {
+                firstCell.insertBefore(expandIcon, firstCell.firstChild);
+            } else {
+                firstCell.appendChild(expandIcon);
+            }
+        }
+    });
+
     // Toggle team members when clicking on a team row
     document.querySelectorAll('.team-row').forEach(row => {
         row.addEventListener('click', function() {
             const teamId = this.getAttribute('data-team-id');
-            const driverContainer = document.querySelector(`.team-${teamId}-container`);
+            const driverRows = document.querySelectorAll(`.driver-row.team-${teamId}`);
 
             // Toggle expanded class for icon rotation
             this.classList.toggle('expanded');
 
-            // Toggle display with slide animation
-            if (driverContainer.style.display === 'none') {
-                driverContainer.style.display = 'table-row-group';
-                // Add show class after a small delay to trigger the animation
-                setTimeout(() => {
-                    const driverRows = driverContainer.querySelectorAll('.driver-row');
-                    driverRows.forEach(dr => dr.classList.add('show'));
-                }, 10);
+            // Close all other team drivers first
+            document.querySelectorAll('.team-row').forEach(otherTeamRow => {
+                if (otherTeamRow !== this && otherTeamRow.classList.contains('expanded')) {
+                    otherTeamRow.classList.remove('expanded');
 
-                // Hide any open session containers
-                document.querySelectorAll('.session-container').forEach(sc => {
-                    sc.style.display = 'none';
-                    sc.querySelectorAll('.session-row').forEach(sr => sr.classList.remove('show'));
-                });
+                    const otherTeamId = otherTeamRow.getAttribute('data-team-id');
+                    const otherDriverRows = document.querySelectorAll(`.driver-row.team-${otherTeamId}`);
 
-                // Hide other team containers
-                document.querySelectorAll('.driver-container').forEach(dc => {
-                    if (dc !== driverContainer) {
-                        dc.style.display = 'none';
-                        dc.querySelectorAll('.driver-row').forEach(dr => dr.classList.remove('show'));
-                    }
-                });
+                    // Hide other team's driver rows
+                    otherDriverRows.forEach(dr => {
+                        dr.classList.remove('show');
+                        setTimeout(() => { dr.style.display = 'none'; }, 300);
+                    });
 
-                // Remove expanded class from other team rows
-                document.querySelectorAll('.team-row').forEach(tr => {
-                    if (tr !== this) {
-                        tr.classList.remove('expanded');
+                    // Hide other team's session rows
+                    document.querySelectorAll(`.session-row.team-${otherTeamId}`).forEach(sr => {
+                        sr.classList.remove('show');
+                        setTimeout(() => { sr.style.display = 'none'; }, 300);
+                    });
+                }
+            });
+
+            // Toggle this team's driver rows
+            if (driverRows[0] && driverRows[0].style.display === 'none') {
+                // Show driver rows
+                driverRows.forEach(dr => {
+                    dr.style.display = 'table-row';
+                    setTimeout(() => { dr.classList.add('show'); }, 10);
+
+                    // Hide any session rows that might be open
+                    if (dr.classList.contains('expanded')) {
+                        dr.classList.remove('expanded');
+                        const memberId = dr.getAttribute('data-member-id');
+                        const sessionRows = document.querySelectorAll(`.session-row.member-${memberId}`);
+                        sessionRows.forEach(sr => {
+                            sr.classList.remove('show');
+                            setTimeout(() => { sr.style.display = 'none'; }, 300);
+                        });
                     }
                 });
             } else {
-                const driverRows = driverContainer.querySelectorAll('.driver-row');
-                driverRows.forEach(dr => dr.classList.remove('show'));
+                // Hide driver rows
+                driverRows.forEach(dr => {
+                    dr.classList.remove('show');
 
-                // Hide session containers associated with this team
-                document.querySelectorAll(`.session-container`).forEach(container => {
-                    container.style.display = 'none';
-                    container.querySelectorAll('.session-row').forEach(sr => sr.classList.remove('show'));
+                    // Also hide any session rows
+                    if (dr.classList.contains('expanded')) {
+                        dr.classList.remove('expanded');
+                        const memberId = dr.getAttribute('data-member-id');
+                        const sessionRows = document.querySelectorAll(`.session-row.member-${memberId}`);
+                        sessionRows.forEach(sr => {
+                            sr.classList.remove('show');
+                            setTimeout(() => { sr.style.display = 'none'; }, 300);
+                        });
+                    }
+
+                    setTimeout(() => { dr.style.display = 'none'; }, 300);
                 });
-
-                // Hide driver container after animation completes
-                setTimeout(() => {
-                    driverContainer.style.display = 'none';
-                }, 300);
             }
         });
     });
@@ -291,36 +315,40 @@ document.addEventListener('DOMContentLoaded', function() {
             e.stopPropagation(); // Prevent triggering the team row click
 
             const memberId = this.getAttribute('data-member-id');
-            const sessionContainer = document.querySelector(`.member-${memberId}-container`);
+            const sessionRows = document.querySelectorAll(`.session-row.member-${memberId}`);
 
-            if (sessionContainer) {
+            if (sessionRows.length > 0) {
                 // Toggle expanded class for icon
                 this.classList.toggle('expanded');
 
-                // Toggle session rows with animation
-                if (sessionContainer.style.display === 'none') {
-                    sessionContainer.style.display = 'table-row-group';
+                // Hide sessions from other drivers in the same team
+                const teamId = this.classList[2].split('-')[1];
+                document.querySelectorAll(`.driver-row.team-${teamId}`).forEach(otherDriverRow => {
+                    if (otherDriverRow !== this && otherDriverRow.classList.contains('expanded')) {
+                        otherDriverRow.classList.remove('expanded');
 
-                    // Hide other session containers
-                    document.querySelectorAll('.session-container').forEach(sc => {
-                        if (sc !== sessionContainer) {
-                            sc.style.display = 'none';
-                            sc.querySelectorAll('.session-row').forEach(sr => sr.classList.remove('show'));
-                        }
+                        const otherMemberId = otherDriverRow.getAttribute('data-member-id');
+                        const otherSessionRows = document.querySelectorAll(`.session-row.member-${otherMemberId}`);
+                        otherSessionRows.forEach(sr => {
+                            sr.classList.remove('show');
+                            setTimeout(() => { sr.style.display = 'none'; }, 300);
+                        });
+                    }
+                });
+
+                // Toggle session rows
+                if (sessionRows[0].style.display === 'none') {
+                    // Show session rows
+                    sessionRows.forEach(sr => {
+                        sr.style.display = 'table-row';
+                        setTimeout(() => { sr.classList.add('show'); }, 10);
                     });
-
-                    // Show the session rows with animation
-                    setTimeout(() => {
-                        const sessionRows = sessionContainer.querySelectorAll('.session-row');
-                        sessionRows.forEach(sr => sr.classList.add('show'));
-                    }, 10);
                 } else {
-                    const sessionRows = sessionContainer.querySelectorAll('.session-row');
-                    sessionRows.forEach(sr => sr.classList.remove('show'));
-
-                    setTimeout(() => {
-                        sessionContainer.style.display = 'none';
-                    }, 300);
+                    // Hide session rows
+                    sessionRows.forEach(sr => {
+                        sr.classList.remove('show');
+                        setTimeout(() => { sr.style.display = 'none'; }, 300);
+                    });
                 }
             }
         });
