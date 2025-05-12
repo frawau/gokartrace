@@ -1,4 +1,3 @@
-<!-- templates/round_stats.html -->
 {% extends "layout/content.html" %}
 {% load round_tags %}
 
@@ -6,7 +5,7 @@
 <div class="container">
     <h1>Round Information</h1>
 
-    <form method="get" id="round-form" >
+    <form method="get" id="round-form">
         <div class="form-group">
             <label for="round-select">Select Round:</label>
             <select class="form-control" id="round-select" name="round_id" onchange="this.form.submit()">
@@ -24,7 +23,7 @@
         <table class="table table-hover round-stats-table">
             <thead>
                 <tr>
-                    <th style="width: 20px;"></th>
+                    <th style="width: 8px;"></th>
                     <th>Number</th>
                     <th>Team Name</th>
                     <th>{% if selected_round.ended %}Changes{% endif %}</th>
@@ -33,10 +32,10 @@
             <tbody>
                 {% for team in round_teams %}
                 {% check_team_transgression team as team_has_transgression %}
-                <tr class="team-row" data-team-id="{{ team.id }}" style="cursor: pointer;">
+                <tr class="team-row depth-0" data-team-id="{{ team.id }}">
                     <td class="color-label" style="background-color:
                         {% if selected_round.ended %}
-                            {% if team_has_transgression %}red{% else %}green{% endif %}
+                            {% if team_has_transgression %}#ff5252{% else %}#4caf50{% endif %}
                         {% else %}transparent{% endif %}">
                     </td>
                     <td>{{ team.number }}</td>
@@ -44,36 +43,7 @@
                     <td>{% if selected_round.ended %}{{ team.completed_sessions_count }}{% endif %}</td>
                 </tr>
 
-                <!-- Hidden driver rows that will be toggled -->
-                {% for member in team.members %}
-                {% check_driver_transgression member as driver_has_transgression %}
-                <tr class="driver-row team-{{ team.id }}" style="display: none;">
-                    <td class="color-label" rowspan="1" style="background-color:
-                        {% if selected_round.ended %}
-                            {% if team_has_transgression %}red{% else %}green{% endif %}
-                        {% else %}transparent{% endif %}">
-                    </td>
-                    <td style="color: {% if driver_has_transgression %}red{% else %}black{% endif %}">
-                        {{ member.time_spent|format_time  }}
-                    </td>
-                    <td colspan="1">{{ member.member.nickname }}</td>
-
-                    <td>{{ member.sessions_count }}</td>
-                </tr>
-
-                <!-- Hidden session rows that will be toggled -->
-                {% if selected_round.ended %}
-                    {% for session in member.all_sessions %}
-                    <tr class="session-row member-{{ member.id }} team-{{ team.id }}" style="display: none;">
-                        <td class="color-label" rowspan="1" style="background-color:
-                            {% if team_has_transgression %}red{% else %}green{% endif %}">
-                        </td>
-                        <td>{{ session.duration|format_time  }}</td>
-                        <td colspan="2">{{ session.start|date:"Y-m-d H:i:s" }}</td>
-                    </tr>
-                    {% endfor %}
-                {% endif %}
-                {% endfor %}
+                <!-- Driver rows will be inserted dynamically by JS -->
 
                 {% endfor %}
             </tbody>
@@ -87,95 +57,291 @@
 
 {% block extra_js %}
 <style>
-    /* Target the specific table with a unique class */
+    /* Base styling */
     .round-stats-table {
-        color: #ffff99 !important;
+        background-color: rgba(40, 40, 50, 0.85);
+        border-radius: 6px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     }
 
-    .round-stats-table th,
+    .round-stats-table th {
+        background-color: rgba(30, 30, 40, 0.9);
+        color: #e6e6fa !important;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        border-bottom: 2px solid rgba(80, 80, 100, 0.6);
+        padding: 12px 15px;
+    }
+
+    /* Row levels styling */
+    .round-stats-table tr.depth-0 {
+        background-color: rgba(50, 50, 70, 0.8);
+    }
+
+    .round-stats-table tr.depth-0:nth-child(odd) {
+        background-color: rgba(55, 55, 75, 0.8);
+    }
+
+    .round-stats-table tr.depth-1 {
+        background-color: rgba(60, 60, 80, 0.75);
+    }
+
+    .round-stats-table tr.depth-1:nth-child(odd) {
+        background-color: rgba(65, 65, 85, 0.75);
+    }
+
+    .round-stats-table tr.depth-2 {
+        background-color: rgba(70, 70, 90, 0.7);
+    }
+
+    .round-stats-table tr.depth-2:nth-child(odd) {
+        background-color: rgba(75, 75, 95, 0.7);
+    }
+
+    /* Text and content styling */
     .round-stats-table td {
-        color: #ffff99 !important;
+        color: #e6e6fa !important;
+        border-top: 1px solid rgba(80, 80, 100, 0.3);
+        padding: 10px 15px;
     }
 
     .round-stats-table .driver-status-red {
-        color: #ff6666 !important;
+        color: #ff8080 !important;
     }
 
-    /* Override Material Kit card styles if needed */
-    .card .card-body .round-stats-table {
-        color: #ffff99 !important;
+    .color-label {
+        width: 8px;
+        padding: 0 !important;
+        border-right: none !important;
     }
 
-    /* Override any specific Material Kit text classes */
-    .round-stats-table .text-primary,
-    .round-stats-table .text-secondary,
-    .round-stats-table .text-dark {
-        color: #ffff99 !important;
+    .team-row, .driver-row {
+        cursor: pointer;
+        transition: background-color 0.2s ease;
     }
 
+    .team-row:hover, .driver-row:hover {
+        background-color: rgba(100, 100, 130, 0.6) !important;
+    }
+
+    /* Animation styles */
+    .driver-row, .session-row {
+        transition: all 0.3s ease-out;
+        max-height: 0;
+        opacity: 0;
+    }
+
+    .driver-row.show, .session-row.show {
+        max-height: 50px;
+        opacity: 1;
+    }
+
+    /* Forms styling */
     #round-form label {
-        color: #ffff99 !important;
+        color: #e6e6fa !important;
+        font-weight: 500;
     }
 
-    /* Style for the select dropdown */
     #round-select {
-        color: #ffff99 !important;
-        background-color: rgba(0, 0, 0, 0.3) !important; /* Semi-transparent dark background */
+        color: #e6e6fa !important;
+        background-color: rgba(40, 40, 60, 0.9) !important;
+        border: 1px solid rgba(100, 100, 140, 0.4);
+        border-radius: 4px;
+        padding: 8px 12px;
     }
 
-    /* Style for the dropdown options */
     #round-select option {
-        color: #ffff99 !important;
-        background-color: #333 !important;
+        color: #e6e6fa !important;
+        background-color: #2d2d3d !important;
     }
 
-    /* Override Material Kit styles with high specificity */
     body .card-body .form-control,
     body .card .card-body .form-control,
     body .form-group .form-control {
-        color: #ffff99 !important;
+        color: #e6e6fa !important;
     }
 
-    /* Title styling */
     h1 {
-        color: #ffff99 !important;
+        color: #e6e6fa !important;
+        margin-bottom: 25px;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Icon styling for expandable rows */
+    .expand-icon {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        margin-right: 8px;
+        text-align: center;
+        transition: transform 0.3s ease;
+    }
+
+    .expanded .expand-icon {
+        transform: rotate(90deg);
     }
 </style>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Toggle team members when clicking on a team row
     const teamRows = document.querySelectorAll('.team-row');
+
+    // Generate the driver and session rows dynamically
+    teamRows.forEach(row => {
+        const teamId = row.getAttribute('data-team-id');
+        const teamHasTransgression = row.querySelector('.color-label').style.backgroundColor === 'rgb(255, 82, 82)' ||
+                                     row.querySelector('.color-label').style.backgroundColor === '#ff5252';
+
+        {% for team in round_teams %}
+        if ({{ team.id }} == teamId) {
+            // Create a container for driver rows of this team
+            const driverContainer = document.createElement('tbody');
+            driverContainer.classList.add(`team-${teamId}-container`);
+            driverContainer.style.display = 'none';
+
+            {% for member in team.members %}
+            {% check_driver_transgression member as driver_has_transgression %}
+
+            // Create driver row
+            const driverRow = document.createElement('tr');
+            driverRow.classList.add('driver-row', 'depth-1', `team-${teamId}`);
+            driverRow.setAttribute('data-member-id', '{{ member.id }}');
+
+            driverRow.innerHTML = `
+                <td class="color-label" style="background-color:
+                    {% if selected_round.ended %}
+                        {% if team_has_transgression %}#ff5252{% else %}#4caf50{% endif %}
+                    {% else %}transparent{% endif %}">
+                </td>
+                <td style="color: {% if driver_has_transgression %}#ff8080{% else %}#e6e6fa{% endif %}">
+                    {{ member.time_spent|format_time }}
+                </td>
+                <td>{{ member.member.nickname }}</td>
+                <td>{{ member.sessions_count }}</td>
+            `;
+
+            driverContainer.appendChild(driverRow);
+
+            {% if selected_round.ended %}
+            // Create session container
+            const sessionContainer = document.createElement('tbody');
+            sessionContainer.classList.add(`member-${member.id}-container`);
+            sessionContainer.style.display = 'none';
+
+            {% for session in member.all_sessions %}
+            // Create session row
+            const sessionRow = document.createElement('tr');
+            sessionRow.classList.add('session-row', 'depth-2', `member-${member.id}`, `team-${teamId}`);
+
+            sessionRow.innerHTML = `
+                <td class="color-label" style="background-color:
+                    {% if team_has_transgression %}#ff5252{% else %}#4caf50{% endif %}">
+                </td>
+                <td>{{ session.duration|format_time }}</td>
+                <td colspan="2">{{ session.start|date:"Y-m-d H:i:s" }}</td>
+            `;
+
+            sessionContainer.appendChild(sessionRow);
+            {% endfor %}
+
+            // Insert session container after driver container
+            row.parentNode.insertBefore(sessionContainer, driverContainer.nextSibling);
+            {% endif %}
+
+            {% endfor %}
+
+            // Insert driver container after team row
+            row.parentNode.insertBefore(driverContainer, row.nextSibling);
+        }
+        {% endfor %}
+    });
+
+    // Add expand icon to team rows
+    teamRows.forEach(row => {
+        const firstCell = row.querySelector('td:nth-child(2)');
+        const expandIcon = document.createElement('span');
+        expandIcon.classList.add('expand-icon');
+        expandIcon.innerHTML = '▶';
+        if (firstCell.firstChild) {
+            firstCell.insertBefore(expandIcon, firstCell.firstChild);
+        } else {
+            firstCell.appendChild(expandIcon);
+        }
+    });
+
+    // Toggle team members when clicking on a team row
     teamRows.forEach(row => {
         row.addEventListener('click', function() {
             const teamId = this.getAttribute('data-team-id');
-            const driverRows = document.querySelectorAll(`.driver-row.team-${teamId}`);
+            const driverContainer = document.querySelector(`.team-${teamId}-container`);
 
-            driverRows.forEach(driverRow => {
-                driverRow.style.display = driverRow.style.display === 'none' ? 'table-row' : 'none';
+            // Toggle expanded class for icon rotation
+            this.classList.toggle('expanded');
 
-                // Hide session rows when toggling driver rows
-                const sessionRows = document.querySelectorAll(`.session-row.team-${teamId}`);
-                sessionRows.forEach(sessionRow => {
-                    sessionRow.style.display = 'none';
+            // Toggle display with slide animation
+            if (driverContainer.style.display === 'none') {
+                driverContainer.style.display = 'table-row-group';
+                // Add show class after a small delay to trigger the animation
+                setTimeout(() => {
+                    const driverRows = driverContainer.querySelectorAll('.driver-row');
+                    driverRows.forEach(dr => dr.classList.add('show'));
+                }, 10);
+            } else {
+                const driverRows = driverContainer.querySelectorAll('.driver-row');
+                driverRows.forEach(dr => dr.classList.remove('show'));
+
+                // Hide session containers associated with this team
+                const sessionContainers = document.querySelectorAll(`[class*="member-"][class*="-container"]`);
+                sessionContainers.forEach(container => {
+                    if (container.querySelector(`.team-${teamId}`)) {
+                        container.style.display = 'none';
+
+                        // Remove show class from session rows
+                        const sessionRows = container.querySelectorAll('.session-row');
+                        sessionRows.forEach(sr => sr.classList.remove('show'));
+                    }
                 });
-            });
+
+                // Hide driver container after animation completes
+                setTimeout(() => {
+                    driverContainer.style.display = 'none';
+                }, 300);
+            }
         });
     });
 
-    // Toggle sessions when clicking on a driver row
-    const driverRows = document.querySelectorAll('.driver-row');
-    driverRows.forEach(row => {
-        row.addEventListener('click', function(e) {
+    // Add click event to driver rows (delegated)
+    document.addEventListener('click', function(e) {
+        const driverRow = e.target.closest('.driver-row');
+        if (driverRow) {
             e.stopPropagation(); // Prevent triggering the team row click
 
-            const memberId = this.classList[1].split('-')[1];
-            const teamId = this.classList[2].split('-')[1];
-            const sessionRows = document.querySelectorAll(`.session-row.member-${memberId}.team-${teamId}`);
+            const memberId = driverRow.getAttribute('data-member-id');
+            const teamId = driverRow.classList[2].split('-')[1];
+            const sessionContainer = document.querySelector(`.member-${memberId}-container`);
 
-            sessionRows.forEach(sessionRow => {
-                sessionRow.style.display = sessionRow.style.display === 'none' ? 'table-row' : 'none';
-            });
-        });
+            if (sessionContainer) {
+                // Toggle expanded class for potential icon
+                driverRow.classList.toggle('expanded');
+
+                // Toggle session rows with animation
+                if (sessionContainer.style.display === 'none') {
+                    sessionContainer.style.display = 'table-row-group';
+                    setTimeout(() => {
+                        const sessionRows = sessionContainer.querySelectorAll('.session-row');
+                        sessionRows.forEach(sr => sr.classList.add('show'));
+                    }, 10);
+                } else {
+                    const sessionRows = sessionContainer.querySelectorAll('.session-row');
+                    sessionRows.forEach(sr => sr.classList.remove('show'));
+
+                    setTimeout(() => {
+                        sessionContainer.style.display = 'none';
+                    }, 300);
+                }
+            }
+        }
     });
 
     // WebSocket connection
