@@ -832,7 +832,7 @@ class team_member(models.Model):
                     break
             pass
         elif ltype == "race":
-            did_transgress = lval < timespent
+            did_transgress = lval < time_spent
 
         if not did_transgress:
             if time_spent < cround.limit_time_min:
