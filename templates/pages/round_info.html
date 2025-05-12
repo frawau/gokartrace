@@ -337,7 +337,7 @@ document.addEventListener('DOMContentLoaded', function() {
             `${ws_scheme}://${window.location.host}/ws/round/${roundId}/`
         );
 
-        roundSocket.onmessage = function(e) {.
+        roundSocket.onmessage = function(e) {
             const data = JSON.parse(e.data);
 
             if (!data.session_update) {
