@@ -108,7 +108,9 @@ class TeamMembersView(View):
 
         # Check round ready status
         if current_round.ready:
-            messages.error(request, "Race has started or is about to - no changes allowed.")
+            messages.error(
+                request, "Race has started or is about to - no changes allowed."
+            )
             return redirect(request.path)
 
         if "select_team" in request.POST:
