@@ -727,7 +727,7 @@ def get_available_numbers(request):
     return JsonResponse({"numbers": available_numbers})
 
 
-def round_info_view(request):
+def round_info(request):
     # Get all rounds sorted by date
     rounds = Round.objects.all().order_by("start")
 
