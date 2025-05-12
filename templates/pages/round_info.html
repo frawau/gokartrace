@@ -4,7 +4,7 @@
 
 {% block main_content %}
 <div class="container">
-    <h1>Round Statistics</h1>
+    <h1>Round Information</h1>
 
     <form method="get" id="round-form">
         <div class="form-group">
@@ -21,7 +21,7 @@
 
     {% if round_teams %}
     <div class="round-teams mt-4">
-        <table class="table table-hover" style="color: #ffff99;">
+        <table class="table table-hover round-stats-table">
             <thead>
                 <tr>
                     <th style="width: 20px;"></th>
@@ -85,6 +85,33 @@
 {% endblock main_content %}
 
 {% block extra_js %}
+<style>
+    /* Target the specific table with a unique class */
+    .round-stats-table {
+        color: #ffff99 !important;
+    }
+
+    .round-stats-table th,
+    .round-stats-table td {
+        color: #ffff99 !important;
+    }
+
+    .round-stats-table .driver-status-red {
+        color: #ff6666 !important;
+    }
+
+    /* Override Material Kit card styles if needed */
+    .card .card-body .round-stats-table {
+        color: #ffff99 !important;
+    }
+
+    /* Override any specific Material Kit text classes */
+    .round-stats-table .text-primary,
+    .round-stats-table .text-secondary,
+    .round-stats-table .text-dark {
+        color: #ffff99 !important;
+    }
+</style>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Toggle team members when clicking on a team row
