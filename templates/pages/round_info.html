@@ -32,7 +32,7 @@
             </thead>
             <tbody>
                 {% for team in round_teams %}
-                {% check_team_transgression team.members as team_has_transgression %}
+                {% check_team_transgression team as team_has_transgression %}
                 <tr class="team-row" data-team-id="{{ team.id }}" style="cursor: pointer;">
                     <td class="color-label" style="background-color:
                         {% if selected_round.ended %}
