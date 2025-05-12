@@ -734,7 +734,7 @@ def round_info(request):
     # Find closest round to today
     selected_round_id = request.GET.get("round_id")
     if not selected_round_id:
-        today = timezone.now().date()
+        today = dt.date.today()
         closest_round = rounds.filter(start__date__gte=today).first()
         if not closest_round:
             closest_round = rounds.last()
