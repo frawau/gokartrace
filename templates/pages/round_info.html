@@ -215,6 +215,26 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Create and add the dynamic header row
+    const tableHead = document.querySelector('.round-stats-table thead');
+    const originalHeader = tableHead.innerHTML;
+    const driverHeader = `
+        <tr class="header-driver" style="display: none;">
+            <th style="width: 8px;"></th>
+            <th>Driving Time</th>
+            <th>Nickname</th>
+            <th># Sessions</th>
+        </tr>
+    `;
+    const sessionHeader = `
+        <tr class="header-session" style="display: none;">
+            <th style="width: 8px;"></th>
+            <th>Duration</th>
+            <th colspan="2">Starting time</th>
+        </tr>
+    `;
+    tableHead.innerHTML = originalHeader + driverHeader + sessionHeader;
+
     // Add expand icon to team rows
     document.querySelectorAll('.team-row').forEach(row => {
         const firstCell = row.querySelector('td:nth-child(2)');
@@ -359,6 +379,55 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         });
+    });
+
+    // Handle mouse events for header switching
+    const defaultHeader = document.querySelector('.round-stats-table thead tr:first-child');
+    const driverHeader = document.querySelector('.round-stats-table thead tr.header-driver');
+    const sessionHeader = document.querySelector('.round-stats-table thead tr.header-session');
+
+    // For driver rows
+    document.querySelectorAll('.driver-row').forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            defaultHeader.style.display = 'none';
+            sessionHeader.style.display = 'none';
+            driverHeader.style.display = 'table-row';
+        });
+
+        row.addEventListener('mouseleave', function() {
+            // Only change back if not hovering over a session row
+            if (!document.querySelector('.session-row:hover')) {
+                driverHeader.style.display = 'none';
+                defaultHeader.style.display = 'table-row';
+            }
+        });
+    });
+
+    // For session rows
+    document.querySelectorAll('.session-row').forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            defaultHeader.style.display = 'none';
+            driverHeader.style.display = 'none';
+            sessionHeader.style.display = 'table-row';
+        });
+
+        row.addEventListener('mouseleave', function() {
+            // Check if hovering over a driver row
+            if (document.querySelector('.driver-row:hover')) {
+                sessionHeader.style.display = 'none';
+                driverHeader.style.display = 'table-row';
+            } else {
+                sessionHeader.style.display = 'none';
+                defaultHeader.style.display = 'table-row';
+            }
+        });
+    });
+
+    // Handle hovering away from all rows
+    document.querySelector('.round-stats-table').addEventListener('mouseleave', function() {
+        driverHeader.style.display = 'none';
+        sessionHeader.style.display = 'none';
+        defaultHeader.style.display = 'table-row';
     });
 
     // WebSocket connection
