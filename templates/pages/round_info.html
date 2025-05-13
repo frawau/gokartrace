@@ -215,19 +215,28 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Create and add the dynamic header row - using exact same structure for all headers
+    // Create and add the dynamic header rows - using exact same structure for all headers
     const tableHead = document.querySelector('.round-stats-table thead');
-    const originalHeader = tableHead.querySelector('tr');
 
-    // Create headers that maintain exact same structure
+    // Create headers with identical structure to match original
+    const teamHeaderHTML = `
+        <tr class="header-team">
+            <th style="width: 8px;"></th>
+            <th>Number</th>
+            <th>Team Name</th>
+            <th>{% if selected_round.ended %}Changes{% endif %}</th>
+        </tr>
+    `;
+
     const driverHeaderHTML = `
         <tr class="header-driver" style="display: none;">
             <th style="width: 8px;"></th>
             <th>Driving Time</th>
             <th>Nickname</th>
-            <th>#{# Sessions}</th>
+            <th># Sessions</th>
         </tr>
     `;
+
     const sessionHeaderHTML = `
         <tr class="header-session" style="display: none;">
             <th style="width: 8px;"></th>
@@ -237,12 +246,11 @@ document.addEventListener('DOMContentLoaded', function() {
         </tr>
     `;
 
-    // Append without modifying original
-    tableHead.appendChild(document.createRange().createContextualFragment(driverHeaderHTML));
-    tableHead.appendChild(document.createRange().createContextualFragment(sessionHeaderHTML));
+    // Replace the entire thead content
+    tableHead.innerHTML = teamHeaderHTML + driverHeaderHTML + sessionHeaderHTML;
     tableHead.innerHTML = originalHeader + driverHeaderHTML + sessionHeaderHTML;
 
-    // Add CSS rule to lock column widths
+    // Add CSS rule to lock column widths - fix first column width
     const styleSheet = document.createElement("style");
     styleSheet.textContent = `
         .round-stats-table {
@@ -253,6 +261,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         .round-stats-table th:nth-child(1) {
             width: 8px !important;
+            min-width: 8px !important;
+            max-width: 8px !important;
+            padding: 0 !important;
+        }
+        .round-stats-table td:nth-child(1) {
+            width: 8px !important;
+            min-width: 8px !important;
+            max-width: 8px !important;
+            padding: 0 !important;
         }
         .round-stats-table th:nth-child(2) {
             width: 20% !important;
@@ -411,60 +428,65 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Handle mouse events for header switching
-    const defaultHeader = document.querySelector('.round-stats-table thead tr:first-child');
+    const teamHeader = document.querySelector('.round-stats-table thead tr.header-team');
     const driverHeader = document.querySelector('.round-stats-table thead tr.header-driver');
     const sessionHeader = document.querySelector('.round-stats-table thead tr.header-session');
 
-    // Make sure our headers match column counts exactly
-    const hasCorrectStructure = driverHeader && sessionHeader &&
-                              defaultHeader.children.length === driverHeader.children.length &&
-                              defaultHeader.children.length === sessionHeader.children.length;
-
-    if (hasCorrectStructure) {
-        // For driver rows
-        document.querySelectorAll('.driver-row').forEach(row => {
-            row.addEventListener('mouseenter', function() {
-                defaultHeader.style.display = 'none';
-                sessionHeader.style.display = 'none';
-                driverHeader.style.display = 'table-row';
-            });
-
-            row.addEventListener('mouseleave', function() {
-                // Only change back if not hovering over a session row
-                if (!document.querySelector('.session-row:hover')) {
-                    driverHeader.style.display = 'none';
-                    defaultHeader.style.display = 'table-row';
-                }
-            });
-        });
-
-        // For session rows
-        document.querySelectorAll('.session-row').forEach(row => {
-            row.addEventListener('mouseenter', function() {
-                defaultHeader.style.display = 'none';
-                driverHeader.style.display = 'none';
-                sessionHeader.style.display = 'table-row';
-            });
-
-            row.addEventListener('mouseleave', function() {
-                // Check if hovering over a driver row
-                if (document.querySelector('.driver-row:hover')) {
-                    sessionHeader.style.display = 'none';
-                    driverHeader.style.display = 'table-row';
-                } else {
-                    sessionHeader.style.display = 'none';
-                    defaultHeader.style.display = 'table-row';
-                }
-            });
-        });
-
-        // Handle hovering away from all rows
-        document.querySelector('.round-stats-table').addEventListener('mouseleave', function() {
+    // Team rows (default state)
+    document.querySelectorAll('.team-row').forEach(row => {
+        row.addEventListener('mouseenter', function() {
             driverHeader.style.display = 'none';
             sessionHeader.style.display = 'none';
-            defaultHeader.style.display = 'table-row';
+            teamHeader.style.display = 'table-row';
         });
-    }
+    });
+
+    // For driver rows
+    document.querySelectorAll('.driver-row').forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            teamHeader.style.display = 'none';
+            sessionHeader.style.display = 'none';
+            driverHeader.style.display = 'table-row';
+        });
+
+        row.addEventListener('mouseleave', function() {
+            // Only change back if not hovering over a session row
+            if (!document.querySelector('.session-row:hover')) {
+                // Check if hovering over team row
+                if (document.querySelector('.team-row:hover')) {
+                    driverHeader.style.display = 'none';
+                    teamHeader.style.display = 'table-row';
+                }
+            }
+        });
+    });
+
+    // For session rows
+    document.querySelectorAll('.session-row').forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            teamHeader.style.display = 'none';
+            driverHeader.style.display = 'none';
+            sessionHeader.style.display = 'table-row';
+        });
+
+        row.addEventListener('mouseleave', function() {
+            // Check if hovering over a driver row
+            if (document.querySelector('.driver-row:hover')) {
+                sessionHeader.style.display = 'none';
+                driverHeader.style.display = 'table-row';
+            } else if (document.querySelector('.team-row:hover')) {
+                sessionHeader.style.display = 'none';
+                teamHeader.style.display = 'table-row';
+            }
+        });
+    });
+
+    // Handle hovering away from all rows
+    document.querySelector('.round-stats-table').addEventListener('mouseleave', function() {
+        driverHeader.style.display = 'none';
+        sessionHeader.style.display = 'none';
+        teamHeader.style.display = 'table-row';
+    });
 
     // WebSocket connection
     if (document.querySelector('#round-select').value) {
