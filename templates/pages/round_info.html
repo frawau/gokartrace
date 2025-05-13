@@ -218,7 +218,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Create and add the dynamic header row
     const tableHead = document.querySelector('.round-stats-table thead');
     const originalHeader = tableHead.innerHTML;
-    const driverHeader = `
+    const driverHeaderHTML = `
         <tr class="header-driver" style="display: none;">
             <th style="width: 8px;"></th>
             <th>Driving Time</th>
@@ -226,14 +226,14 @@ document.addEventListener('DOMContentLoaded', function() {
             <th># Sessions</th>
         </tr>
     `;
-    const sessionHeader = `
+    const sessionHeaderHTML = `
         <tr class="header-session" style="display: none;">
             <th style="width: 8px;"></th>
             <th>Duration</th>
             <th colspan="2">Starting time</th>
         </tr>
     `;
-    tableHead.innerHTML = originalHeader + driverHeader + sessionHeader;
+    tableHead.innerHTML = originalHeader + driverHeaderHTML + sessionHeaderHTML;
 
     // Add expand icon to team rows
     document.querySelectorAll('.team-row').forEach(row => {
