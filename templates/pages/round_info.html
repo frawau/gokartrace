@@ -215,41 +215,53 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Create and add the dynamic header row
+    // Create and add the dynamic header row - using exact same structure for all headers
     const tableHead = document.querySelector('.round-stats-table thead');
-    const originalHeader = tableHead.innerHTML;
+    const originalHeader = tableHead.querySelector('tr');
 
-    // Get the original column widths before we modify anything
-    const originalColumns = tableHead.querySelectorAll('th');
-    const colWidths = Array.from(originalColumns).map(col => {
-        // Get computed style width for each column
-        return window.getComputedStyle(col).width;
-    });
-
-    // Create the new headers with explicit widths
+    // Create headers that maintain exact same structure
     const driverHeaderHTML = `
         <tr class="header-driver" style="display: none;">
             <th style="width: 8px;"></th>
-            <th style="width: ${colWidths[1]};">Driving Time</th>
-            <th style="width: ${colWidths[2]};">Nickname</th>
-            <th style="width: ${colWidths[3]};"># Sessions</th>
+            <th>Driving Time</th>
+            <th>Nickname</th>
+            <th>#{# Sessions}</th>
         </tr>
     `;
     const sessionHeaderHTML = `
         <tr class="header-session" style="display: none;">
             <th style="width: 8px;"></th>
-            <th style="width: ${colWidths[1]};">Duration</th>
-            <th colspan="2" style="width: calc(${colWidths[2]} + ${colWidths[3]});">Starting time</th>
+            <th>Duration</th>
+            <th>Starting time</th>
+            <th></th>
         </tr>
     `;
+
+    // Append without modifying original
+    tableHead.appendChild(document.createRange().createContextualFragment(driverHeaderHTML));
+    tableHead.appendChild(document.createRange().createContextualFragment(sessionHeaderHTML));
     tableHead.innerHTML = originalHeader + driverHeaderHTML + sessionHeaderHTML;
 
-    // Add CSS rule to prevent table layout changes
+    // Add CSS rule to lock column widths
     const styleSheet = document.createElement("style");
     styleSheet.textContent = `
         .round-stats-table {
             table-layout: fixed;
-            width: 100%;
+        }
+        .round-stats-table th {
+            width: auto !important;
+        }
+        .round-stats-table th:nth-child(1) {
+            width: 8px !important;
+        }
+        .round-stats-table th:nth-child(2) {
+            width: 20% !important;
+        }
+        .round-stats-table th:nth-child(3) {
+            width: 60% !important;
+        }
+        .round-stats-table th:nth-child(4) {
+            width: 20% !important;
         }
     `;
     document.head.appendChild(styleSheet);
@@ -403,49 +415,56 @@ document.addEventListener('DOMContentLoaded', function() {
     const driverHeader = document.querySelector('.round-stats-table thead tr.header-driver');
     const sessionHeader = document.querySelector('.round-stats-table thead tr.header-session');
 
-    // For driver rows
-    document.querySelectorAll('.driver-row').forEach(row => {
-        row.addEventListener('mouseenter', function() {
-            defaultHeader.style.display = 'none';
-            sessionHeader.style.display = 'none';
-            driverHeader.style.display = 'table-row';
-        });
+    // Make sure our headers match column counts exactly
+    const hasCorrectStructure = driverHeader && sessionHeader &&
+                              defaultHeader.children.length === driverHeader.children.length &&
+                              defaultHeader.children.length === sessionHeader.children.length;
 
-        row.addEventListener('mouseleave', function() {
-            // Only change back if not hovering over a session row
-            if (!document.querySelector('.session-row:hover')) {
-                driverHeader.style.display = 'none';
-                defaultHeader.style.display = 'table-row';
-            }
-        });
-    });
-
-    // For session rows
-    document.querySelectorAll('.session-row').forEach(row => {
-        row.addEventListener('mouseenter', function() {
-            defaultHeader.style.display = 'none';
-            driverHeader.style.display = 'none';
-            sessionHeader.style.display = 'table-row';
-        });
-
-        row.addEventListener('mouseleave', function() {
-            // Check if hovering over a driver row
-            if (document.querySelector('.driver-row:hover')) {
+    if (hasCorrectStructure) {
+        // For driver rows
+        document.querySelectorAll('.driver-row').forEach(row => {
+            row.addEventListener('mouseenter', function() {
+                defaultHeader.style.display = 'none';
                 sessionHeader.style.display = 'none';
                 driverHeader.style.display = 'table-row';
-            } else {
-                sessionHeader.style.display = 'none';
-                defaultHeader.style.display = 'table-row';
-            }
-        });
-    });
+            });
 
-    // Handle hovering away from all rows
-    document.querySelector('.round-stats-table').addEventListener('mouseleave', function() {
-        driverHeader.style.display = 'none';
-        sessionHeader.style.display = 'none';
-        defaultHeader.style.display = 'table-row';
-    });
+            row.addEventListener('mouseleave', function() {
+                // Only change back if not hovering over a session row
+                if (!document.querySelector('.session-row:hover')) {
+                    driverHeader.style.display = 'none';
+                    defaultHeader.style.display = 'table-row';
+                }
+            });
+        });
+
+        // For session rows
+        document.querySelectorAll('.session-row').forEach(row => {
+            row.addEventListener('mouseenter', function() {
+                defaultHeader.style.display = 'none';
+                driverHeader.style.display = 'none';
+                sessionHeader.style.display = 'table-row';
+            });
+
+            row.addEventListener('mouseleave', function() {
+                // Check if hovering over a driver row
+                if (document.querySelector('.driver-row:hover')) {
+                    sessionHeader.style.display = 'none';
+                    driverHeader.style.display = 'table-row';
+                } else {
+                    sessionHeader.style.display = 'none';
+                    defaultHeader.style.display = 'table-row';
+                }
+            });
+        });
+
+        // Handle hovering away from all rows
+        document.querySelector('.round-stats-table').addEventListener('mouseleave', function() {
+            driverHeader.style.display = 'none';
+            sessionHeader.style.display = 'none';
+            defaultHeader.style.display = 'table-row';
+        });
+    }
 
     // WebSocket connection
     if (document.querySelector('#round-select').value) {
