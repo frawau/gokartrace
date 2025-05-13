@@ -218,24 +218,41 @@ document.addEventListener('DOMContentLoaded', function() {
     // Create and add the dynamic header row
     const tableHead = document.querySelector('.round-stats-table thead');
     const originalHeader = tableHead.innerHTML;
+
+    // Get the original column widths before we modify anything
+    const originalColumns = tableHead.querySelectorAll('th');
+    const colWidths = Array.from(originalColumns).map(col => {
+        // Get computed style width for each column
+        return window.getComputedStyle(col).width;
+    });
+
+    // Create the new headers with explicit widths
     const driverHeaderHTML = `
         <tr class="header-driver" style="display: none;">
             <th style="width: 8px;"></th>
-            <th>Driving Time</th>
-            <th>Nickname</th>
-            <th># Sessions</th>
+            <th style="width: ${colWidths[1]};">Driving Time</th>
+            <th style="width: ${colWidths[2]};">Nickname</th>
+            <th style="width: ${colWidths[3]};"># Sessions</th>
         </tr>
     `;
     const sessionHeaderHTML = `
         <tr class="header-session" style="display: none;">
             <th style="width: 8px;"></th>
-            <th>Duration</th>
-            <th colspan="2">Starting time</th>
+            <th style="width: ${colWidths[1]};">Duration</th>
+            <th colspan="2" style="width: calc(${colWidths[2]} + ${colWidths[3]});">Starting time</th>
         </tr>
     `;
     tableHead.innerHTML = originalHeader + driverHeaderHTML + sessionHeaderHTML;
 
-    // Add expand icon to team rows
+    // Add CSS rule to prevent table layout changes
+    const styleSheet = document.createElement("style");
+    styleSheet.textContent = `
+        .round-stats-table {
+            table-layout: fixed;
+            width: 100%;
+        }
+    `;
+    document.head.appendChild(styleSheet);
     document.querySelectorAll('.team-row').forEach(row => {
         const firstCell = row.querySelector('td:nth-child(2)');
         if (firstCell) {
