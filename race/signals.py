@@ -197,9 +197,12 @@ def handle_session_delete(sender, instance, **kwargs):
     dstatus = "reset"
     # Count completed sessions for this team
     if round_instance.started:
-        completed_sessions_count = Session.objects.filter(
-            driver__team=round_team, end__isnull=False
-        ).count()
+        try:
+            completed_sessions_count = Session.objects.filter(
+                driver__team=round_team, end__isnull=False
+            ).count()
+        except:
+            return
     else:
         completed_sessions_count = -1
     channel_layer = get_channel_layer()
