@@ -247,16 +247,20 @@ document.addEventListener('DOMContentLoaded', function() {
     connectWebSocket();
 
     function updateFormStates(isReady) {
-        // Select all forms except the Print Cards form and the team selection form
-        const allForms = document.querySelectorAll('form:not(#printCardsForm):not([name="select_team"]):not(:has(input[name="select_team"]))');
-        // Select the team selection form separately
-        const teamSelectionForm = document.querySelector('form:has(input[name="select_team"])');
+        // Select team selection form by ID
+        const teamSelectionForm = document.getElementById('teamSelectionForm');
+        const teamDropdown = document.getElementById('id_team');
+        const teamSelectionButton = teamSelectionForm ? teamSelectionForm.querySelector('button') : null;
+
+        // Select all forms for disabling except the team selection and print cards forms
+        const allForms = document.querySelectorAll('form:not(#printCardsForm):not(#teamSelectionForm)');
+        const printCardsForm = document.getElementById('printCardsForm');
         
-        // Select all buttons except Print Cards button and Select Team button
-        const allButtons = document.querySelectorAll('button:not(#printCardsForm button):not(form:has(input[name="select_team"]) button)');
+        // Select all buttons except those in print cards form and team selection form
+        const allButtons = document.querySelectorAll('button:not(#printCardsForm button):not(#teamSelectionForm button)');
         
-        // Select all inputs except those in Print Cards and team selection dropdown
-        const allInputs = document.querySelectorAll('input:not(#printCardsForm input):not([name="select_team"]):not(form:has(input[name="select_team"]) select), select:not(#printCardsForm select):not([name="team"]):not(#id_team)');
+        // Select all inputs except those in print cards form, CSRF tokens, and team selection form fields
+        const allInputs = document.querySelectorAll('input:not([name="csrfmiddlewaretoken"]):not(#printCardsForm input):not(#teamSelectionForm input[name="select_team"]), select:not(#printCardsForm select):not(#id_team)');
         
         const checkboxes = document.querySelectorAll('input[type="checkbox"]');
 
@@ -278,10 +282,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (teamSelectionForm) {
                 teamSelectionForm.classList.remove('disabled-form');
                 teamSelectionForm.removeEventListener('submit', preventSubmit);
-                const teamDropdown = document.getElementById('id_team');
                 if (teamDropdown) teamDropdown.disabled = false;
-                const selectTeamButton = teamSelectionForm.querySelector('button');
-                if (selectTeamButton) selectTeamButton.disabled = false;
+                if (teamSelectionButton) teamSelectionButton.disabled = false;
             }
 
             // Show notification
