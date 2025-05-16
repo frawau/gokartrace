@@ -194,13 +194,17 @@
 </style>
 
 <script>
-
 document.addEventListener('DOMContentLoaded', function() {
     // Connect to WebSocket for round updates
     const roundId = "{{ current_round.id }}";
     let socket;
     let reloadTimer;
     const reconnectDelay = 3000; // 3 seconds
+
+    // Get important DOM elements once at the beginning
+    const teamSelectionForm = document.getElementById('teamSelectionForm');
+    const printCardsForm = document.getElementById('printCardsForm');
+    const teamDropdown = document.getElementById('id_team');
 
     function connectWebSocket() {
         socket = new WebSocket(
@@ -247,14 +251,11 @@ document.addEventListener('DOMContentLoaded', function() {
     connectWebSocket();
 
     function updateFormStates(isReady) {
-        // Select team selection form by ID
-        const teamSelectionForm = document.getElementById('teamSelectionForm');
-        const teamDropdown = document.getElementById('id_team');
+        // Get the team selection button if the form exists
         const teamSelectionButton = teamSelectionForm ? teamSelectionForm.querySelector('button') : null;
 
         // Select all forms for disabling except the team selection and print cards forms
         const allForms = document.querySelectorAll('form:not(#printCardsForm):not(#teamSelectionForm)');
-        const printCardsForm = document.getElementById('printCardsForm');
         
         // Select all buttons except those in print cards form and team selection form
         const allButtons = document.querySelectorAll('button:not(#printCardsForm button):not(#teamSelectionForm button)');
@@ -314,12 +315,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function showReadyNotification() {
         // Create or update notification badge
+        const headerElement = document.querySelector('.card-header h4');
+        if (!headerElement) return; // Early return if element not found
+        
         let badge = document.querySelector('.ready-badge');
         if (!badge) {
             badge = document.createElement('span');
             badge.className = 'badge bg-success ready-badge';
             badge.textContent = 'READY - VIEW ONLY';
-            document.querySelector('.card-header h4').appendChild(badge);
+            headerElement.appendChild(badge);
         }
     }
 
@@ -330,40 +334,56 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Initialize form states based on current round ready status
-    updateFormStates({{ round_ready|yesno:"true,false" }});
+    // Safe initialization of form states based on current round ready status
+    try {
+        updateFormStates({{ round_ready|yesno:"true,false" }});
+    } catch (e) {
+        console.error('Error during form state update:', e);
+    }
 
     // Add click handlers for remove buttons
     document.querySelectorAll('.remove-btn').forEach(btn => {
         btn.addEventListener('click', function() {
-            if (!{{ round_ready|yesno:"true,false" }}) {
-                const memberId = this.getAttribute('data-member');
-                document.getElementById('remove-form-' + memberId).submit();
+            try {
+                if (!{{ round_ready|yesno:"true,false" }}) {
+                    const memberId = this.getAttribute('data-member');
+                    const removeForm = document.getElementById('remove-form-' + memberId);
+                    if (removeForm) {
+                        removeForm.submit();
+                    } else {
+                        console.error('Remove form not found for member:', memberId);
+                    }
+                }
+            } catch (e) {
+                console.error('Error handling remove button click:', e);
             }
         });
     });
 
-    document.getElementById('printCardsForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const formData = new FormData(this);
-        const data = {
-            round_team_id: formData.get('round_team_id')
-        };
+    // Handle print cards form submission
+    if (printCardsForm) {
+        printCardsForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const data = {
+                round_team_id: formData.get('round_team_id')
+            };
 
-        fetch(this.action, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
-            },
-            body: JSON.stringify(data)
-        })
-        .then(response => response.blob())
-        .then(blob => {
-            const url = URL.createObjectURL(blob);
-            window.open(url, '_blank').focus();
+            fetch(this.action, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.blob())
+            .then(blob => {
+                const url = URL.createObjectURL(blob);
+                window.open(url, '_blank').focus();
+            });
         });
-    });
+    }
 
     // Clean up on page unload
     window.addEventListener('beforeunload', function() {
