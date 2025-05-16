@@ -260,16 +260,18 @@ document.addEventListener('DOMContentLoaded', function() {
         // Select all buttons except those in print cards form and team selection form
         const allButtons = document.querySelectorAll('button:not(#printCardsForm button):not(#teamSelectionForm button)');
         
-        // Select all inputs except those in print cards form, CSRF tokens, and team selection form fields
-        const allInputs = document.querySelectorAll('input:not([name="csrfmiddlewaretoken"]):not(#printCardsForm input):not(#teamSelectionForm input[name="select_team"]), select:not(#printCardsForm select):not(#id_team)');
+        // Ensure CSRF token is never disabled, along with team dropdown and select team button
+        const allInputs = document.querySelectorAll('input:not([name="csrfmiddlewaretoken"]):not(#printCardsForm input):not(#teamSelectionForm input), select:not(#printCardsForm select):not(#id_team)');
         
         const checkboxes = document.querySelectorAll('input[type="checkbox"]');
 
         if (isReady) {
             // Disable everything except Print Cards and team selection
             allForms.forEach(form => {
-                form.classList.add('disabled-form');
-                form.addEventListener('submit', preventSubmit);
+                if (form !== teamSelectionForm) {
+                    form.classList.add('disabled-form');
+                    form.addEventListener('submit', preventSubmit);
+                }
             });
 
             allButtons.forEach(button => button.disabled = true);
@@ -282,7 +284,6 @@ document.addEventListener('DOMContentLoaded', function() {
             // Make sure team selection stays enabled
             if (teamSelectionForm) {
                 teamSelectionForm.classList.remove('disabled-form');
-                teamSelectionForm.removeEventListener('submit', preventSubmit);
                 if (teamDropdown) teamDropdown.disabled = false;
                 if (teamSelectionButton) teamSelectionButton.disabled = false;
             }

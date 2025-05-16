@@ -121,14 +121,17 @@ class TeamMembersView(View):
             messages.error(request, "No current championship round found.")
             return redirect("Home")
 
+        # Check if it's a select_team action
+        is_select_team = "select_team" in request.POST
+
         # Check round ready status
-        if current_round.ready:
+        if current_round.ready and not is_select_team:
             messages.error(
                 request, "Race has started or is about to - no changes allowed."
             )
             return redirect(request.path)
 
-        if "select_team" in request.POST:
+        if not current_round.ready and "select_team" in request.POST:
             # First clean up empty round_team records
             empty_round_teams = round_team.objects.filter(
                 round=current_round, team_member__isnull=True
