@@ -4,7 +4,7 @@ from .models import Round, championship_team, Person, team_member, round_team
 from django.shortcuts import render, redirect
 from django.views import View
 from django.contrib import messages
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, OuterRef, Value, BooleanField
 from django.contrib.auth.decorators import login_required, user_passes_test
 from .utils import is_admin_user
 from django.utils.decorators import method_decorator
@@ -36,7 +36,7 @@ class TeamSelectionForm(forms.Form):
                     )
                     .annotate(
                         # Since we're only showing participating teams, they all have is_round_team=True
-                        is_round_team=True
+                        is_round_team=Value(True, output_field=BooleanField())
                     )
                     .order_by("number")
                 )

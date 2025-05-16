@@ -11,7 +11,7 @@
 
         <div class="card-body">
             <!-- Team Selection Form -->
-            <form method="post" class="mb-4">
+            <form method="post" class="mb-4" id="teamSelectionForm">
                 {% csrf_token %}
                 <input type="hidden" name="select_team" value="1">
                 <div class="row">
@@ -331,20 +331,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize form states based on current round ready status
     updateFormStates({{ round_ready|yesno:"true,false" }});
 
-    // Your existing JavaScript code for remove buttons, print cards, etc.
+    // Add click handlers for remove buttons
     document.querySelectorAll('.remove-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             if (!{{ round_ready|yesno:"true,false" }}) {
                 const memberId = this.getAttribute('data-member');
                 document.getElementById('remove-form-' + memberId).submit();
             }
-        });
-    });
-
-    document.querySelectorAll('.remove-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const memberId = this.getAttribute('data-member');
-            document.getElementById('remove-form-' + memberId).submit();
         });
     });
 
