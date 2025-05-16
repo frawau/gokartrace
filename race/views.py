@@ -70,7 +70,7 @@ def index(request):
         [
             {"label": "Monitor One Team", "url": "/singleteam/"},
             {"label": "Monitor One Driver", "url": "/onedriver/"},
-            {"label": "ekskip", "url": ""},
+            {"label": "All Pit Lanes", "url": "/all_pitlanes/"},
         ],
     ]
     cround = current_round()
@@ -140,6 +140,17 @@ def changedriver_info(request):
         )
         return render(
             request, "layout/changedriver_info.html", {"change_lanes": change_lanes}
+        )
+    except:
+        return render(request, "pages/norace.html")
+
+
+def all_pitlanes(request):
+    try:
+        cround = current_round()
+        change_lanes = ChangeLane.objects.filter(round=cround).order_by("lane")
+        return render(
+            request, "pages/all_pitlanes.html", {"change_lanes": change_lanes, "round": cround}
         )
     except:
         return render(request, "pages/norace.html")

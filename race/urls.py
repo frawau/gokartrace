@@ -16,6 +16,7 @@ urlpatterns = [
     path("get_team_card/", views.get_team_card, name="Team Card"),
     # path('ws/pitlane/<int:lane_number>/', views.changelane_info, name = 'change_lane_ws'),
     path("pitlane/<int:lane_number>/", views.changelane_info, name="Change Lane"),
+    path("all_pitlanes/", views.all_pitlanes, name="All Pit Lanes"),
     path(
         "pitlanedetail/<int:lane_number>/",
         views.changelane_detail,
