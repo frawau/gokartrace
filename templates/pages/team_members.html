@@ -11,7 +11,7 @@
 
         <div class="card-body">
             <!-- Team Selection Form -->
-            <form method="post" class="mb-4" id="teamSelectionForm">
+            <form method="post" class="mb-4">
                 {% csrf_token %}
                 <input type="hidden" name="select_team" value="1">
                 <div class="row">
@@ -194,17 +194,13 @@
 </style>
 
 <script>
+
 document.addEventListener('DOMContentLoaded', function() {
     // Connect to WebSocket for round updates
     const roundId = "{{ current_round.id }}";
     let socket;
     let reloadTimer;
     const reconnectDelay = 3000; // 3 seconds
-
-    // Get important DOM elements once at the beginning
-    const teamSelectionForm = document.getElementById('teamSelectionForm');
-    const printCardsForm = document.getElementById('printCardsForm');
-    const teamDropdown = document.getElementById('id_team');
 
     function connectWebSocket() {
         socket = new WebSocket(
@@ -251,27 +247,16 @@ document.addEventListener('DOMContentLoaded', function() {
     connectWebSocket();
 
     function updateFormStates(isReady) {
-        // Get the team selection button if the form exists
-        const teamSelectionButton = teamSelectionForm ? teamSelectionForm.querySelector('button') : null;
-
-        // Select all forms for disabling except the team selection and print cards forms
-        const allForms = document.querySelectorAll('form:not(#printCardsForm):not(#teamSelectionForm)');
-        
-        // Select all buttons except those in print cards form and team selection form
-        const allButtons = document.querySelectorAll('button:not(#printCardsForm button):not(#teamSelectionForm button)');
-        
-        // Ensure CSRF token is never disabled, along with team dropdown and select team button
-        const allInputs = document.querySelectorAll('input:not([name="csrfmiddlewaretoken"]):not(#printCardsForm input):not(#teamSelectionForm input), select:not(#printCardsForm select):not(#id_team)');
-        
+        const allForms = document.querySelectorAll('form:not(#printCardsForm)');
+        const allButtons = document.querySelectorAll('button:not(#printCardsForm button)');
+        const allInputs = document.querySelectorAll('input:not(#printCardsForm input), select:not(#printCardsForm select)');
         const checkboxes = document.querySelectorAll('input[type="checkbox"]');
 
         if (isReady) {
-            // Disable everything except Print Cards and team selection
+            // Disable everything except Print Cards
             allForms.forEach(form => {
-                if (form !== teamSelectionForm) {
-                    form.classList.add('disabled-form');
-                    form.addEventListener('submit', preventSubmit);
-                }
+                form.classList.add('disabled-form');
+                form.addEventListener('submit', preventSubmit);
             });
 
             allButtons.forEach(button => button.disabled = true);
@@ -280,13 +265,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 checkbox.style.opacity = '0.6';
                 checkbox.style.pointerEvents = 'none';
             });
-
-            // Make sure team selection stays enabled
-            if (teamSelectionForm) {
-                teamSelectionForm.classList.remove('disabled-form');
-                if (teamDropdown) teamDropdown.disabled = false;
-                if (teamSelectionButton) teamSelectionButton.disabled = false;
-            }
 
             // Show notification
             showReadyNotification();
@@ -316,15 +294,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function showReadyNotification() {
         // Create or update notification badge
-        const headerElement = document.querySelector('.card-header h4');
-        if (!headerElement) return; // Early return if element not found
-        
         let badge = document.querySelector('.ready-badge');
         if (!badge) {
             badge = document.createElement('span');
             badge.className = 'badge bg-success ready-badge';
             badge.textContent = 'READY - VIEW ONLY';
-            headerElement.appendChild(badge);
+            document.querySelector('.card-header h4').appendChild(badge);
         }
     }
 
@@ -335,56 +310,47 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Safe initialization of form states based on current round ready status
-    try {
-        updateFormStates({{ round_ready|yesno:"true,false" }});
-    } catch (e) {
-        console.error('Error during form state update:', e);
-    }
+    // Initialize form states based on current round ready status
+    updateFormStates({{ round_ready|yesno:"true,false" }});
 
-    // Add click handlers for remove buttons
+    // Your existing JavaScript code for remove buttons, print cards, etc.
     document.querySelectorAll('.remove-btn').forEach(btn => {
         btn.addEventListener('click', function() {
-            try {
-                if (!{{ round_ready|yesno:"true,false" }}) {
-                    const memberId = this.getAttribute('data-member');
-                    const removeForm = document.getElementById('remove-form-' + memberId);
-                    if (removeForm) {
-                        removeForm.submit();
-                    } else {
-                        console.error('Remove form not found for member:', memberId);
-                    }
-                }
-            } catch (e) {
-                console.error('Error handling remove button click:', e);
+            if (!{{ round_ready|yesno:"true,false" }}) {
+                const memberId = this.getAttribute('data-member');
+                document.getElementById('remove-form-' + memberId).submit();
             }
         });
     });
 
-    // Handle print cards form submission
-    if (printCardsForm) {
-        printCardsForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            const data = {
-                round_team_id: formData.get('round_team_id')
-            };
-
-            fetch(this.action, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
-                },
-                body: JSON.stringify(data)
-            })
-            .then(response => response.blob())
-            .then(blob => {
-                const url = URL.createObjectURL(blob);
-                window.open(url, '_blank').focus();
-            });
+    document.querySelectorAll('.remove-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const memberId = this.getAttribute('data-member');
+            document.getElementById('remove-form-' + memberId).submit();
         });
-    }
+    });
+
+    document.getElementById('printCardsForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        const data = {
+            round_team_id: formData.get('round_team_id')
+        };
+
+        fetch(this.action, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.blob())
+        .then(blob => {
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank').focus();
+        });
+    });
 
     // Clean up on page unload
     window.addEventListener('beforeunload', function() {
