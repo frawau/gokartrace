@@ -150,7 +150,9 @@ def all_pitlanes(request):
         cround = current_round()
         change_lanes = ChangeLane.objects.filter(round=cround).order_by("lane")
         return render(
-            request, "pages/all_pitlanes.html", {"change_lanes": change_lanes, "round": cround}
+            request,
+            "pages/all_pitlanes.html",
+            {"change_lanes": change_lanes, "round": cround},
         )
     except:
         return render(request, "pages/norace.html")

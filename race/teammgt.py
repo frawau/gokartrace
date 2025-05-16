@@ -26,19 +26,34 @@ class TeamSelectionForm(forms.Form):
         current_round = kwargs.pop("current_round", None)
         super().__init__(*args, **kwargs)
         if current_round:
-            self.fields["team"].queryset = (
-                championship_team.objects.filter(
-                    championship=current_round.championship
+            if current_round.ready:
+                # Only show teams participating in this round
+                self.fields["team"].queryset = (
+                    championship_team.objects.filter(
+                        championship=current_round.championship,
+                        # Only include teams that have a corresponding round_team
+                        round_team__round=current_round,
+                    )
+                    .annotate(
+                        # Since we're only showing participating teams, they all have is_round_team=True
+                        is_round_team=True
+                    )
+                    .order_by("number")
                 )
-                .annotate(
-                    is_round_team=Exists(
-                        round_team.objects.filter(
-                            round=current_round, team_id=OuterRef("pk")
+            else:
+                self.fields["team"].queryset = (
+                    championship_team.objects.filter(
+                        championship=current_round.championship
+                    )
+                    .annotate(
+                        is_round_team=Exists(
+                            round_team.objects.filter(
+                                round=current_round, team_id=OuterRef("pk")
+                            )
                         )
                     )
+                    .order_by("number")
                 )
-                .order_by("number")
-            )
 
 
 class TeamMemberForm(forms.ModelForm):

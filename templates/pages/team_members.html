@@ -247,13 +247,21 @@ document.addEventListener('DOMContentLoaded', function() {
     connectWebSocket();
 
     function updateFormStates(isReady) {
-        const allForms = document.querySelectorAll('form:not(#printCardsForm)');
-        const allButtons = document.querySelectorAll('button:not(#printCardsForm button)');
-        const allInputs = document.querySelectorAll('input:not(#printCardsForm input), select:not(#printCardsForm select)');
+        // Select all forms except the Print Cards form and the team selection form
+        const allForms = document.querySelectorAll('form:not(#printCardsForm):not([name="select_team"]):not(:has(input[name="select_team"]))');
+        // Select the team selection form separately
+        const teamSelectionForm = document.querySelector('form:has(input[name="select_team"])');
+        
+        // Select all buttons except Print Cards button and Select Team button
+        const allButtons = document.querySelectorAll('button:not(#printCardsForm button):not(form:has(input[name="select_team"]) button)');
+        
+        // Select all inputs except those in Print Cards and team selection dropdown
+        const allInputs = document.querySelectorAll('input:not(#printCardsForm input):not([name="select_team"]):not(form:has(input[name="select_team"]) select), select:not(#printCardsForm select):not([name="team"]):not(#id_team)');
+        
         const checkboxes = document.querySelectorAll('input[type="checkbox"]');
 
         if (isReady) {
-            // Disable everything except Print Cards
+            // Disable everything except Print Cards and team selection
             allForms.forEach(form => {
                 form.classList.add('disabled-form');
                 form.addEventListener('submit', preventSubmit);
@@ -265,6 +273,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 checkbox.style.opacity = '0.6';
                 checkbox.style.pointerEvents = 'none';
             });
+
+            // Make sure team selection stays enabled
+            if (teamSelectionForm) {
+                teamSelectionForm.classList.remove('disabled-form');
+                teamSelectionForm.removeEventListener('submit', preventSubmit);
+                const teamDropdown = document.getElementById('id_team');
+                if (teamDropdown) teamDropdown.disabled = false;
+                const selectTeamButton = teamSelectionForm.querySelector('button');
+                if (selectTeamButton) selectTeamButton.disabled = false;
+            }
 
             // Show notification
             showReadyNotification();
