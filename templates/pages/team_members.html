@@ -2,9 +2,11 @@
 {% load static %}
 
 {% block main_content %}
-<div class="container mt-5" 
-     data-current-round-id="{{ current_round.id }}"
-     data-has-selected-team="{% if selected_team %}true{% else %}false{% endif %}">
+<div class="container mt-5">
+    <!-- Hidden fields for JavaScript use -->
+    <input type="hidden" id="current-round-id" value="{{ current_round.id }}">
+    <input type="hidden" id="has-selected-team" value="{% if selected_team %}true{% else %}false{% endif %}">
+    
     <div class="card">
         <div class="card-header bg-primary text-white">
             <h4>Team Members Management</h4>
@@ -371,13 +373,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Setup websocket connection for round updates
-    // Get template variables from data attributes
-    const container = document.querySelector('.container');
-    const currentRoundId = container.dataset.currentRoundId;
-    const hasSelectedTeam = container.dataset.hasSelectedTeam === 'true';
     let reloadTimer;
     
-    // Connect to the round WebSocket - since the page is loaded, we know we have a current round
+    // Get values from hidden inputs
+    const currentRoundId = document.getElementById('current-round-id').value;
+    const hasSelectedTeam = document.getElementById('has-selected-team').value === 'true';
+    
+    // Connect to the round WebSocket
     const roundSocket = new WebSocket(
         'ws://' + window.location.host + '/ws/round/' + currentRoundId + '/'
     );
@@ -389,8 +391,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (data.ready) {
             console.log('Round is now ready, reloading page to show static view');
             
-            // If we have a selected team, resubmit the form to maintain selection
+            // Check if we have a selected team
             if (hasSelectedTeam) {
+                // If we have a selected team, resubmit the form to maintain selection
                 document.querySelector('form').submit();
             } else {
                 // Just reload the page if no team is selected

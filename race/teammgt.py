@@ -102,7 +102,7 @@ class TeamMembersView(View):
 
     def get_current_round(self):
         # Get the current round (the next one starting today or later)
-        return Round.objects.filter(start__gte=dt.date.today(), ended__isnull=True).first()
+        return Round.objects.filter(start__gte=dt.date.today() - dt.timedelta(days=1), ended__isnull=True).first()
 
     def get(self, request):
         current_round = self.get_current_round()
