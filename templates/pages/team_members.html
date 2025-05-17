@@ -436,8 +436,9 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(response => {
                 if (response.ok) {
-                    // Reload the page to show updated data
-                    window.location.reload();
+                    // Instead of reloading, use window.location.replace to avoid the resubmission warning
+                    // This replaces the current history entry instead of adding a new one
+                    window.location.replace(window.location.href);
                 } else {
                     alert('Error adding team member');
                 }
