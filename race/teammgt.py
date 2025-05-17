@@ -278,6 +278,7 @@ class TeamMembersView(View):
 
             messages.success(request, f"{person.nickname} added to the team.")
         else:
+            print(f"Form not valid. {request.POST}")
             messages.error(request, "Invalid selection for new member.")
 
         return self.handle_team_selection(request, current_round, selected_team)
