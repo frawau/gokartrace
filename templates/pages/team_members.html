@@ -89,7 +89,7 @@
                 {% endif %}
             </form>
             <!-- Add Member Form -->
-            <form method="post" class="mt-4">
+            <form method="post" class="mt-4" id="addMemberForm">
                 {% csrf_token %}
                 <input type="hidden" name="selected_team" value="{{ selected_team.id }}">
                 <input type="hidden" name="add_member" value="1">
@@ -395,6 +395,57 @@ document.addEventListener('DOMContentLoaded', function() {
     if (memberSearch) {
         memberSearch.addEventListener('input', function() {
             // The browser automatically filters the datalist options
+        });
+    }
+
+    // Handle form submission to use person ID instead of display text
+    const addMemberForm = document.getElementById('addMemberForm');
+    if (addMemberForm) {
+        addMemberForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const selectedValue = memberSearch.value;
+            const options = document.querySelectorAll('#member-options option');
+            let personId = null;
+            
+            // Find the matching option to get the data-id
+            for (const option of options) {
+                if (option.value === selectedValue) {
+                    personId = option.getAttribute('data-id');
+                    break;
+                }
+            }
+            
+            if (!personId) {
+                alert('Please select a valid team member from the list');
+                return;
+            }
+            
+            // Create a new form with the correct person ID
+            const form = new FormData(this);
+            // Replace the person name with the ID
+            form.set('person', personId);
+            
+            // Submit the form with fetch
+            fetch(window.location.href, {
+                method: 'POST',
+                body: form,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Reload the page to show updated data
+                    window.location.reload();
+                } else {
+                    alert('Error adding team member');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error adding team member');
+            });
         });
     }
 });
