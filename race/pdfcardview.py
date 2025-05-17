@@ -353,22 +353,10 @@ class GenerateCardPDF(View):
                 except round_team.DoesNotExist:
                     continue  # Skip invalid teams
 
-        elif "person_id" in data:
-            # Single perso
-            # Get current round
-            end_date = dt.date.today()
-            start_date = end_date - dt.timedelta(days=3)
-            cround = Round.objects.filter(
-                Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
-            ).first()
-            if cround is None:
-                return JsonResponse({"error": "No active round found"}, status=400)
+        elif "member_id" in data:
             try:
-                person = Person.objects.get(id=data["person_id"])
-                tm = team_member.objects.get(member=person, team__round=cround)
+                tm = team_member.objects.get(id=data["member_id"])
                 card_pos = self._draw_card(p, tm, card_pos)
-            except Person.DoesNotExist:
-                return JsonResponse({"error": "Person not found"}, status=404)
             except team_member.DoesNotExist:
                 return JsonResponse(
                     {"error": "Person not in current round"}, status=400

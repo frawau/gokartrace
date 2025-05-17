@@ -4,7 +4,7 @@ Copyright (c) 2019 - present AppSeed.us
 """
 
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, re_path, include
 from django.contrib.auth import views as auth_views
 from race.routing import websocket_urlpatterns
 from channels.routing import URLRouter
@@ -20,6 +20,8 @@ urlpatterns = [
     # path("", include("theme_material_kit.urls")),
     path("login/jwt/", view=obtain_auth_token),
     path("accounts/", include("django.contrib.auth.urls")),
++   re_path(r'^advanced_filters/', include('advanced_filters.urls')),
+
 ]
 
 
