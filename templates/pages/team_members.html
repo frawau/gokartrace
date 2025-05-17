@@ -88,8 +88,9 @@
                 </div>
                 {% endif %}
             </form>
+
             <!-- Add Member Form -->
-            <form method="post" class="mt-4" id="addMemberForm">
+            <form method="post" class="mt-4">
                 {% csrf_token %}
                 <input type="hidden" name="selected_team" value="{{ selected_team.id }}">
                 <input type="hidden" name="add_member" value="1">
@@ -97,15 +98,8 @@
                 <div class="row">
                     <div class="col-md-8">
                         <div class="form-group">
-                            <label for="member-search">Add New Member</label>
-                            <input list="member-options" id="member-search" name="person"
-                                class="form-control" placeholder="Start typing to search...">
-                            <datalist id="member-options">
-                                {% for person in add_member_form.fields.person.queryset %}
-                                    <option value="{{ person.nickname }} ({{ person.firstname }} {{ person.surname }})"
-                                            data-id="{{ person.id }}">
-                                {% endfor %}
-                            </datalist>
+                            {{ add_member_form.person.label_tag }}
+                            {{ add_member_form.person }}
                         </div>
                     </div>
                     <div class="col-md-4 d-flex align-items-end">
@@ -185,188 +179,42 @@
     font-size: 1rem;
     vertical-align: middle;
 }
-
-/* Disabled Forms */
-.disabled-form {
-    opacity: 0.6;
-    pointer-events: none;
-}
 </style>
 
 <script>
+document.querySelectorAll('.remove-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const memberId = this.getAttribute('data-member');
+        document.getElementById('remove-form-' + memberId).submit();
+    });
+});
+
+document.getElementById('printCardsForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const data = {
+        round_team_id: formData.get('round_team_id')
+    };
+
+    fetch(this.action, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.blob())
+    .then(blob => {
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank').focus();
+    });
+});
+
+// Add script to ensure only one manager can be selected
 document.addEventListener('DOMContentLoaded', function() {
-    // Connect to WebSocket for round updates
-    const roundId = "{{ current_round.id }}";
-    let socket;
-    let reloadTimer;
-    const reconnectDelay = 3000; // 3 seconds
-
-    function connectWebSocket() {
-        socket = new WebSocket(
-            'ws://' + window.location.host + '/ws/round/' + roundId + '/'
-        );
-
-        socket.onopen = function(e) {
-            console.log('WebSocket connection established');
-            if (reloadTimer) {
-                clearTimeout(reloadTimer);
-                reloadTimer = null;
-            }
-        };
-
-        socket.onmessage = function(e) {
-            const data = JSON.parse(e.data);
-            if (data.ready !== undefined) {
-                updateFormStates(data.ready);
-            }
-        };
-
-        socket.onclose = function(e) {
-            if (e.wasClean) {
-                console.log('WebSocket connection closed cleanly');
-            } else {
-                console.warn('WebSocket connection interrupted');
-                // Only attempt to reconnect if this wasn't a clean close
-                if (!reloadTimer) {
-                    reloadTimer = setTimeout(() => {
-                        console.log('Attempting to reconnect WebSocket...');
-                        connectWebSocket();
-                    }, reconnectDelay);
-                }
-            }
-        };
-
-        socket.onerror = function(e) {
-            console.error('WebSocket error:', e);
-            socket.close(); // This will trigger onclose
-        };
-    }
-
-    // Initial connection
-    connectWebSocket();
-
-    function updateFormStates(isReady) {
-        const allForms = document.querySelectorAll('form:not(#printCardsForm)');
-        const allButtons = document.querySelectorAll('button:not(#printCardsForm button)');
-        const allInputs = document.querySelectorAll('input:not(#printCardsForm input), select:not(#printCardsForm select)');
-        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-
-        if (isReady) {
-            // Disable everything except Print Cards
-            allForms.forEach(form => {
-                form.classList.add('disabled-form');
-                form.addEventListener('submit', preventSubmit);
-            });
-
-            allButtons.forEach(button => button.disabled = true);
-            allInputs.forEach(input => input.disabled = true);
-            checkboxes.forEach(checkbox => {
-                checkbox.style.opacity = '0.6';
-                checkbox.style.pointerEvents = 'none';
-            });
-
-            // Show notification
-            showReadyNotification();
-        } else {
-            // Enable everything
-            allForms.forEach(form => {
-                form.classList.remove('disabled-form');
-                form.removeEventListener('submit', preventSubmit);
-            });
-
-            allButtons.forEach(button => button.disabled = false);
-            allInputs.forEach(input => input.disabled = false);
-            checkboxes.forEach(checkbox => {
-                checkbox.style.opacity = '';
-                checkbox.style.pointerEvents = '';
-            });
-
-            // Hide notification
-            hideReadyNotification();
-        }
-    }
-
-    function preventSubmit(e) {
-        e.preventDefault();
-        return false;
-    }
-
-    function showReadyNotification() {
-        // Create or update notification badge
-        let badge = document.querySelector('.ready-badge');
-        if (!badge) {
-            badge = document.createElement('span');
-            badge.className = 'badge bg-success ready-badge';
-            badge.textContent = 'READY - VIEW ONLY';
-            document.querySelector('.card-header h4').appendChild(badge);
-        }
-    }
-
-    function hideReadyNotification() {
-        const badge = document.querySelector('.ready-badge');
-        if (badge) {
-            badge.remove();
-        }
-    }
-
-    // Initialize form states based on current round ready status
-    updateFormStates({{ round_ready|yesno:"true,false" }});
-
-    // Your existing JavaScript code for remove buttons, print cards, etc.
-    document.querySelectorAll('.remove-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            if (!{{ round_ready|yesno:"true,false" }}) {
-                const memberId = this.getAttribute('data-member');
-                const formElement = document.getElementById('remove-form-' + memberId);
-                if (formElement) {
-                    formElement.submit();
-                }
-            }
-        });
-    });
-
-    // Remove duplicate event listener on remove buttons
-    // The previous implementation had this event listener twice
-
-    // Only attach print form handler if the form exists
-    const printCardsForm = document.getElementById('printCardsForm');
-    if (printCardsForm) {
-        printCardsForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            const data = {
-                round_team_id: formData.get('round_team_id')
-            };
-
-            fetch(this.action, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
-                },
-                body: JSON.stringify(data)
-            })
-            .then(response => response.blob())
-            .then(blob => {
-                const url = URL.createObjectURL(blob);
-                window.open(url, '_blank').focus();
-            });
-        });
-    }
-
-    // Clean up on page unload
-    window.addEventListener('beforeunload', function() {
-        if (socket) {
-            socket.close();
-        }
-        if (reloadTimer) {
-            clearTimeout(reloadTimer);
-        }
-    });
-
-    // Ensure only one manager can be selected - fixed implementation
     const managerCheckboxes = document.querySelectorAll('input[name$="-manager"]');
-    
+
     managerCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', function() {
             if (this.checked) {
@@ -389,66 +237,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // Remove any pseudo-elements if possible
         checkbox.setAttribute('style', 'content: none !important');
     });
-
-    // Datalist input event handler
-    const memberSearch = document.getElementById('member-search');
-    if (memberSearch) {
-        memberSearch.addEventListener('input', function() {
-            // The browser automatically filters the datalist options
-        });
-    }
-
-    // Handle form submission to use person ID instead of display text
-    const addMemberForm = document.getElementById('addMemberForm');
-    if (addMemberForm) {
-        addMemberForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const selectedValue = memberSearch.value;
-            const options = document.querySelectorAll('#member-options option');
-            let personId = null;
-            
-            // Find the matching option to get the data-id
-            for (const option of options) {
-                if (option.value === selectedValue) {
-                    personId = option.getAttribute('data-id');
-                    break;
-                }
-            }
-            
-            if (!personId) {
-                alert('Please select a valid team member from the list');
-                return;
-            }
-            
-            // Create a new form with the correct person ID
-            const form = new FormData(this);
-            // Replace the person name with the ID
-            form.set('person', personId);
-            
-            // Submit the form with fetch
-            fetch(window.location.href, {
-                method: 'POST',
-                body: form,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => {
-                if (response.ok) {
-                    // Instead of reloading, use window.location.replace to avoid the resubmission warning
-                    // This replaces the current history entry instead of adding a new one
-                    window.location.replace(window.location.href);
-                } else {
-                    alert('Error adding team member');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error adding team member');
-            });
-        });
-    }
 });
 </script>
 {% endblock %}
