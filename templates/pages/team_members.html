@@ -3,9 +3,7 @@
 
 {% block main_content %}
 <div class="container mt-5" 
-     data-has-current-round="{% if current_round %}true{% else %}false{% endif %}"
-     data-current-round-id="{% if current_round %}{{ current_round.id }}{% endif %}"
-     data-is-round-ready="{% if round_ready %}true{% else %}false{% endif %}"
+     data-current-round-id="{{ current_round.id }}"
      data-has-selected-team="{% if selected_team %}true{% else %}false{% endif %}">
     <div class="card">
         <div class="card-header bg-primary text-white">
@@ -375,38 +373,46 @@ document.addEventListener('DOMContentLoaded', function() {
     // Setup websocket connection for round updates
     // Get template variables from data attributes
     const container = document.querySelector('.container');
-    const hasCurrentRound = container.dataset.hasCurrentRound === 'true';
     const currentRoundId = container.dataset.currentRoundId;
-    const isRoundReady = container.dataset.isRoundReady === 'true';
     const hasSelectedTeam = container.dataset.hasSelectedTeam === 'true';
+    let reloadTimer;
     
-    if (hasCurrentRound) {
-        // Connect to the round WebSocket
-        const roundSocket = new WebSocket(
-            'ws://' + window.location.host + '/ws/round/' + currentRoundId + '/'
-        );
+    // Connect to the round WebSocket - since the page is loaded, we know we have a current round
+    const roundSocket = new WebSocket(
+        'ws://' + window.location.host + '/ws/round/' + currentRoundId + '/'
+    );
+    
+    roundSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
         
-        roundSocket.onmessage = function(e) {
-            const data = JSON.parse(e.data);
+        // If the round becomes ready, reload the page to show the static view
+        if (data.ready) {
+            console.log('Round is now ready, reloading page to show static view');
             
-            // If the round has changed from not ready to ready, reload the page
-            if (data.ready && !isRoundReady) {
-                console.log('Round is now ready, reloading page to show static view');
-                
-                // If we have a selected team, resubmit the form to maintain selection
-                if (hasSelectedTeam) {
-                    document.querySelector('form').submit();
-                } else {
-                    // Just reload the page if no team is selected
-                    window.location.reload();
-                }
+            // If we have a selected team, resubmit the form to maintain selection
+            if (hasSelectedTeam) {
+                document.querySelector('form').submit();
+            } else {
+                // Just reload the page if no team is selected
+                window.location.reload();
             }
-        };
-        
-        roundSocket.onclose = function(e) {
-            console.error('Round socket closed unexpectedly');
-        };
-    }
+        }
+    };
+    
+    roundSocket.onclose = function(event) {
+        console.log('WebSocket connection closed', event);
+        if (!event.wasClean) {
+            // If the connection was not closed cleanly, reload after a delay
+            reloadTimer = setTimeout(() => {
+                console.log('Reloading page due to lost WebSocket connection');
+                location.reload();
+            }, 3000); // Reload after 3 seconds
+        }
+    };
+    
+    roundSocket.onerror = function(error) {
+        console.error('WebSocket error:', error);
+    };
 });
 </script>
 {% endblock %}
