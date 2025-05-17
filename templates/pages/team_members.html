@@ -194,7 +194,6 @@
 </style>
 
 <script>
-
 document.addEventListener('DOMContentLoaded', function() {
     // Connect to WebSocket for round updates
     const roundId = "{{ current_round.id }}";
@@ -318,39 +317,42 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.addEventListener('click', function() {
             if (!{{ round_ready|yesno:"true,false" }}) {
                 const memberId = this.getAttribute('data-member');
-                document.getElementById('remove-form-' + memberId).submit();
+                const formElement = document.getElementById('remove-form-' + memberId);
+                if (formElement) {
+                    formElement.submit();
+                }
             }
         });
     });
 
-    document.querySelectorAll('.remove-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const memberId = this.getAttribute('data-member');
-            document.getElementById('remove-form-' + memberId).submit();
-        });
-    });
+    // Remove duplicate event listener on remove buttons
+    // The previous implementation had this event listener twice
 
-    document.getElementById('printCardsForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const formData = new FormData(this);
-        const data = {
-            round_team_id: formData.get('round_team_id')
-        };
+    // Only attach print form handler if the form exists
+    const printCardsForm = document.getElementById('printCardsForm');
+    if (printCardsForm) {
+        printCardsForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const data = {
+                round_team_id: formData.get('round_team_id')
+            };
 
-        fetch(this.action, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
-            },
-            body: JSON.stringify(data)
-        })
-        .then(response => response.blob())
-        .then(blob => {
-            const url = URL.createObjectURL(blob);
-            window.open(url, '_blank').focus();
+            fetch(this.action, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.blob())
+            .then(blob => {
+                const url = URL.createObjectURL(blob);
+                window.open(url, '_blank').focus();
+            });
         });
-    });
+    }
 
     // Clean up on page unload
     window.addEventListener('beforeunload', function() {
@@ -362,38 +364,39 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Add script to ensure only one manager can be selected
-    document.addEventListener('DOMContentLoaded', function() {
-        const managerCheckboxes = document.querySelectorAll('input[name$="-manager"]');
-
-        managerCheckboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                if (this.checked) {
-                    // Uncheck all other manager checkboxes
-                    managerCheckboxes.forEach(otherCheckbox => {
-                        if (otherCheckbox !== this) {
-                            otherCheckbox.checked = false;
-                        }
-                    });
-                }
-            });
+    // Ensure only one manager can be selected - fixed implementation
+    const managerCheckboxes = document.querySelectorAll('input[name$="-manager"]');
+    
+    managerCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                // Uncheck all other manager checkboxes
+                managerCheckboxes.forEach(otherCheckbox => {
+                    if (otherCheckbox !== this) {
+                        otherCheckbox.checked = false;
+                    }
+                });
+            }
         });
+    });
 
-        // Fix the FontAwesome checkmark issue by explicitly fixing any existing checkboxes
-        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-        checkboxes.forEach(checkbox => {
-            // Remove any content inside the checkbox
-            checkbox.innerHTML = '';
+    // Fix the FontAwesome checkmark issue by explicitly fixing any existing checkboxes
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        // Remove any content inside the checkbox
+        checkbox.innerHTML = '';
 
-            // Remove any pseudo-elements if possible
-            checkbox.setAttribute('style', 'content: none !important');
-        });
+        // Remove any pseudo-elements if possible
+        checkbox.setAttribute('style', 'content: none !important');
     });
 
     // Datalist input event handler
-    document.getElementById('member-search').addEventListener('input', function() {
-        // The browser automatically filters the datalist options
-    });
+    const memberSearch = document.getElementById('member-search');
+    if (memberSearch) {
+        memberSearch.addEventListener('input', function() {
+            // The browser automatically filters the datalist options
+        });
+    }
 });
 </script>
 {% endblock %}
