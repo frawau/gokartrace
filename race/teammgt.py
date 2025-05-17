@@ -69,7 +69,12 @@ class TeamMemberForm(forms.ModelForm):
 
 class AddMemberForm(forms.Form):
     person = forms.ModelChoiceField(
-        queryset=Person.objects.none(), label="Add New Member"
+        queryset=Person.objects.none(), 
+        label="Add New Member",
+        widget=forms.Select(attrs={
+            'class': 'form-control searchable-select',
+            'data-live-search': 'true'
+        })
     )
 
     def __init__(self, *args, **kwargs):

@@ -182,6 +182,21 @@
     font-size: 1rem;
     vertical-align: middle;
 }
+
+/* Searchable select dropdown */
+.searchable-select {
+    width: 100%;
+}
+
+/* Style for search box inside the dropdown */
+.select-search-box {
+    padding: 8px;
+    border: none;
+    border-bottom: 1px solid #ddd;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 8px;
+}
 </style>
 
 <script>
@@ -263,6 +278,84 @@ document.addEventListener('DOMContentLoaded', function() {
         // Remove any pseudo-elements if possible
         checkbox.setAttribute('style', 'content: none !important');
     });
+
+    // Make person dropdown searchable
+    const personDropdown = document.querySelector('.searchable-select');
+    if (personDropdown) {
+        // Create a wrapper div for dropdown 
+        const wrapper = document.createElement('div');
+        wrapper.className = 'dropdown-wrapper';
+        personDropdown.parentNode.insertBefore(wrapper, personDropdown);
+        wrapper.appendChild(personDropdown);
+        
+        // Add search capabilities
+        personDropdown.setAttribute('list', 'member-options');
+        
+        // Create a datalist element
+        const datalist = document.createElement('datalist');
+        datalist.id = 'member-options';
+        
+        // Clone options to datalist
+        Array.from(personDropdown.options).forEach(option => {
+            if (option.value) {
+                const clonedOption = document.createElement('option');
+                clonedOption.value = option.text;
+                clonedOption.dataset.id = option.value;
+                datalist.appendChild(clonedOption);
+            }
+        });
+        
+        // Add datalist to DOM
+        wrapper.appendChild(datalist);
+        
+        // Create a text input for search
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.className = 'form-control';
+        searchInput.placeholder = 'Type to search...';
+        searchInput.setAttribute('list', 'member-options');
+        
+        // Replace the select with the text input
+        const hiddenSelect = document.createElement('select');
+        hiddenSelect.name = personDropdown.name;
+        hiddenSelect.id = personDropdown.id;
+        hiddenSelect.style.display = 'none';
+        
+        // Add the options to the hidden select
+        Array.from(personDropdown.options).forEach(option => {
+            const clonedOption = document.createElement('option');
+            clonedOption.value = option.value;
+            clonedOption.text = option.text;
+            hiddenSelect.appendChild(clonedOption);
+        });
+        
+        // Add the hidden select to DOM
+        wrapper.appendChild(hiddenSelect);
+        
+        // Replace visible dropdown with search input
+        personDropdown.style.display = 'none';
+        wrapper.insertBefore(searchInput, personDropdown);
+        
+        // Handle input changes
+        searchInput.addEventListener('input', function() {
+            const selectedText = this.value;
+            const options = datalist.querySelectorAll('option');
+            
+            for (const option of options) {
+                if (option.value === selectedText) {
+                    // Set the hidden select value
+                    const originalOptions = hiddenSelect.options;
+                    for (let i = 0; i < originalOptions.length; i++) {
+                        if (originalOptions[i].text === selectedText) {
+                            hiddenSelect.selectedIndex = i;
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+        });
+    }
 });
 </script>
 {% endblock %}
