@@ -387,17 +387,35 @@ document.addEventListener('DOMContentLoaded', function() {
     roundSocket.onmessage = function(e) {
         const data = JSON.parse(e.data);
         
-        // If the round becomes ready, reload the page to show the static view
+        // If the round becomes ready, fetch the static view instead of reloading
         if (data.ready) {
-            console.log('Round is now ready, reloading page to show static view');
+            console.log('Round is now ready, loading static view');
             
             // Check if we have a selected team
             if (hasSelectedTeam) {
                 // If we have a selected team, resubmit the form to maintain selection
                 document.querySelector('form').submit();
             } else {
-                // Just reload the page if no team is selected
-                window.location.reload();
+                // Make a fetch request to the same URL to maintain session
+                fetch(window.location.href, {
+                    method: 'GET',
+                    credentials: 'same-origin',  // This ensures cookies are sent with the request
+                    headers: {
+                        'Accept': 'text/html',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Reload the page without losing session
+                        window.location.href = window.location.href;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching page:', error);
+                    // Fallback to regular reload if fetch fails
+                    window.location.reload();
+                });
             }
         }
     };
@@ -405,10 +423,30 @@ document.addEventListener('DOMContentLoaded', function() {
     roundSocket.onclose = function(event) {
         console.log('WebSocket connection closed', event);
         if (!event.wasClean) {
-            // If the connection was not closed cleanly, reload after a delay
+            // If the connection was not closed cleanly, reload after a delay using fetch
             reloadTimer = setTimeout(() => {
                 console.log('Reloading page due to lost WebSocket connection');
-                location.reload();
+                
+                // Make a fetch request to the same URL to maintain session
+                fetch(window.location.href, {
+                    method: 'GET',
+                    credentials: 'same-origin',  // This ensures cookies are sent with the request
+                    headers: {
+                        'Accept': 'text/html',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Reload the page without losing session
+                        window.location.href = window.location.href;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching page:', error);
+                    // Fallback to regular reload if fetch fails
+                    window.location.reload();
+                });
             }, 3000); // Reload after 3 seconds
         }
     };
