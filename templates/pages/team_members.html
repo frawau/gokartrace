@@ -288,9 +288,6 @@ document.addEventListener('DOMContentLoaded', function() {
         personDropdown.parentNode.insertBefore(wrapper, personDropdown);
         wrapper.appendChild(personDropdown);
         
-        // Add search capabilities
-        personDropdown.setAttribute('list', 'member-options');
-        
         // Create a datalist element
         const datalist = document.createElement('datalist');
         datalist.id = 'member-options';
@@ -311,29 +308,19 @@ document.addEventListener('DOMContentLoaded', function() {
         // Create a text input for search
         const searchInput = document.createElement('input');
         searchInput.type = 'text';
-        searchInput.className = 'form-control';
+        searchInput.className = 'form-control search-input';
         searchInput.placeholder = 'Type to search...';
         searchInput.setAttribute('list', 'member-options');
         
-        // Replace the select with the text input
-        const hiddenSelect = document.createElement('select');
-        hiddenSelect.name = personDropdown.name;
-        hiddenSelect.id = personDropdown.id;
-        hiddenSelect.style.display = 'none';
+        // Keep the original select (instead of hiding it)
+        // Just position it off-screen but keep it focusable
+        personDropdown.style.position = 'absolute';
+        personDropdown.style.left = '-9999px';
+        personDropdown.style.height = '1px';
+        personDropdown.style.opacity = '0';
+        personDropdown.tabIndex = -1;
         
-        // Add the options to the hidden select
-        Array.from(personDropdown.options).forEach(option => {
-            const clonedOption = document.createElement('option');
-            clonedOption.value = option.value;
-            clonedOption.text = option.text;
-            hiddenSelect.appendChild(clonedOption);
-        });
-        
-        // Add the hidden select to DOM
-        wrapper.appendChild(hiddenSelect);
-        
-        // Replace visible dropdown with search input
-        personDropdown.style.display = 'none';
+        // Put the search input in place
         wrapper.insertBefore(searchInput, personDropdown);
         
         // Handle input changes
@@ -343,11 +330,11 @@ document.addEventListener('DOMContentLoaded', function() {
             
             for (const option of options) {
                 if (option.value === selectedText) {
-                    // Set the hidden select value
-                    const originalOptions = hiddenSelect.options;
+                    // Find the matching option in the original select
+                    const originalOptions = personDropdown.options;
                     for (let i = 0; i < originalOptions.length; i++) {
                         if (originalOptions[i].text === selectedText) {
-                            hiddenSelect.selectedIndex = i;
+                            personDropdown.selectedIndex = i;
                             break;
                         }
                     }
@@ -355,6 +342,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         });
+        
+        // Handle form submission
+        const form = personDropdown.closest('form');
+        if (form) {
+            form.addEventListener('submit', function() {
+                // Ensure the dropdown value is properly set before submission
+                const selectedText = searchInput.value;
+                const options = datalist.querySelectorAll('option');
+                
+                for (const option of options) {
+                    if (option.value === selectedText) {
+                        // Set the original select value
+                        const originalOptions = personDropdown.options;
+                        for (let i = 0; i < originalOptions.length; i++) {
+                            if (originalOptions[i].text === selectedText) {
+                                personDropdown.selectedIndex = i;
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }
+            });
+        }
     }
 });
 </script>
