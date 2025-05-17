@@ -98,6 +98,7 @@ class AddMemberForm(forms.Form):
 @method_decorator(user_passes_test(is_admin_user), name="dispatch")
 class TeamMembersView(View):
     template_name = "pages/team_members.html"
+    static_template_name = "pages/static_team_members.html"
 
     def get_current_round(self):
         # Get the current round (the next one starting today or later)
@@ -112,13 +113,16 @@ class TeamMembersView(View):
         team_form = TeamSelectionForm(current_round=current_round)
         add_member_form = AddMemberForm(current_round=current_round)
 
+        # Choose template based on round.ready
+        template_to_use = self.static_template_name if current_round.ready else self.template_name
+
         context = {
             "current_round": current_round,
             "team_form": team_form,
             "add_member_form": add_member_form,
             "round_ready": current_round.ready,
         }
-        return render(request, self.template_name, context)
+        return render(request, template_to_use, context)
 
     def post(self, request):
         current_round = self.get_current_round()
@@ -208,31 +212,46 @@ class TeamMembersView(View):
         # Get existing team members
         members = team_member.objects.filter(team=round_team_obj)
 
-        # Create forms for each member
-        member_forms = [
-            TeamMemberForm(instance=member, prefix=f"member_{member.id}")
-            for member in members
-        ]
-
-        # Create add member form with filtered queryset
-        add_member_form = AddMemberForm(
-            current_round=current_round, selected_team=selected_team
-        )
+        # Create forms for each member (only needed for editable view)
         member_data = []
-        for member, form in zip(members, member_forms):
-            member_data.append({"member": member, "form": form})
+        
+        if not current_round.ready:
+            # Create forms for each member when editable
+            member_forms = [
+                TeamMemberForm(instance=member, prefix=f"member_{member.id}")
+                for member in members
+            ]
+            
+            # Create add member form with filtered queryset
+            add_member_form = AddMemberForm(
+                current_round=current_round, selected_team=selected_team
+            )
+            
+            for member, form in zip(members, member_forms):
+                member_data.append({"member": member, "form": form})
+        else:
+            # For static view, just pass the member objects
+            for member in members:
+                member_data.append({"member": member})
+
+        # Choose template based on round.ready
+        template_to_use = self.static_template_name if current_round.ready else self.template_name
 
         context = {
             "current_round": current_round,
             "selected_team": selected_team,
             "round_team_obj": round_team_obj,
             "member_data": member_data,
-            "add_member_form": add_member_form,
             "team_form": TeamSelectionForm(
                 initial={"team": selected_team.id}, current_round=current_round
             ),
         }
-        return render(request, self.template_name, context)
+        
+        # Only add the add_member_form if using the editable template
+        if not current_round.ready:
+            context["add_member_form"] = add_member_form
+            
+        return render(request, template_to_use, context)
 
     def handle_member_updates(self, request, current_round, selected_team):
         try:
