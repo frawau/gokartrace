@@ -7,6 +7,13 @@
     <input type="hidden" id="current-round-id" value="{{ current_round.id }}">
     <input type="hidden" id="has-selected-team" value="{% if selected_team %}true{% else %}false{% endif %}">
     
+    <!-- Hidden form for page reload without triggering logout -->
+    <form id="reload-form" method="GET" action="{{ request.path }}" style="display:none">
+        {% if selected_team %}
+        <input type="hidden" name="team_id" value="{{ selected_team.id }}">
+        {% endif %}
+    </form>
+    
     <div class="card">
         <div class="card-header bg-primary text-white">
             <h4>Team Members Management</h4>
@@ -393,16 +400,17 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Check if we have a selected team
             if (hasSelectedTeam) {
-                // If we have a selected team, resubmit the form to maintain selection
-                document.querySelector('form').submit();
+                // Submit the first form in the page (team selection form)
+                setTimeout(function() {
+                    const teamSelectionForm = document.querySelector('form.mb-4');
+                    if (teamSelectionForm) teamSelectionForm.submit();
+                }, 10);
             } else {
-                // Create and submit a form to navigate to the current page
-                // This avoids interacting with any existing forms on the page
-                const form = document.createElement('form');
-                form.method = 'GET';
-                form.action = window.location.href;
-                document.body.appendChild(form);
-                form.submit();
+                // Use our special reload form that won't interact with other forms
+                setTimeout(function() {
+                    const reloadForm = document.getElementById('reload-form');
+                    if (reloadForm) reloadForm.submit();
+                }, 10);
             }
         }
     };
@@ -414,12 +422,9 @@ document.addEventListener('DOMContentLoaded', function() {
             reloadTimer = setTimeout(() => {
                 console.log('Reloading page due to lost WebSocket connection');
                 
-                // Create and submit a form to navigate to the current page
-                const form = document.createElement('form');
-                form.method = 'GET';
-                form.action = window.location.href;
-                document.body.appendChild(form);
-                form.submit();
+                // Use our special reload form that won't interact with other forms
+                const reloadForm = document.getElementById('reload-form');
+                if (reloadForm) reloadForm.submit();
             }, 3000); // Reload after 3 seconds
         }
     };
