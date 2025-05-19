@@ -3,16 +3,18 @@
     {% if change_lane.open %}
         {% if change_lane.driver %}
             <div class="d-flex flex-column h-100" style="background-color: #f0fff0;">
-                <div class="d-flex align-items-center justify-content-center my-3">
-                    <span class="display-1 fw-bold me-4">{{ change_lane.driver.team.team.number }}</span>
-                    <h2 class="text-primary mb-0">{{ change_lane.driver.team.team.team.name }}</h2>
+                <div class="text-center py-4">
+                    <h1 class="text-primary display-3">{{ change_lane.driver.team.team.team.name }}</h1>
                 </div>
-                <div class="d-flex flex-column align-items-center mt-3">
+                <div class="d-flex justify-content-between align-items-center px-4">
+                    <span class="display-1 fw-bold" style="font-size: 15rem;">{{ change_lane.driver.team.team.number }}</span>
                     <img src="{{ change_lane.driver.member.mugshot.url }}" alt="Driver Snapshot"
-                        class="rounded-circle mb-3" style="width: 200px; height: 200px; object-fit: cover;">
+                        class="rounded-circle" style="width: 200px; height: 200px; object-fit: contain;">
+                </div>
+                <div class="d-flex flex-column align-items-center justify-content-center flex-grow-1">
+                    <h1 class="text-dark display-1 mb-4">{{ change_lane.driver.member.nickname }}</h1>
                     {% get_weight_penalty change_lane.driver as weight_penalty %}
-                    <h2 class="text-dark mb-2">{{ change_lane.driver.member.nickname }}</h2>
-                    <h3 class="text-dark">Penalty: {{ weight_penalty }} Kg</h3>
+                    <h2 class="text-dark display-4">Penalty: {{ weight_penalty }} Kg</h2>
                 </div>
             </div>
         {% else %}
