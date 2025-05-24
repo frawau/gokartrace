@@ -787,3 +787,53 @@ def round_info(request):
         "round_teams": round_teams,
     }
     return render(request, "pages/round_info.html", context)
+
+
+def all_drivers_view(request):
+    # Get all championships with end date after today
+    today = dt.date.today()
+    championships = Championship.objects.filter(end__gte=today).order_by("-end")
+
+    selected_championship_id = request.GET.get("championship")
+    selected_championship = None
+    rounds = []
+    persons = []
+
+    if selected_championship_id:
+        selected_championship = get_object_or_404(
+            Championship, id=selected_championship_id
+        )
+        rounds = Round.objects.filter(championship=selected_championship).order_by(
+            "start"
+        )
+
+        # Get all persons who are team members in any round of this championship
+        persons = Person.objects.filter(
+            team_member__team__round__championship=selected_championship
+        ).distinct()
+
+        # For each person, get their team information for each round
+        for person in persons:
+            person.teams = []
+            for round_obj in rounds:
+                team_members = team_member.objects.filter(
+                    team__round=round_obj, member=person
+                ).select_related("team__team")
+
+                for tm in team_members:
+                    person.teams.append(
+                        {
+                            "round_id": round_obj.id,
+                            "number": tm.team.team.number,
+                            "name": tm.team.team.team.name,
+                        }
+                    )
+
+    context = {
+        "championships": championships,
+        "selected_championship": selected_championship,
+        "rounds": rounds,
+        "persons": persons,
+    }
+
+    return render(request, "pages/alldriver.html", context)

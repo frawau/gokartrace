@@ -1,0 +1,109 @@
+{% extends 'layout/content.html' %}
+{% load static %}
+
+{% block main_content %}
+<div class="container mt-5">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4>All Drivers</h4>
+        </div>
+        <div class="card-body">
+            <!-- Championship Selection -->
+            <form method="get" class="mb-4">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="championship">Select Championship:</label>
+                            <select name="championship" id="championship" class="form-control" onchange="this.form.submit()">
+                                <option value="">Select a championship...</option>
+                                {% for championship in championships %}
+                                <option value="{{ championship.id }}" {% if selected_championship.id == championship.id %}selected{% endif %}>
+                                    {{ championship.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="search">Search:</label>
+                            <input type="text" id="search" class="form-control" placeholder="Type to search...">
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            {% if selected_championship %}
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Flag</th>
+                            <th>Nickname</th>
+                            <th>Full Name</th>
+                            {% for round in rounds %}
+                            <th>{{ round.name }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for person in persons %}
+                        <tr class="driver-row">
+                            <td>
+                                {% if person.country %}
+                                <img src="{% static 'flags/'|add:person.country|lower|add:'.png' %}" alt="{{ person.country }}" class="flag-icon">
+                                {% endif %}
+                            </td>
+                            <td class="nickname">{{ person.nickname }}</td>
+                            <td class="fullname">{{ person.firstname }} {{ person.surname }}</td>
+                            {% for round in rounds %}
+                            <td>
+                                {% for team in person.teams %}
+                                {% if team.round_id == round.id %}
+                                {{ team.number }} - {{ team.name }}
+                                {% endif %}
+                                {% endfor %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+.flag-icon {
+    width: 24px;
+    height: 16px;
+    object-fit: cover;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('search');
+    const rows = document.querySelectorAll('.driver-row');
+
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        
+        rows.forEach(row => {
+            const nickname = row.querySelector('.nickname').textContent.toLowerCase();
+            const fullname = row.querySelector('.fullname').textContent.toLowerCase();
+            
+            if (nickname.includes(searchTerm) || fullname.includes(searchTerm)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 

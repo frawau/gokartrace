@@ -794,7 +794,7 @@ class team_member(models.Model):
         unique_together = ("team", "member")
         verbose_name = _("Team Member")
         verbose_name_plural = _("Team Members")
-        ordering = ['id']
+        ordering = ["id"]
 
     def __str__(self):
         return f"{self.member.nickname} for {self.team.team} in {self.team.round}"

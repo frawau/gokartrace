@@ -69,12 +69,14 @@ class TeamMemberForm(forms.ModelForm):
 
 class AddMemberForm(forms.Form):
     person = forms.ModelChoiceField(
-        queryset=Person.objects.none(), 
+        queryset=Person.objects.none(),
         label="Add New Member",
-        widget=forms.Select(attrs={
-            'class': 'form-control searchable-select',
-            'data-live-search': 'true'
-        })
+        widget=forms.Select(
+            attrs={
+                "class": "form-control searchable-select",
+                "data-live-search": "true",
+            }
+        ),
     )
 
     def __init__(self, *args, **kwargs):
@@ -102,7 +104,9 @@ class TeamMembersView(View):
 
     def get_current_round(self):
         # Get the current round (the next one starting today or later)
-        return Round.objects.filter(start__gte=dt.date.today() - dt.timedelta(days=1), ended__isnull=True).first()
+        return Round.objects.filter(
+            start__gte=dt.date.today() - dt.timedelta(days=1), ended__isnull=True
+        ).first()
 
     def get(self, request):
         current_round = self.get_current_round()
@@ -114,7 +118,9 @@ class TeamMembersView(View):
         add_member_form = AddMemberForm(current_round=current_round)
 
         # Choose template based on round.ready
-        template_to_use = self.static_template_name if current_round.ready else self.template_name
+        template_to_use = (
+            self.static_template_name if current_round.ready else self.template_name
+        )
 
         context = {
             "current_round": current_round,
@@ -214,19 +220,19 @@ class TeamMembersView(View):
 
         # Create forms for each member (only needed for editable view)
         member_data = []
-        
+
         if not current_round.ready:
             # Create forms for each member when editable
             member_forms = [
                 TeamMemberForm(instance=member, prefix=f"member_{member.id}")
                 for member in members
             ]
-            
+
             # Create add member form with filtered queryset
             add_member_form = AddMemberForm(
                 current_round=current_round, selected_team=selected_team
             )
-            
+
             for member, form in zip(members, member_forms):
                 member_data.append({"member": member, "form": form})
         else:
@@ -235,7 +241,9 @@ class TeamMembersView(View):
                 member_data.append({"member": member})
 
         # Choose template based on round.ready
-        template_to_use = self.static_template_name if current_round.ready else self.template_name
+        template_to_use = (
+            self.static_template_name if current_round.ready else self.template_name
+        )
 
         context = {
             "current_round": current_round,
@@ -246,11 +254,11 @@ class TeamMembersView(View):
                 initial={"team": selected_team.id}, current_round=current_round
             ),
         }
-        
+
         # Only add the add_member_form if using the editable template
         if not current_round.ready:
             context["add_member_form"] = add_member_form
-            
+
         return render(request, template_to_use, context)
 
     def handle_member_updates(self, request, current_round, selected_team):

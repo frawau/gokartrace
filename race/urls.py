@@ -54,4 +54,5 @@ urlpatterns = [
     path("join_championship/", views.join_championship_view, name="join_championship"),
     path("api/get_teams/", views.get_available_teams, name="get_available_teams"),
     path("api/get_numbers/", views.get_available_numbers, name="get_available_numbers"),
+    path("alldrivers/", views.all_drivers_view, name="all_drivers"),
 ]
