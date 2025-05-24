@@ -51,8 +51,8 @@
                         <tr class="driver-row">
                             <td>
                                 {% if person.country %}
-                                <img src="{% static 'flags/'|add:person.country|lower|add:'.png' %}" 
-                                     alt="{{ person.country }}" 
+                                <img src="{% static 'flags/'|add:person.country.code|lower|add:'.png' %}" 
+                                     alt="{{ person.country.name }}" 
                                      class="flag-icon"
                                      style="width: 24px; height: 16px; object-fit: cover; border: 1px solid #ddd;">
                                 {% endif %}
