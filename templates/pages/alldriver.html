@@ -38,7 +38,7 @@
                 <table class="table table-striped">
                     <thead>
                         <tr>
-                            <th>Flag</th>
+                            <th style="width: 40px;">Flag</th>
                             <th>Nickname</th>
                             <th>Full Name</th>
                             {% for round in rounds %}
@@ -49,7 +49,7 @@
                     <tbody>
                         {% for person in persons %}
                         <tr class="driver-row">
-                            <td>
+                            <td style="width: 40px; padding: 4px;">
                                 {% if person.country %}
                                 <img src="{% static 'flags/'|add:person.country.code|lower|add:'.png' %}" 
                                      alt="{{ person.country.name }}" 
