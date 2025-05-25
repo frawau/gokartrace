@@ -49,19 +49,21 @@
                         {% for team in teams %}
                         <tr class="team-row">
                             <td>
-                                {% for round_team in team.round_team_set.all %}
-                                {% if round_team.round.championship_id == selected_championship.id %}
-                                {{ round_team.number }}
+                                {% for championship_team in team.championship_team_set.all %}
+                                {% if championship_team.championship_id == selected_championship.id %}
+                                {{ championship_team.number }}
                                 {% endif %}
                                 {% endfor %}
                             </td>
                             <td class="team-name">{{ team.name }}</td>
                             {% for round in rounds %}
                             <td class="text-center">
-                                {% for round_team in team.round_team_set.all %}
+                                {% for championship_team in team.championship_team_set.all %}
+                                {% for round_team in championship_team.round_team_set.all %}
                                 {% if round_team.round_id == round.id %}
                                 <i class="fas fa-check text-success"></i>
                                 {% endif %}
+                                {% endfor %}
                                 {% endfor %}
                             </td>
                             {% endfor %}
