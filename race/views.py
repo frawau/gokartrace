@@ -854,8 +854,8 @@ def all_teams_view(request):
         
         # Get all teams and their round participation
         teams = Team.objects.all().prefetch_related(
-            'round_teams',
-            'round_teams__round'
+            'round_team_set',
+            'round_team_set__round'
         )
     
     context = {
