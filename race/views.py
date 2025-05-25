@@ -41,6 +41,7 @@ from .serializers import ChangeLaneSerializer
 from .utils import datadecode, is_admin_user
 from .forms import DriverForm, TeamForm, JoinChampionshipForm
 from django.template import loader
+from django.db import models
 
 
 def current_round():
@@ -853,11 +854,20 @@ def all_teams_view(request):
         rounds = Round.objects.filter(championship=selected_championship).order_by('start')
         
         # Get all teams and their round participation
-        teams = Team.objects.all().prefetch_related(
+        teams = Team.objects.annotate(
+            championship_number=models.Case(
+                models.When(
+                    championship_team__championship=selected_championship,
+                    then=models.F('championship_team__number')
+                ),
+                default=models.Value(999),  # Teams without a number will be sorted last
+                output_field=models.IntegerField(),
+            )
+        ).prefetch_related(
             'championship_team_set',
             'championship_team_set__round_team_set',
             'championship_team_set__round_team_set__round'
-        )
+        ).order_by('championship_number')
     
     context = {
         'championships': championships,
