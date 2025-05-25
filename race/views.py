@@ -837,3 +837,32 @@ def all_drivers_view(request):
     }
 
     return render(request, "pages/alldriver.html", context)
+
+
+def all_teams_view(request):
+    # Get all championships that haven't ended yet
+    championships = Championship.objects.filter(end__gte=dt.date.today()).order_by('-end')
+    
+    selected_championship = None
+    rounds = []
+    teams = []
+    
+    championship_id = request.GET.get('championship')
+    if championship_id:
+        selected_championship = get_object_or_404(Championship, id=championship_id)
+        rounds = Round.objects.filter(championship=selected_championship).order_by('start')
+        
+        # Get all teams and their round participation
+        teams = Team.objects.all().prefetch_related(
+            'round_teams',
+            'round_teams__round'
+        )
+    
+    context = {
+        'championships': championships,
+        'selected_championship': selected_championship,
+        'rounds': rounds,
+        'teams': teams,
+    }
+    
+    return render(request, 'pages/allteams.html', context)

@@ -175,6 +175,15 @@
                             <span class="text-sm">Display all team status sequentially.</span>
                           </a>
                         </li>
+                        <li class="nav-item list-group-item border-0 p-0">
+                          <a class="dropdown-item py-2 ps-3 border-radius-md"
+                            href="/allteams/">
+                            <h6
+                              class="dropdown-header text-dark font-weight-bolder d-flex justify-content-cente align-items-center p-0">
+                              All Teams</h6>
+                            <span class="text-sm">View all teams and their participation in championships.</span>
+                          </a>
+                        </li>
                         {% if user.is_authenticated and user|has_group:"Admin" %}
                         <li class="nav-item list-group-item border-0 p-0">
                           <a class="dropdown-item py-2 ps-3 border-radius-md"

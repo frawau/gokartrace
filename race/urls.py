@@ -55,4 +55,5 @@ urlpatterns = [
     path("api/get_teams/", views.get_available_teams, name="get_available_teams"),
     path("api/get_numbers/", views.get_available_numbers, name="get_available_numbers"),
     path("alldrivers/", views.all_drivers_view, name="all_drivers"),
+    path("allteams/", views.all_teams_view, name="all_teams"),
 ]
