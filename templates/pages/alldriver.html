@@ -33,10 +33,10 @@
                     <div class="col-md-1 d-flex align-items-end">
                         <i class="fas fa-question-circle text-primary" 
                            style="font-size: 1.5rem; cursor: pointer;"
-                           data-toggle="popover"
-                           data-placement="left"
-                           data-html="true"
-                           data-content="<b>Page Features:</b><br>
+                           data-bs-toggle="popover"
+                           data-bs-placement="left"
+                           data-bs-html="true"
+                           data-bs-content="<b>Page Features:</b><br>
                            • Select a championship to view all drivers<br>
                            • Use the search box to filter by nickname or full name<br>
                            • Click on a round header to:<br>
@@ -120,9 +120,9 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize popovers
-    $('[data-toggle="popover"]').popover({
-        trigger: 'hover',
-        container: 'body'
+    const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+    popoverTriggerList.map(function (popoverTriggerEl) {
+        return new bootstrap.Popover(popoverTriggerEl);
     });
 
     const searchInput = document.getElementById('search');
