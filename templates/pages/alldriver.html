@@ -138,7 +138,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Reset to show all rounds
                 activeRoundId = null;
                 roundCells.forEach(cell => cell.style.display = '');
-                headers.forEach(h => h.querySelector('i').style.opacity = '0.5');
+                headers.forEach(h => {
+                    h.style.display = '';
+                    h.querySelector('i').style.opacity = '0.5';
+                });
             } else {
                 // Show only selected round
                 activeRoundId = roundId;
@@ -146,6 +149,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     cell.style.display = cell.dataset.roundId === roundId ? '' : 'none';
                 });
                 headers.forEach(h => {
+                    h.style.display = h.dataset.roundId === roundId ? '' : 'none';
                     h.querySelector('i').style.opacity = h.dataset.roundId === roundId ? '1' : '0.5';
                 });
             }
