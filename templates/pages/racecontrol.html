@@ -14,49 +14,47 @@
             </h1>
         </div>
     </div>
-    <div class="row" style="height: 100%;">
+    <div class="row" style="height: 90%;">
         <div class="col-md-8" style="height: 100%;">
             <div class="card" style="height: 100%; background-color: transparent;">
                 <div class="card-body d-flex flex-column" style="height: 100%;">
-                    <div class="d-flex w-100" style="height: 20%;">
-                        <div id="race-control-buttons" style="width: 50%;" class="p-2 d-flex align-items-center flex-wrap" {% if round %}data-round-id="{{ round.id }}"{% endif %}>
+                    <div id="race-control-buttons" style="width: 50%;" class="p-2 d-flex align-items-center flex-wrap" {% if round %}data-round-id="{{ round.id }}"{% endif %}>
                         {% csrf_token %}
 
                         {% if round %}
                             {# Render all buttons, use 'hidden' attribute based on initial state #}
-
                             <button id="preRaceCheckButton" class="btn btn-warning btn-lg me-2 mb-2 race-action-btn"
                                     data-action="pre_check"
                                     data-url="{% url 'preracecheck' %}"
-                                    {% if round.ready or round.started or round.ended %}hidden{% endif %}> {# Hide if not initial state #}
+                                    {% if round.ready or round.started or round.ended %}hidden{% endif %}>
                                 <i class="fas fa-tasks me-1"></i> Pre Race Check
                             </button>
 
                             <button id="startButton" class="btn btn-success btn-lg me-2 mb-2 race-action-btn"
                                     data-action="start"
                                     data-url="{% url 'race_start' %}"
-                                    {% if not round.ready or round.started or round.ended %}hidden{% endif %}> {# Hide if not ready or already started/ended #}
+                                    {% if not round.ready or round.started or round.ended %}hidden{% endif %}>
                                 <i class="fas fa-play me-1"></i> Start Race
                             </button>
 
                             <button id="pauseButton" class="btn btn-warning btn-lg me-2 mb-2 race-action-btn"
                                     data-action="pause"
                                     data-url="{% url 'racepaused' %}"
-                                    {% if not round.started or round.is_paused or round.ended %}hidden{% endif %}> {# Hide if not running #}
+                                    {% if not round.started or round.is_paused or round.ended %}hidden{% endif %}>
                                 <i class="fas fa-pause me-1"></i> Pause Race
                             </button>
 
                             <button id="resumeButton" class="btn btn-info btn-lg me-2 mb-2 race-action-btn"
                                     data-action="resume"
                                     data-url="{% url 'racerestart' %}"
-                                    {% if not round.started or not round.is_paused or round.ended %}hidden{% endif %}> {# Hide if not paused #}
+                                    {% if not round.started or not round.is_paused or round.ended %}hidden{% endif %}>
                                 <i class="fas fa-play-circle me-1"></i> Resume Race
                             </button>
 
                             <button id="endButton" class="btn btn-danger btn-lg me-2 mb-2 race-action-btn"
                                     data-action="end"
                                     data-url="{% url 'endofrace' %}"
-                                    {% if not round.started or round.ended %}hidden{% endif %}> {# Hide if not started or already ended #}
+                                    {% if not round.started or round.ended %}hidden{% endif %}>
                                 <i class="fas fa-stop me-1"></i> End Race
                             </button>
 
@@ -73,167 +71,222 @@
                                     hidden>
                                 <i class="fas fa-history me-1"></i> False Restart
                             </button>
-
                         {% else %}
                             <p class="text-muted">No round active.</p>
                         {% endif %}
                     </div>
-                        <div style="width: 50%;" class="p-2" id="teamsListContainer">
-                             <div class="card h-100" id="emptyTeamsCard" {% if round and round.ready %}style="display: none;"{% endif %}>
-                                <div class="card-header d-flex justify-content-between align-items-center">
-                                    <h5 class="mb-0">Teams with No Members</h5>
-                                    <button class="btn btn-danger" id="deleteEmptyTeamsBtn">Delete All</button>
-                                </div>
-                                <div class="card-body overflow-auto" id="emptyTeamsList">
-                                    <div class="text-center text-muted" id="emptyTeamsPlaceholder">
-                                        Loading teams...
-                                    </div>
-                                    <ul class="list-group" id="emptyTeamsUL"></ul>
-                                </div>
+                    <div style="width: 50%;" class="p-2" id="teamsListContainer">
+                        <div class="card h-100" id="emptyTeamsCard" {% if round and round.ready %}style="display: none;"{% endif %}>
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">Teams with No Members</h5>
+                                <button class="btn btn-danger" id="deleteEmptyTeamsBtn">Delete All</button>
                             </div>
-
-                            <div class="card h-100" id="teamSelectCard" {% if not round or not round.ready %}style="display: none;"{% endif %}>
-                                <div class="card-header">
-                                    <h5 class="mb-0">Stop & Go Penalty</h5>
+                            <div class="card-body overflow-auto" id="emptyTeamsList">
+                                <div class="text-center text-muted" id="emptyTeamsPlaceholder">
+                                    Loading teams...
                                 </div>
-                                <div class="card-body overflow-auto">
-                                    <select class="form-select mb-2" id="teamSelect" style="font-size: 1.2rem;">
-                                        {% for team in round.round_team_set.all %}
-                                            <option value="{{ team.id }}">{{ team.team.number }} {{ team.team.team.name }}</option>
+                                <ul class="list-group" id="emptyTeamsUL"></ul>
+                            </div>
+                        </div>
+                        <div class="card-header">
+                            <h5 class="mb-0">Stop & Go Penalty</h5>
+                        </div>
+                        <div class="card-body overflow-auto">
+                            <select class="form-select mb-2" id="teamSelect" style="font-size: 1.2rem;">
+                                {% for team in round.round_team_set.all %}
+                                    <option value="{{ team.id }}">{{ team.team.number }} {{ team.team.team.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <button class="btn btn-success w-100" id="stopGoButton">Stop&Go</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="w-100 p-2" style="height: 80%;">
+                    <div class="row h-100">
+                        <!-- System Messages Card -->
+                        <div class="col-md-6 h-100">
+                            <div class="card h-100">
+                                <div class="card-header">
+                                    <h5 class="mb-0">System Messages</h5>
+                                </div>
+                                <div class="card-body overflow-auto" id="messagesContainer">
+                                    {% if messages %}
+                                        {% for message in messages %}
+                                            <div class="alert alert-{{ message.tags }}" data-timeout="5000">
+                                                {{ message }}
+                                            </div>
                                         {% endfor %}
-                                    </select>
-                                    <button class="btn btn-success w-100" id="stopGoButton">Stop&Go</button>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="w-100 p-2" style="height: 80%;">
-                        <div class="card h-100">
-                            <div class="card-header">
-                                <h5 class="mb-0">System Messages</h5>
+                        <!-- Pending Drivers Card -->
+                        <div class="col-md-6 h-100">
+                            <div class="card h-100">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Pending Drivers</h5>
+                                </div>
+                                <div class="card-body overflow-auto">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm" id="pending-sessions-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Team</th>
+                                                    <th>Driver</th>
+                                                    <th>Next</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for session in pending_sessions %}
+                                                    <tr id="pending-row-{{ session.driver.team.team.number }}-{{ session.driver.id }}"
+                                                        class="pending-row"
+                                                        data-driver-id="{{ session.driver.id }}"
+                                                        data-team-id="{{ session.driver.team.id }}"
+                                                        data-team-number="{{ session.driver.team.team.number }}">
+                                                        <td>{{ session.driver.team.team.number }}</td>
+                                                        <td>{{ session.driver.member.nickname }}</td>
+                                                        {% if round.started %}
+                                                            <td class="next-change-number">{{ session.team_completed_count|add:1 }}</td>
+                                                        {% else %}
+                                                            <td class="next-change-number">{{ session.team_completed_count }}</td>
+                                                        {% endif %}
+                                                    </tr>
+                                                {% empty %}
+                                                    <tr id="no-sessions-row">
+                                                        <td colspan="3">No pending sessions</td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="card-body overflow-auto" id="messagesContainer">
-                                {% if messages %}
-                                    {% for message in messages %}
-                                        <div class="alert alert-{{ message.tags }}">
-                                            {{ message }}
-                                        </div>
-                                    {% endfor %}
-                                {% endif %}
-                                 </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-4 d-flex flex-column" style="height: 100%;">
-             {% for i in "x"|ljust:lanes %}
-                <div id="lane-{{ forloop.counter }}" class="card mb-2" style="flex-grow: 1; background-color: transparent;">Lane {{ forloop.counter }} Loading...</div>
+            {% for i in "x"|ljust:lanes %}
+                <div id="lane-{{ forloop.counter }}" class="card mb-2" style="width: 668px; height: 280px; background-color: transparent;">Lane {{ forloop.counter }} Loading...</div>
             {% endfor %}
-            <div id="changequeue" class="card mb-2" style="flex-grow: 1; background-color: transparent;">Queue Loading...</div>
+            <div id="changequeue" class="card mb-2" style="width: 668px; height: 280px; background-color: transparent;">Queue Loading...</div>
         </div>
     </div>
 </div>
 {% endblock content %}
+
 <div id="round-data"
 data-started="{{ round.started|yesno:'true,false' }}"
 data-ended="{{ round.ended|yesno:'true,false' }}"
 data-ready="{{ round.is_ready|yesno:'true,false' }}">
 </div>
+
 {% block extra_js %}
 {# Load the new JS file for button handling #}
 <script src="{% static 'js/racecontrol.js' %}"></script>
 
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize message timeouts
+    const messages = document.querySelectorAll('#messagesContainer .alert[data-timeout]');
+    messages.forEach(message => {
+        const timeout = parseInt(message.dataset.timeout);
+        setTimeout(() => {
+            message.style.opacity = '0';
+            message.style.transition = 'opacity 0.5s ease';
+            setTimeout(() => message.remove(), 500);
+        }, timeout);
+    });
 
-    // --- Utility Functions (Keep or move to racecontrol.js) ---
-    // Ensure these are defined if used by inline code below
-    // function addSystemMessage(message, tag) { /* ... implementation ... */ }
-    // function getCookie(name) { /* ... implementation ... */ }
-    // function updateEmptyTeamsList(teams) { /* ... implementation ... */ }
+    {% if round %}
+        const roundId = {{ round.id }};
+        const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
 
-    // --- WebSocket Connections (Keep inline if using template vars) ---
-    document.addEventListener('DOMContentLoaded', function() {
-        {% if round %}
-            const roundId = {{ round.id }};
-            const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        // --- Round Update WebSocket ---
+        const roundSocketUrl = `${wsScheme}://${window.location.host}/ws/round/${roundId}/`;
+        const roundSocket = createWebSocketWithReconnect(
+            roundSocketUrl,
+            function(e) {
+                try {
+                    const data = JSON.parse(e.data);
+                    console.log("Round WS received:", data);
+                    if (!data.session_update) {
+                        // --- Timer Update ---
+                        const isPaused = data.is_paused;
 
-            // --- Round Update WebSocket ---
-            const roundSocketUrl = `${wsScheme}://${window.location.host}/ws/round/${roundId}/`;
-            const roundSocket = createWebSocketWithReconnect(
-                roundSocketUrl,
-                function(e) { // onmessage
-                    try {
-                        const data = JSON.parse(e.data);
-                        console.log("Round WS received:", data);
-                        if ( ! data.session_update) {
-                            // --- Timer Update ---
-                            const isPaused = data.is_paused;
-
-                            // Handle countdown timer updates
-                            if (data.remaining_seconds !== undefined && data.remaining_seconds !== null) {
-                                // Normal case - update all timers based on pause state
-                                timerRegistry.countdownTimers.forEach(timer => {
-                                    timer.updateRemainingTime(data.remaining_seconds);
-                                    timer.updatePauseState(isPaused);
-                                });
-                            }
-                            // --- Determine State from WS Data ---
-                            const isStarted = data.started === true;
-                            const isEnded = data.ended === true;
-                            const isReady = data.ready === true;
-
-                            let currentState = 'initial';
-                            if (isEnded) currentState = 'ended';
-                            else if (isStarted && isPaused) currentState = 'paused';
-                            else if (isStarted && !isPaused) currentState = 'running';
-                            else if (isReady && !isStarted) currentState = 'ready';
-
-                            // --- Update Button Visibility using Helper Function ---
-                            updateButtonVisibility(currentState); // Call the function from racecontrol.js
+                        // Handle countdown timer updates
+                        if (data.remaining_seconds !== undefined && data.remaining_seconds !== null) {
+                            timerRegistry.countdownTimers.forEach(timer => {
+                                timer.updateRemainingTime(data.remaining_seconds);
+                                timer.updatePauseState(isPaused);
+                            });
                         }
-                    } catch (err) {
-                        console.error("Error processing round WS message:", err, e.data);
-                    }
-                },
-                null, // onopen
-                (e) => addSystemMessage("Round status connection error.", "danger"), // onerror
-                (e) => addSystemMessage("Round status connection closed.", e.wasClean ? "info" : "warning") // onclose
-            );
 
-            // --- Empty Teams WebSocket ---
-            const emptyTeamsSocketUrl = `${wsScheme}://${window.location.host}/ws/empty_teams/`;
-            const emptyTeamsSocket = createWebSocketWithReconnect(
-                 emptyTeamsSocketUrl,
-                 function(e) { // onmessage
-                    try {
-                        const data = JSON.parse(e.data);
-                        if (data.type === 'empty_teams_list') {
-                            updateEmptyTeamsList(data.teams); // Assumes function is defined
-                        } else if (data.type === 'system_message') {
-                            addSystemMessage(data.message, data.tag); // Assumes function is defined
+                        // --- Determine State from WS Data ---
+                        const isStarted = data.started === true;
+                        const isEnded = data.ended === true;
+                        const isReady = data.ready === true;
+
+                        let currentState = 'initial';
+                        if (isEnded) currentState = 'ended';
+                        else if (isStarted && isPaused) currentState = 'paused';
+                        else if (isStarted && !isPaused) currentState = 'running';
+                        else if (isReady && !isStarted) currentState = 'ready';
+
+                        updateButtonVisibility(currentState);
+                    } else {
+                        // Handle session updates for pending drivers
+                        const driverId = data.driver_id;
+                        const status = data.driver_status;
+                        const completedSessions = data.completed_sessions;
+
+                        updateTeamNextChangeNumbers(driverId, completedSessions);
+
+                        if (status === "register") {
+                            addPendingDriverRow(driverId, data);
+                        } else if (status === "start") {
+                            removePendingDriverRow(driverId);
                         }
-                    } catch (err) {
-                        console.error("Error processing empty teams WS message:", err, e.data);
                     }
-                 },
-                 function(e) { console.log('Empty Teams WS connected'); }, // onopen
-                 function(e) { addSystemMessage("Empty Teams connection error.", "danger"); }, // onerror
-                 function(e) { addSystemMessage("Empty Teams connection closed.", e.wasClean ? "info" : "warning"); } // onclose
-            );
-             // Add event listener for delete button (can be here or in racecontrol.js)
-             document.getElementById('deleteEmptyTeamsBtn')?.addEventListener('click', function() {
-                 if (confirm('Are you sure you want to delete all teams with no members?')) {
-                     emptyTeamsSocket.send(JSON.stringify({'action': 'delete_empty_teams'}));
-                 }
-             });
-             // Add logic for updating list and single delete buttons (needs function updateEmptyTeamsList)
+                } catch (err) {
+                    console.error("Error processing round WS message:", err, e.data);
+                }
+            },
+            null,
+            (e) => addSystemMessage("Round status connection error.", "danger"),
+            (e) => addSystemMessage("Round status connection closed.", e.wasClean ? "info" : "warning")
+        );
 
+        // --- Empty Teams WebSocket ---
+        const emptyTeamsSocketUrl = `${wsScheme}://${window.location.host}/ws/empty_teams/`;
+        const emptyTeamsSocket = createWebSocketWithReconnect(
+            emptyTeamsSocketUrl,
+            function(e) {
+                try {
+                    const data = JSON.parse(e.data);
+                    if (data.type === 'empty_teams_list') {
+                        updateEmptyTeamsList(data.teams);
+                    } else if (data.type === 'system_message') {
+                        addSystemMessage(data.message, data.tag);
+                    }
+                } catch (err) {
+                    console.error("Error processing empty teams WS message:", err, e.data);
+                }
+            },
+            function(e) { console.log('Empty Teams WS connected'); },
+            function(e) { addSystemMessage("Empty Teams connection error.", "danger"); },
+            function(e) { addSystemMessage("Empty Teams connection closed.", e.wasClean ? "info" : "warning"); }
+        );
 
-        {% endif %} // end if round
-    }); // end DOMContentLoaded
-
+        // Add event listener for delete button
+        document.getElementById('deleteEmptyTeamsBtn')?.addEventListener('click', function() {
+            if (confirm('Are you sure you want to delete all teams with no members?')) {
+                emptyTeamsSocket.send(JSON.stringify({'action': 'delete_empty_teams'}));
+            }
+        });
+    {% endif %}
+});
 </script>
-
 {% endblock extra_js %}
