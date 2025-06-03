@@ -290,6 +290,76 @@ document.addEventListener('DOMContentLoaded', function() {
                 emptyTeamsSocket.send(JSON.stringify({'action': 'delete_empty_teams'}));
             }
         });
+
+        // --- Pending Drivers WebSocket ---
+        const pendingDriversSocketUrl = `${wsScheme}://${window.location.host}/ws/pending_drivers/${roundId}/`;
+        const pendingDriversSocket = createWebSocketWithReconnect(
+            pendingDriversSocketUrl,
+            function(e) {
+                try {
+                    const data = JSON.parse(e.data);
+                    console.log("Pending Drivers WS received:", data);
+                    
+                    if (data.type === 'session_update') {
+                        const driverId = data.driver_id;
+                        const status = data.driver_status;
+                        const completedSessions = data.completed_sessions;
+                        const teamNumber = data.team_number;
+                        const driverName = data.driver_name;
+
+                        // Update the next change number
+                        updateTeamNextChangeNumbers(driverId, completedSessions);
+
+                        if (status === "register") {
+                            // Add new row if it doesn't exist
+                            const rowId = `pending-row-${teamNumber}-${driverId}`;
+                            if (!document.getElementById(rowId)) {
+                                const tbody = document.querySelector('#pending-sessions-table tbody');
+                                const noSessionsRow = document.getElementById('no-sessions-row');
+                                if (noSessionsRow) {
+                                    noSessionsRow.remove();
+                                }
+
+                                const newRow = document.createElement('tr');
+                                newRow.id = rowId;
+                                newRow.className = 'pending-row';
+                                newRow.setAttribute('data-driver-id', driverId);
+                                newRow.setAttribute('data-team-number', teamNumber);
+
+                                newRow.innerHTML = `
+                                    <td>${teamNumber}</td>
+                                    <td>${driverName}</td>
+                                    <td class="next-change-number">${completedSessions + 1}</td>
+                                `;
+
+                                tbody.appendChild(newRow);
+                            }
+                        } else if (status === "start") {
+                            // Remove the row
+                            const rowId = `pending-row-${teamNumber}-${driverId}`;
+                            const row = document.getElementById(rowId);
+                            if (row) {
+                                row.remove();
+                            }
+
+                            // If no rows left, show the "no sessions" message
+                            const tbody = document.querySelector('#pending-sessions-table tbody');
+                            if (tbody.children.length === 0) {
+                                const noSessionsRow = document.createElement('tr');
+                                noSessionsRow.id = 'no-sessions-row';
+                                noSessionsRow.innerHTML = '<td colspan="3">No pending sessions</td>';
+                                tbody.appendChild(noSessionsRow);
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error processing pending drivers WS message:", err, e.data);
+                }
+            },
+            function(e) { console.log('Pending Drivers WS connected'); },
+            function(e) { addSystemMessage("Pending Drivers connection error.", "danger"); },
+            function(e) { addSystemMessage("Pending Drivers connection closed.", e.wasClean ? "info" : "warning"); }
+        );
     {% endif %}
 });
 </script>
