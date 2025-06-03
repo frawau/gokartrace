@@ -18,147 +18,151 @@
         <div class="col-md-8" style="height: 100%;">
             <div class="card" style="height: 100%; background-color: transparent;">
                 <div class="card-body d-flex flex-column" style="height: 100%;">
-                    <div id="race-control-buttons" style="width: 50%;" class="p-2 d-flex align-items-center flex-wrap" {% if round %}data-round-id="{{ round.id }}"{% endif %}>
-                        {% csrf_token %}
+                    <div class="d-flex w-100" style="height: 30%;">
+                        <div id="race-control-buttons" style="width: 50%;" class="p-2 d-flex align-items-center flex-wrap" {% if round %}data-round-id="{{ round.id }}"{% endif %}>
+                            {% csrf_token %}
 
-                        {% if round %}
-                            {# Render all buttons, use 'hidden' attribute based on initial state #}
-                            <button id="preRaceCheckButton" class="btn btn-warning btn-lg me-2 mb-2 race-action-btn"
-                                    data-action="pre_check"
-                                    data-url="{% url 'preracecheck' %}"
-                                    {% if round.ready or round.started or round.ended %}hidden{% endif %}>
-                                <i class="fas fa-tasks me-1"></i> Pre Race Check
-                            </button>
+                            {% if round %}
+                                {# Render all buttons, use 'hidden' attribute based on initial state #}
+                                <button id="preRaceCheckButton" class="btn btn-warning btn-lg me-2 mb-2 race-action-btn"
+                                        data-action="pre_check"
+                                        data-url="{% url 'preracecheck' %}"
+                                        {% if round.ready or round.started or round.ended %}hidden{% endif %}>
+                                    <i class="fas fa-tasks me-1"></i> Pre Race Check
+                                </button>
 
-                            <button id="startButton" class="btn btn-success btn-lg me-2 mb-2 race-action-btn"
-                                    data-action="start"
-                                    data-url="{% url 'race_start' %}"
-                                    {% if not round.ready or round.started or round.ended %}hidden{% endif %}>
-                                <i class="fas fa-play me-1"></i> Start Race
-                            </button>
+                                <button id="startButton" class="btn btn-success btn-lg me-2 mb-2 race-action-btn"
+                                        data-action="start"
+                                        data-url="{% url 'race_start' %}"
+                                        {% if not round.ready or round.started or round.ended %}hidden{% endif %}>
+                                    <i class="fas fa-play me-1"></i> Start Race
+                                </button>
 
-                            <button id="pauseButton" class="btn btn-warning btn-lg me-2 mb-2 race-action-btn"
-                                    data-action="pause"
-                                    data-url="{% url 'racepaused' %}"
-                                    {% if not round.started or round.is_paused or round.ended %}hidden{% endif %}>
-                                <i class="fas fa-pause me-1"></i> Pause Race
-                            </button>
+                                <button id="pauseButton" class="btn btn-warning btn-lg me-2 mb-2 race-action-btn"
+                                        data-action="pause"
+                                        data-url="{% url 'racepaused' %}"
+                                        {% if not round.started or round.is_paused or round.ended %}hidden{% endif %}>
+                                    <i class="fas fa-pause me-1"></i> Pause Race
+                                </button>
 
-                            <button id="resumeButton" class="btn btn-info btn-lg me-2 mb-2 race-action-btn"
-                                    data-action="resume"
-                                    data-url="{% url 'racerestart' %}"
-                                    {% if not round.started or not round.is_paused or round.ended %}hidden{% endif %}>
-                                <i class="fas fa-play-circle me-1"></i> Resume Race
-                            </button>
+                                <button id="resumeButton" class="btn btn-info btn-lg me-2 mb-2 race-action-btn"
+                                        data-action="resume"
+                                        data-url="{% url 'racerestart' %}"
+                                        {% if not round.started or not round.is_paused or round.ended %}hidden{% endif %}>
+                                    <i class="fas fa-play-circle me-1"></i> Resume Race
+                                </button>
 
-                            <button id="endButton" class="btn btn-danger btn-lg me-2 mb-2 race-action-btn"
-                                    data-action="end"
-                                    data-url="{% url 'endofrace' %}"
-                                    {% if not round.started or round.ended %}hidden{% endif %}>
-                                <i class="fas fa-stop me-1"></i> End Race
-                            </button>
+                                <button id="endButton" class="btn btn-danger btn-lg me-2 mb-2 race-action-btn"
+                                        data-action="end"
+                                        data-url="{% url 'endofrace' %}"
+                                        {% if not round.started or round.ended %}hidden{% endif %}>
+                                    <i class="fas fa-stop me-1"></i> End Race
+                                </button>
 
-                            <button id="falseStartButton" class="btn btn-secondary btn-lg me-2 mb-2 race-action-btn"
-                                    data-action="false_start"
-                                    data-url="{% url 'falsestart' %}"
-                                    hidden>
-                                <i class="fas fa-undo me-1"></i> False Start
-                            </button>
+                                <button id="falseStartButton" class="btn btn-secondary btn-lg me-2 mb-2 race-action-btn"
+                                        data-action="false_start"
+                                        data-url="{% url 'falsestart' %}"
+                                        hidden>
+                                    <i class="fas fa-undo me-1"></i> False Start
+                                </button>
 
-                            <button id="falseRestartButton" class="btn btn-secondary btn-lg me-2 mb-2 race-action-btn"
-                                    data-action="false_restart"
-                                    data-url="{% url 'falserestart' %}"
-                                    hidden>
-                                <i class="fas fa-history me-1"></i> False Restart
-                            </button>
-                        {% else %}
-                            <p class="text-muted">No round active.</p>
-                        {% endif %}
-                    </div>
-                    <div style="width: 50%;" class="p-2" id="teamsListContainer">
-                        <div class="card h-100" id="emptyTeamsCard" {% if round and round.ready %}style="display: none;"{% endif %}>
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0">Teams with No Members</h5>
-                                <button class="btn btn-danger" id="deleteEmptyTeamsBtn">Delete All</button>
-                            </div>
-                            <div class="card-body overflow-auto" id="emptyTeamsList">
-                                <div class="text-center text-muted" id="emptyTeamsPlaceholder">
-                                    Loading teams...
+                                <button id="falseRestartButton" class="btn btn-secondary btn-lg me-2 mb-2 race-action-btn"
+                                        data-action="false_restart"
+                                        data-url="{% url 'falserestart' %}"
+                                        hidden>
+                                    <i class="fas fa-history me-1"></i> False Restart
+                                </button>
+                            {% else %}
+                                <p class="text-muted">No round active.</p>
+                            {% endif %}
+                        </div>
+                        <div style="width: 50%;" class="p-2" id="teamsListContainer">
+                            <div class="card h-100" id="emptyTeamsCard" {% if round and round.ready %}style="display: none;"{% endif %}>
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">Teams with No Members</h5>
+                                    <button class="btn btn-danger" id="deleteEmptyTeamsBtn">Delete All</button>
                                 </div>
-                                <ul class="list-group" id="emptyTeamsUL"></ul>
+                                <div class="card-body overflow-auto" id="emptyTeamsList">
+                                    <div class="text-center text-muted" id="emptyTeamsPlaceholder">
+                                        Loading teams...
+                                    </div>
+                                    <ul class="list-group" id="emptyTeamsUL"></ul>
+                                </div>
                             </div>
-                        </div>
-                        <div class="card-header">
-                            <h5 class="mb-0">Stop & Go Penalty</h5>
-                        </div>
-                        <div class="card-body overflow-auto">
-                            <select class="form-select mb-2" id="teamSelect" style="font-size: 1.2rem;">
-                                {% for team in round.round_team_set.all %}
-                                    <option value="{{ team.id }}">{{ team.team.number }} {{ team.team.team.name }}</option>
-                                {% endfor %}
-                            </select>
-                            <button class="btn btn-success w-100" id="stopGoButton">Stop&Go</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="w-100 p-2" style="height: 80%;">
-                    <div class="row h-100">
-                        <!-- System Messages Card -->
-                        <div class="col-md-6 h-100">
-                            <div class="card h-100">
+                            <div class="card h-100" id="teamSelectCard" {% if not round or not round.ready %}style="display: none;"{% endif %}>
                                 <div class="card-header">
-                                    <h5 class="mb-0">System Messages</h5>
-                                </div>
-                                <div class="card-body overflow-auto" id="messagesContainer">
-                                    {% if messages %}
-                                        {% for message in messages %}
-                                            <div class="alert alert-{{ message.tags }}" data-timeout="5000">
-                                                {{ message }}
-                                            </div>
-                                        {% endfor %}
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                        <!-- Pending Drivers Card -->
-                        <div class="col-md-6 h-100">
-                            <div class="card h-100">
-                                <div class="card-header">
-                                    <h5 class="mb-0">Pending Drivers</h5>
+                                    <h5 class="mb-0">Stop & Go Penalty</h5>
                                 </div>
                                 <div class="card-body overflow-auto">
-                                    <div class="table-responsive">
-                                        <table class="table table-sm" id="pending-sessions-table">
-                                            <thead>
-                                                <tr>
-                                                    <th>Team</th>
-                                                    <th>Driver</th>
-                                                    <th>Next</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {% for session in pending_sessions %}
-                                                    <tr id="pending-row-{{ session.driver.team.team.number }}-{{ session.driver.id }}"
-                                                        class="pending-row"
-                                                        data-driver-id="{{ session.driver.id }}"
-                                                        data-team-id="{{ session.driver.team.id }}"
-                                                        data-team-number="{{ session.driver.team.team.number }}">
-                                                        <td>{{ session.driver.team.team.number }}</td>
-                                                        <td>{{ session.driver.member.nickname }}</td>
-                                                        {% if round.started %}
-                                                            <td class="next-change-number">{{ session.team_completed_count|add:1 }}</td>
-                                                        {% else %}
-                                                            <td class="next-change-number">{{ session.team_completed_count }}</td>
-                                                        {% endif %}
+                                    <select class="form-select mb-2" id="teamSelect" style="font-size: 1.2rem;">
+                                        {% for team in round.round_team_set.all %}
+                                            <option value="{{ team.id }}">{{ team.team.number }} {{ team.team.team.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button class="btn btn-success w-100" id="stopGoButton">Stop&Go</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="w-100 p-2" style="height: 70%;">
+                        <div class="row h-100">
+                            <!-- System Messages Card -->
+                            <div class="col-md-6 h-100">
+                                <div class="card h-100">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">System Messages</h5>
+                                    </div>
+                                    <div class="card-body overflow-auto" id="messagesContainer">
+                                        {% if messages %}
+                                            {% for message in messages %}
+                                                <div class="alert alert-{{ message.tags }}" data-timeout="5000">
+                                                    {{ message }}
+                                                </div>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Pending Drivers Card -->
+                            <div class="col-md-6 h-100">
+                                <div class="card h-100">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">Pending Drivers</h5>
+                                    </div>
+                                    <div class="card-body overflow-auto">
+                                        <div class="table-responsive">
+                                            <table class="table table-sm" id="pending-sessions-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Team</th>
+                                                        <th>Driver</th>
+                                                        <th>Next</th>
                                                     </tr>
-                                                {% empty %}
-                                                    <tr id="no-sessions-row">
-                                                        <td colspan="3">No pending sessions</td>
-                                                    </tr>
-                                                {% endfor %}
-                                            </tbody>
-                                        </table>
+                                                </thead>
+                                                <tbody>
+                                                    {% for session in pending_sessions %}
+                                                        <tr id="pending-row-{{ session.driver.team.team.number }}-{{ session.driver.id }}"
+                                                            class="pending-row"
+                                                            data-driver-id="{{ session.driver.id }}"
+                                                            data-team-id="{{ session.driver.team.id }}"
+                                                            data-team-number="{{ session.driver.team.team.number }}">
+                                                            <td>{{ session.driver.team.team.number }}</td>
+                                                            <td>{{ session.driver.member.nickname }}</td>
+                                                            {% if round.started %}
+                                                                <td class="next-change-number">{{ session.team_completed_count|add:1 }}</td>
+                                                            {% else %}
+                                                                <td class="next-change-number">{{ session.team_completed_count }}</td>
+                                                            {% endif %}
+                                                        </tr>
+                                                    {% empty %}
+                                                        <tr id="no-sessions-row">
+                                                            <td colspan="3">No pending sessions</td>
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
