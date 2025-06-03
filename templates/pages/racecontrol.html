@@ -182,14 +182,6 @@
                     </div>
                 </div>
             {% endfor %}
-            <div id="changequeue" class="card mb-2" style="width: 668px; height: 280px; background-color: transparent;">
-                <div class="card-header">
-                    <h5 class="mb-0">Change Queue</h5>
-                </div>
-                <div class="card-body">
-                    <div class="text-center text-muted">Loading...</div>
-                </div>
-            </div>
         </div>
     </div>
 </div>
@@ -379,7 +371,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // --- Pit Lane WebSockets ---
         for (let i = 1; i <= numLanes; i++) {
-            const laneSocketUrl = `${wsScheme}://${window.location.host}/ws/round/${roundId}/pit_lane/${i}/`;
+            const laneSocketUrl = `${wsScheme}://${window.location.host}/ws/pitlanes/${i}/`;
             const laneSocket = createWebSocketWithReconnect(
                 laneSocketUrl,
                 function(e) {
@@ -406,34 +398,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 function(e) { addSystemMessage(`Pit Lane ${i} connection closed.`, e.wasClean ? "info" : "warning"); }
             );
         }
-
-        // --- Change Queue WebSocket ---
-        const queueSocketUrl = `${wsScheme}://${window.location.host}/ws/round/${roundId}/change_queue/`;
-        const queueSocket = createWebSocketWithReconnect(
-            queueSocketUrl,
-            function(e) {
-                try {
-                    const data = JSON.parse(e.data);
-                    console.log("Change Queue WS received:", data);
-                    // Handle queue updates
-                    const queueElement = document.getElementById('changequeue');
-                    if (queueElement) {
-                        // Update queue content based on data
-                        queueElement.querySelector('.card-body').innerHTML = `
-                            <div class="text-center">
-                                <h6>Queue Length: ${data.queue_length || 0}</h6>
-                                <p class="mb-0">${data.next_team || 'No team in queue'}</p>
-                            </div>
-                        `;
-                    }
-                } catch (err) {
-                    console.error("Error processing change queue WS message:", err, e.data);
-                }
-            },
-            function(e) { console.log('Change Queue WS connected'); },
-            function(e) { addSystemMessage("Change Queue connection error.", "danger"); },
-            function(e) { addSystemMessage("Change Queue connection closed.", e.wasClean ? "info" : "warning"); }
-        );
     {% endif %}
 });
 </script>
