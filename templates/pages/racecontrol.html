@@ -308,7 +308,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         // --- Pending Drivers WebSocket ---
-        const pendingDriversSocketUrl = `${wsScheme}://${window.location.host}/ws/pending_drivers/${roundId}/`;
+        const pendingDriversSocketUrl = `${wsScheme}://${window.location.host}/ws/round/${roundId}/`;
         const pendingDriversSocket = createWebSocketWithReconnect(
             pendingDriversSocketUrl,
             function(e) {
