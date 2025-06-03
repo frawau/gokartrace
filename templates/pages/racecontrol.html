@@ -248,28 +248,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         else if (isReady && !isStarted) currentState = 'ready';
 
                         updateButtonVisibility(currentState);
-                    } else {
-                        // Handle session updates for pending drivers
-                        const driverId = data.driver_id;
-                        const status = data.driver_status;
-                        const completedSessions = data.completed_sessions;
-
-                        // Update the next change number in the pending drivers table
-                        const rows = document.querySelectorAll('.pending-row');
-                        rows.forEach(row => {
-                            if (row.getAttribute('data-driver-id') === driverId.toString()) {
-                                const nextChangeCell = row.querySelector('.next-change-number');
-                                if (nextChangeCell) {
-                                    nextChangeCell.textContent = completedSessions + 1;
-                                }
-                            }
-                        });
-
-                        if (status === "register") {
-                            addPendingDriverRow(driverId, data);
-                        } else if (status === "start") {
-                            removePendingDriverRow(driverId);
-                        }
                     }
                 } catch (err) {
                     console.error("Error processing round WS message:", err, e.data);
@@ -317,15 +295,23 @@ document.addEventListener('DOMContentLoaded', function() {
                     const data = JSON.parse(e.data);
                     console.log("Pending Drivers WS received:", data);
                     
-                    if (data.type === 'session_update') {
+                    if (data.session_update) {
                         const driverId = data.driver_id;
                         const status = data.driver_status;
                         const completedSessions = data.completed_sessions;
                         const teamNumber = data.team_number;
                         const driverName = data.driver_name;
 
-                        // Update the next change number
-                        updateTeamNextChangeNumbers(driverId, completedSessions);
+                        // Update the next change number in the pending drivers table
+                        const rows = document.querySelectorAll('.pending-row');
+                        rows.forEach(row => {
+                            if (row.getAttribute('data-driver-id') === driverId.toString()) {
+                                const nextChangeCell = row.querySelector('.next-change-number');
+                                if (nextChangeCell) {
+                                    nextChangeCell.textContent = completedSessions + 1;
+                                }
+                            }
+                        });
 
                         if (status === "register") {
                             // Add new row if it doesn't exist
