@@ -379,7 +379,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // --- Pit Lane WebSockets ---
         for (let i = 1; i <= numLanes; i++) {
-            const laneSocketUrl = `${wsScheme}://${window.location.host}/ws/pit_lane/${roundId}/${i}/`;
+            const laneSocketUrl = `${wsScheme}://${window.location.host}/ws/round/${roundId}/pit_lane/${i}/`;
             const laneSocket = createWebSocketWithReconnect(
                 laneSocketUrl,
                 function(e) {
@@ -408,7 +408,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // --- Change Queue WebSocket ---
-        const queueSocketUrl = `${wsScheme}://${window.location.host}/ws/change_queue/${roundId}/`;
+        const queueSocketUrl = `${wsScheme}://${window.location.host}/ws/round/${roundId}/change_queue/`;
         const queueSocket = createWebSocketWithReconnect(
             queueSocketUrl,
             function(e) {
