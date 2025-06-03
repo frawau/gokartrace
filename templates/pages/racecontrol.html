@@ -299,8 +299,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         const driverId = data.driver_id;
                         const status = data.driver_status;
                         const completedSessions = data.completed_sessions;
-                        const teamNumber = data.team_number;
-                        const driverName = data.driver_name;
 
                         // Update the next change number in the pending drivers table
                         const rows = document.querySelectorAll('.pending-row');
@@ -315,7 +313,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                         if (status === "register") {
                             // Add new row if it doesn't exist
-                            const rowId = `pending-row-${teamNumber}-${driverId}`;
+                            const rowId = `pending-row-${data.team_number}-${driverId}`;
                             if (!document.getElementById(rowId)) {
                                 const tbody = document.querySelector('#pending-sessions-table tbody');
                                 const noSessionsRow = document.getElementById('no-sessions-row');
@@ -327,11 +325,11 @@ document.addEventListener('DOMContentLoaded', function() {
                                 newRow.id = rowId;
                                 newRow.className = 'pending-row';
                                 newRow.setAttribute('data-driver-id', driverId);
-                                newRow.setAttribute('data-team-number', teamNumber);
+                                newRow.setAttribute('data-team-number', data.team_number);
 
                                 newRow.innerHTML = `
-                                    <td>${teamNumber}</td>
-                                    <td>${driverName}</td>
+                                    <td>${data.team_number}</td>
+                                    <td>${data.driver_name}</td>
                                     <td class="next-change-number">${completedSessions + 1}</td>
                                 `;
 
@@ -339,7 +337,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                         } else if (status === "start") {
                             // Remove the row
-                            const rowId = `pending-row-${teamNumber}-${driverId}`;
+                            const rowId = `pending-row-${data.team_number}-${driverId}`;
                             const row = document.getElementById(rowId);
                             if (row) {
                                 row.remove();
@@ -354,12 +352,44 @@ document.addEventListener('DOMContentLoaded', function() {
                                 tbody.appendChild(noSessionsRow);
                             }
                         }
+                    } else if (data.type === 'pending_sessions') {
+                        // Handle initial state update
+                        const tbody = document.querySelector('#pending-sessions-table tbody');
+                        tbody.innerHTML = ''; // Clear existing rows
+
+                        if (data.sessions && data.sessions.length > 0) {
+                            data.sessions.forEach(session => {
+                                const rowId = `pending-row-${session.team_number}-${session.driver_id}`;
+                                const newRow = document.createElement('tr');
+                                newRow.id = rowId;
+                                newRow.className = 'pending-row';
+                                newRow.setAttribute('data-driver-id', session.driver_id);
+                                newRow.setAttribute('data-team-number', session.team_number);
+
+                                newRow.innerHTML = `
+                                    <td>${session.team_number}</td>
+                                    <td>${session.driver_name}</td>
+                                    <td class="next-change-number">${session.completed_sessions + 1}</td>
+                                `;
+
+                                tbody.appendChild(newRow);
+                            });
+                        } else {
+                            const noSessionsRow = document.createElement('tr');
+                            noSessionsRow.id = 'no-sessions-row';
+                            noSessionsRow.innerHTML = '<td colspan="3">No pending sessions</td>';
+                            tbody.appendChild(noSessionsRow);
+                        }
                     }
                 } catch (err) {
                     console.error("Error processing pending drivers WS message:", err, e.data);
                 }
             },
-            function(e) { console.log('Pending Drivers WS connected'); },
+            function(e) { 
+                console.log('Pending Drivers WS connected');
+                // Request initial state
+                pendingDriversSocket.send(JSON.stringify({'action': 'get_pending_sessions'}));
+            },
             function(e) { addSystemMessage("Pending Drivers connection error.", "danger"); },
             function(e) { addSystemMessage("Pending Drivers connection closed.", e.wasClean ? "info" : "warning"); }
         );
