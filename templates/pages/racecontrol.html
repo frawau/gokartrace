@@ -254,7 +254,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         const status = data.driver_status;
                         const completedSessions = data.completed_sessions;
 
-                        updateTeamNextChangeNumbers(driverId, completedSessions);
+                        // Update the next change number in the pending drivers table
+                        const rows = document.querySelectorAll('.pending-row');
+                        rows.forEach(row => {
+                            if (row.getAttribute('data-driver-id') === driverId.toString()) {
+                                const nextChangeCell = row.querySelector('.next-change-number');
+                                if (nextChangeCell) {
+                                    nextChangeCell.textContent = completedSessions + 1;
+                                }
+                            }
+                        });
 
                         if (status === "register") {
                             addPendingDriverRow(driverId, data);
@@ -380,9 +389,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         console.log(`Pit Lane ${i} WS received:`, data);
                         // Handle pit lane updates
                         const laneElement = document.getElementById(`lane-${i}`);
-                        if (laneElement && data.type === 'rclane.update') {
-                            // Update lane content with the HTML from the server
-                            laneElement.querySelector('.card-body').innerHTML = data.lane_html;
+                        if (laneElement && (data.type === 'rclane.update' || data.type === 'lane.update')) {
+                            // Fix CSS syntax errors in the HTML
+                            const fixedHtml = data.lane_html
+                                .replace('style="flex;"', 'style="flex: 1;"')
+                                .replace('left-padding:', 'padding-left:');
+                            
+                            // Update lane content with the fixed HTML
+                            laneElement.querySelector('.card-body').innerHTML = fixedHtml;
                         }
                     } catch (err) {
                         console.error(`Error processing pit lane ${i} WS message:`, err, e.data);
