@@ -380,14 +380,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         console.log(`Pit Lane ${i} WS received:`, data);
                         // Handle pit lane updates
                         const laneElement = document.getElementById(`lane-${i}`);
-                        if (laneElement) {
-                            // Update lane content based on data
-                            laneElement.querySelector('.card-body').innerHTML = `
-                                <div class="text-center">
-                                    <h6>${data.team_number || 'Empty'}</h6>
-                                    <p class="mb-0">${data.driver_name || 'No driver'}</p>
-                                </div>
-                            `;
+                        if (laneElement && data.type === 'rclane.update') {
+                            // Update lane content with the HTML from the server
+                            laneElement.querySelector('.card-body').innerHTML = data.lane_html;
                         }
                     } catch (err) {
                         console.error(`Error processing pit lane ${i} WS message:`, err, e.data);
