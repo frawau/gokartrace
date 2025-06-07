@@ -169,8 +169,33 @@ def racecontrol(request):
     cround = current_round()
     try:
         lanes = cround.change_lanes
+
+        # Get all sessions that are registered but not started or ended
+        pending_sessions = (
+            Session.objects.filter(
+                round=cround,
+                register__isnull=False,
+                start__isnull=True,
+                end__isnull=True,
+            )
+            .select_related(
+                "driver", "driver__team", "driver__member", "driver__team__team"
+            )
+            .order_by("register")
+        )  # Order by registration time
+
+        # For each session, get the team's completed sessions count
+        for session in pending_sessions:
+            completed_count = Session.objects.filter(
+                driver__team=session.driver.team, end__isnull=False
+            ).count()
+
+            # Add as property to the session object
+            session.team_completed_count = completed_count
         return render(
-            request, "pages/racecontrol.html", {"round": cround, "lanes": lanes}
+            request,
+            "pages/racecontrol.html",
+            {"round": cround, "lanes": lanes, "pending_sessions": pending_sessions},
         )
     except:
         return render(request, "pages/norace.html")
@@ -842,38 +867,48 @@ def all_drivers_view(request):
 
 def all_teams_view(request):
     # Get all championships that haven't ended yet
-    championships = Championship.objects.filter(end__gte=dt.date.today()).order_by('-end')
-    
+    championships = Championship.objects.filter(end__gte=dt.date.today()).order_by(
+        "-end"
+    )
+
     selected_championship = None
     rounds = []
     teams = []
-    
-    championship_id = request.GET.get('championship')
+
+    championship_id = request.GET.get("championship")
     if championship_id:
         selected_championship = get_object_or_404(Championship, id=championship_id)
-        rounds = Round.objects.filter(championship=selected_championship).order_by('start')
-        
+        rounds = Round.objects.filter(championship=selected_championship).order_by(
+            "start"
+        )
+
         # Get all teams and their round participation
-        teams = Team.objects.annotate(
-            championship_number=models.Case(
-                models.When(
-                    championship_team__championship=selected_championship,
-                    then=models.F('championship_team__number')
-                ),
-                default=models.Value(999),  # Teams without a number will be sorted last
-                output_field=models.IntegerField(),
+        teams = (
+            Team.objects.annotate(
+                championship_number=models.Case(
+                    models.When(
+                        championship_team__championship=selected_championship,
+                        then=models.F("championship_team__number"),
+                    ),
+                    default=models.Value(
+                        999
+                    ),  # Teams without a number will be sorted last
+                    output_field=models.IntegerField(),
+                )
             )
-        ).prefetch_related(
-            'championship_team_set',
-            'championship_team_set__round_team_set',
-            'championship_team_set__round_team_set__round'
-        ).order_by('championship_number')
-    
+            .prefetch_related(
+                "championship_team_set",
+                "championship_team_set__round_team_set",
+                "championship_team_set__round_team_set__round",
+            )
+            .order_by("championship_number")
+        )
+
     context = {
-        'championships': championships,
-        'selected_championship': selected_championship,
-        'rounds': rounds,
-        'teams': teams,
+        "championships": championships,
+        "selected_championship": selected_championship,
+        "rounds": rounds,
+        "teams": teams,
     }
-    
-    return render(request, 'pages/allteams.html', context)
+
+    return render(request, "pages/allteams.html", context)
