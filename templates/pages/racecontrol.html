@@ -315,25 +315,34 @@ document.addEventListener('DOMContentLoaded', function() {
                             // Add new row if it doesn't exist
                             const rowId = `pending-row-${data.team_number}-${driverId}`;
                             if (!document.getElementById(rowId)) {
-                                const tbody = document.querySelector('#pending-sessions-table tbody');
-                                const noSessionsRow = document.getElementById('no-sessions-row');
-                                if (noSessionsRow) {
-                                    noSessionsRow.remove();
-                                }
+                                // Fetch driver info from API
+                                fetch(`/api/driver/${driverId}/info/`)
+                                    .then(response => response.json())
+                                    .then(driverInfo => {
+                                        const tbody = document.querySelector('#pending-sessions-table tbody');
+                                        const noSessionsRow = document.getElementById('no-sessions-row');
+                                        if (noSessionsRow) {
+                                            noSessionsRow.remove();
+                                        }
 
-                                const newRow = document.createElement('tr');
-                                newRow.id = rowId;
-                                newRow.className = 'pending-row';
-                                newRow.setAttribute('data-driver-id', driverId);
-                                newRow.setAttribute('data-team-number', data.team_number);
+                                        const newRow = document.createElement('tr');
+                                        newRow.id = rowId;
+                                        newRow.className = 'pending-row';
+                                        newRow.setAttribute('data-driver-id', driverId);
+                                        newRow.setAttribute('data-team-number', driverInfo.team_number);
 
-                                newRow.innerHTML = `
-                                    <td>${data.team_number}</td>
-                                    <td>${data.driver_name}</td>
-                                    <td class="next-change-number">${completedSessions + 1}</td>
-                                `;
+                                        newRow.innerHTML = `
+                                            <td>${driverInfo.team_number}</td>
+                                            <td>${driverInfo.driver_name}</td>
+                                            <td class="next-change-number">${completedSessions + 1}</td>
+                                        `;
 
-                                tbody.appendChild(newRow);
+                                        tbody.appendChild(newRow);
+                                    })
+                                    .catch(error => {
+                                        console.error('Error fetching driver info:', error);
+                                        addSystemMessage("Error fetching driver information", "danger");
+                                    });
                             }
                         } else if (status === "start") {
                             // Remove the row
@@ -352,34 +361,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 tbody.appendChild(noSessionsRow);
                             }
                         }
-                    } else if (data.type === 'pending_sessions') {
-                        // Handle initial state update
-                        const tbody = document.querySelector('#pending-sessions-table tbody');
-                        tbody.innerHTML = ''; // Clear existing rows
-
-                        if (data.sessions && data.sessions.length > 0) {
-                            data.sessions.forEach(session => {
-                                const rowId = `pending-row-${session.team_number}-${session.driver_id}`;
-                                const newRow = document.createElement('tr');
-                                newRow.id = rowId;
-                                newRow.className = 'pending-row';
-                                newRow.setAttribute('data-driver-id', session.driver_id);
-                                newRow.setAttribute('data-team-number', session.team_number);
-
-                                newRow.innerHTML = `
-                                    <td>${session.team_number}</td>
-                                    <td>${session.driver_name}</td>
-                                    <td class="next-change-number">${session.completed_sessions + 1}</td>
-                                `;
-
-                                tbody.appendChild(newRow);
-                            });
-                        } else {
-                            const noSessionsRow = document.createElement('tr');
-                            noSessionsRow.id = 'no-sessions-row';
-                            noSessionsRow.innerHTML = '<td colspan="3">No pending sessions</td>';
-                            tbody.appendChild(noSessionsRow);
-                        }
                     }
                 } catch (err) {
                     console.error("Error processing pending drivers WS message:", err, e.data);
@@ -387,8 +368,6 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             function(e) { 
                 console.log('Pending Drivers WS connected');
-                // Request initial state
-                pendingDriversSocket.send(JSON.stringify({'action': 'get_pending_sessions'}));
             },
             function(e) { addSystemMessage("Pending Drivers connection error.", "danger"); },
             function(e) { addSystemMessage("Pending Drivers connection closed.", e.wasClean ? "info" : "warning"); }
