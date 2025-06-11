@@ -95,7 +95,40 @@
                         {% endif %}
                       </ul>
                     </div>
-
+                  </ul>
+                </li>
+                <li class="nav-item dropdown dropdown-hover mx-2">
+                  <a class="nav-link ps-2 d-flex cursor-pointer align-items-center font-weight-semibold"
+                    id="dropdownMenuDocs" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="material-symbols-rounded opacity-6 me-2 text-md">article</i>
+                    Championship
+                    <img src="{% static "img/down-arrow-dark.svg" %}" alt="down-arrow" class="arrow ms-auto ms-md-2">
+                  </a>
+                  <ul
+                    class="dropdown-menu dropdown-menu-end dropdown-menu-animation dropdown-md dropdown-md-responsive mt-0 mt-lg-3 p-3 border-radius-lg"
+                    aria-labelledby="dropdownMenuDocs">
+                    <div class="d-none d-lg-block">
+                      <ul class="list-group">
+                        <li class="nav-item list-group-item border-0 p-0">
+                          <a class="dropdown-item py-2 ps-3 border-radius-md"
+                            href="/championship/create/">
+                            <h6
+                              class="dropdown-header text-dark font-weight-bolder d-flex justify-content-cente align-items-center p-0">
+                              Create Championship</h6>
+                            <span class="text-sm">Create a new championship with rounds.</span>
+                          </a>
+                        </li>
+                        <li class="nav-item list-group-item border-0 p-0">
+                          <a class="dropdown-item py-2 ps-3 border-radius-md"
+                            href="/championship/edit/">
+                            <h6
+                              class="dropdown-header text-dark font-weight-bolder d-flex justify-content-cente align-items-center p-0">
+                              Edit Championship</h6>
+                            <span class="text-sm">Edit existing championships.</span>
+                          </a>
+                        </li>
+                      </ul>
+                    </div>
                   </ul>
                 </li>
             {% endif %}

@@ -58,4 +58,6 @@ urlpatterns = [
     path("allteams/", views.all_teams_view, name="all_teams"),
     path('edit/driver/', views.edit_driver_view, name='edit_driver'),
     path('edit/team/', views.edit_team_view, name='edit_team'),
+    path('championship/create/', views.create_championship_view, name='create_championship'),
+    path('championship/edit/', views.edit_championship_view, name='edit_championship'),
 ]

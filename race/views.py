@@ -978,3 +978,78 @@ def edit_team_view(request):
         'teams': teams,
     }
     return render(request, 'pages/edit_team.html', context)
+
+@login_required
+@user_passes_test(is_admin_user)
+def create_championship_view(request):
+    if request.method == 'POST':
+        try:
+            name = request.POST.get('name')
+            year = int(request.POST.get('year'))
+            num_rounds = int(request.POST.get('rounds'))
+            
+            # Create championship with start and end dates
+            start_date = dt.date(year, 1, 1)
+            end_date = dt.date(year, 12, 31)
+            
+            championship = Championship.objects.create(
+                name=name,
+                start=start_date,
+                end=end_date
+            )
+            
+            # Create rounds
+            # Calculate days between rounds to spread them evenly
+            days_between_rounds = (end_date - start_date).days // (num_rounds + 1)
+            current_date = start_date + dt.timedelta(days=days_between_rounds)
+            
+            for i in range(num_rounds):
+                round_start = dt.datetime.combine(current_date, dt.time(18, 0))  # 18:00
+                Round.objects.create(
+                    championship=championship,
+                    name=f"Round {i + 1}",
+                    start=round_start,
+                    duration=dt.timedelta(hours=4),
+                    ready=False
+                )
+                current_date += dt.timedelta(days=days_between_rounds)
+            
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    # GET request - show the form
+    current_year = dt.date.today().year
+    context = {
+        'current_year': current_year,
+    }
+    return render(request, 'pages/create_championship.html', context)
+
+@login_required
+@user_passes_test(is_admin_user)
+def edit_championship_view(request):
+    if request.method == 'POST':
+        try:
+            championship_id = request.POST.get('championship_id')
+            championship = get_object_or_404(Championship, id=championship_id)
+            
+            # Update championship fields
+            championship.name = request.POST.get('name')
+            year = int(request.POST.get('year'))
+            
+            # Update start and end dates
+            championship.start = dt.date(year, 1, 1)
+            championship.end = dt.date(year, 12, 31)
+            
+            championship.save()
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    # GET request - show the form
+    championships = Championship.objects.all().order_by('-start')
+    
+    context = {
+        'championships': championships,
+    }
+    return render(request, 'pages/edit_championship.html', context)
