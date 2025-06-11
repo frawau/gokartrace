@@ -60,4 +60,6 @@ urlpatterns = [
     path('edit/team/', views.edit_team_view, name='edit_team'),
     path('championship/create/', views.create_championship_view, name='create_championship'),
     path('championship/edit/', views.edit_championship_view, name='edit_championship'),
+    path('championship/edit-round/', views.edit_round_view, name='edit_round'),
+    path('api/championship/<int:championship_id>/rounds/', views.get_championship_rounds, name='get_championship_rounds'),
 ]

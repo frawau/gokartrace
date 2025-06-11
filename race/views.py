@@ -1053,3 +1053,77 @@ def edit_championship_view(request):
         'championships': championships,
     }
     return render(request, 'pages/edit_championship.html', context)
+
+@login_required
+@user_passes_test(is_admin_user)
+def edit_round_view(request):
+    if request.method == 'POST':
+        try:
+            round_id = request.POST.get('round_id')
+            round_obj = get_object_or_404(Round, id=round_id)
+            
+            # Update round fields
+            round_obj.name = request.POST.get('name')
+            round_obj.start = request.POST.get('start')
+            
+            # Parse duration strings
+            def parse_duration(duration_str):
+                if ":" in duration_str:
+                    parts = duration_str.split(":")
+                    if len(parts) == 3:  # HH:MM:SS
+                        hours, minutes, seconds = map(int, parts)
+                        return dt.timedelta(hours=hours, minutes=minutes, seconds=seconds)
+                    elif len(parts) == 2:  # MM:SS
+                        minutes, seconds = map(int, parts)
+                        return dt.timedelta(minutes=minutes, seconds=seconds)
+                return dt.timedelta(0)
+
+            round_obj.duration = parse_duration(request.POST.get('duration'))
+            round_obj.pitlane_open_after = parse_duration(request.POST.get('pitlane_open_after'))
+            round_obj.pitlane_close_before = parse_duration(request.POST.get('pitlane_close_before'))
+            
+            # Update other fields
+            round_obj.change_lanes = int(request.POST.get('change_lanes'))
+            round_obj.limit_time = request.POST.get('limit_time')
+            round_obj.limit_value = int(request.POST.get('limit_value'))
+            round_obj.required_changes = int(request.POST.get('required_changes'))
+            
+            round_obj.save()
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    # GET request - show the form
+    championships = Championship.objects.all().order_by('-start')
+    
+    context = {
+        'championships': championships,
+    }
+    return render(request, 'pages/edit_round.html', context)
+
+@login_required
+@user_passes_test(is_admin_user)
+def get_championship_rounds(request, championship_id):
+    """API endpoint to get rounds for a championship"""
+    try:
+        championship = get_object_or_404(Championship, id=championship_id)
+        rounds = Round.objects.filter(championship=championship).order_by('start')
+        
+        rounds_data = []
+        for round_obj in rounds:
+            rounds_data.append({
+                'id': round_obj.id,
+                'name': round_obj.name,
+                'start': round_obj.start.isoformat(),
+                'duration': str(round_obj.duration),
+                'change_lanes': round_obj.change_lanes,
+                'pitlane_open_after': str(round_obj.pitlane_open_after),
+                'pitlane_close_before': str(round_obj.pitlane_close_before),
+                'limit_time': round_obj.limit_time,
+                'limit_value': round_obj.limit_value,
+                'required_changes': round_obj.required_changes
+            })
+        
+        return JsonResponse(rounds_data, safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
