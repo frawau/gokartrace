@@ -912,3 +912,68 @@ def all_teams_view(request):
     }
 
     return render(request, "pages/allteams.html", context)
+
+
+@login_required
+@user_passes_test(is_admin_user)
+def edit_driver_view(request):
+    if request.method == 'POST':
+        try:
+            driver_id = request.POST.get('driver_id')
+            driver = get_object_or_404(Person, id=driver_id)
+            
+            # Update driver fields
+            driver.surname = request.POST.get('surname')
+            driver.firstname = request.POST.get('firstname')
+            driver.nickname = request.POST.get('nickname')
+            driver.gender = request.POST.get('gender')
+            driver.birthdate = request.POST.get('birthdate')
+            driver.country = request.POST.get('country')
+            driver.email = request.POST.get('email') or None
+            
+            # Handle mugshot upload
+            if 'mugshot' in request.FILES:
+                driver.mugshot = request.FILES['mugshot']
+            
+            driver.save()
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    # GET request - show the form
+    drivers = Person.objects.all().order_by('nickname')
+    countries = [(code, name) for code, name in list(countries)]
+    
+    context = {
+        'drivers': drivers,
+        'countries': countries,
+    }
+    return render(request, 'pages/edit_driver.html', context)
+
+@login_required
+@user_passes_test(is_admin_user)
+def edit_team_view(request):
+    if request.method == 'POST':
+        try:
+            team_id = request.POST.get('team_id')
+            team = get_object_or_404(Team, id=team_id)
+            
+            # Update team fields
+            team.name = request.POST.get('name')
+            
+            # Handle logo upload
+            if 'logo' in request.FILES:
+                team.logo = request.FILES['logo']
+            
+            team.save()
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    # GET request - show the form
+    teams = Team.objects.all().order_by('name')
+    
+    context = {
+        'teams': teams,
+    }
+    return render(request, 'pages/edit_team.html', context)

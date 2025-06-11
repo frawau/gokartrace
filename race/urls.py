@@ -56,4 +56,6 @@ urlpatterns = [
     path("api/get_numbers/", views.get_available_numbers, name="get_available_numbers"),
     path("alldrivers/", views.all_drivers_view, name="all_drivers"),
     path("allteams/", views.all_teams_view, name="all_teams"),
+    path('edit/driver/', views.edit_driver_view, name='edit_driver'),
+    path('edit/team/', views.edit_team_view, name='edit_team'),
 ]
