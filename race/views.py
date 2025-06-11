@@ -1088,6 +1088,14 @@ def edit_round_view(request):
             round_obj.limit_value = int(request.POST.get('limit_value'))
             round_obj.required_changes = int(request.POST.get('required_changes'))
             
+            # Handle weight penalty JSON field
+            weight_penalty_json = request.POST.get('weight_penalty', '[">=", [0, 0]]')
+            try:
+                weight_penalty = json.loads(weight_penalty_json)
+                round_obj.weight_penalty = weight_penalty
+            except json.JSONDecodeError:
+                return JsonResponse({'success': False, 'error': 'Invalid weight penalty format'})
+            
             round_obj.save()
             return JsonResponse({'success': True})
         except Exception as e:
