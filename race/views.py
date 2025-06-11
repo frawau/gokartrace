@@ -42,6 +42,7 @@ from .utils import datadecode, is_admin_user
 from .forms import DriverForm, TeamForm, JoinChampionshipForm
 from django.template import loader
 from django.db import models
+from django_countries import countries
 
 
 def current_round():
@@ -942,11 +943,11 @@ def edit_driver_view(request):
     
     # GET request - show the form
     drivers = Person.objects.all().order_by('nickname')
-    countries = [(code, name) for code, name in list(countries)]
+    countries_list = list(countries)
     
     context = {
         'drivers': drivers,
-        'countries': countries,
+        'countries': countries_list,
     }
     return render(request, 'pages/edit_driver.html', context)
 

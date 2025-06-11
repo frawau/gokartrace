@@ -18,7 +18,7 @@
                             {% for team in teams %}
                             <option value="{{ team.id }}" 
                                     data-name="{{ team.name }}"
-                                    data-logo="{{ team.logo.url|default:'' }}">
+                                    data-logo="{% if team.logo %}{{ team.logo.url }}{% endif %}">
                                 {{ team.name }}
                             </option>
                             {% endfor %}
