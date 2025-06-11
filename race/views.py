@@ -1129,7 +1129,8 @@ def get_championship_rounds(request, championship_id):
                 'pitlane_close_before': str(round_obj.pitlane_close_before),
                 'limit_time': round_obj.limit_time,
                 'limit_value': round_obj.limit_value,
-                'required_changes': round_obj.required_changes
+                'required_changes': round_obj.required_changes,
+                'weight_penalty': round_obj.weight_penalty or [">=", [0, 0]]
             })
         
         return JsonResponse(rounds_data, safe=False)
