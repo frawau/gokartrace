@@ -1117,16 +1117,31 @@ def get_championship_rounds(request, championship_id):
         championship = get_object_or_404(Championship, id=championship_id)
         rounds = Round.objects.filter(championship=championship).order_by('start')
         
+        def format_duration(td):
+            """Format timedelta as HH:MM:SS with leading zeros"""
+            total_seconds = int(td.total_seconds())
+            hours = total_seconds // 3600
+            minutes = (total_seconds % 3600) // 60
+            seconds = total_seconds % 60
+            return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+        
+        def format_minutes_seconds(td):
+            """Format timedelta as MM:SS with leading zeros"""
+            total_seconds = int(td.total_seconds())
+            minutes = total_seconds // 60
+            seconds = total_seconds % 60
+            return f"{minutes:02d}:{seconds:02d}"
+        
         rounds_data = []
         for round_obj in rounds:
             rounds_data.append({
                 'id': round_obj.id,
                 'name': round_obj.name,
                 'start': round_obj.start.isoformat(),
-                'duration': str(round_obj.duration),
+                'duration': format_duration(round_obj.duration),
                 'change_lanes': round_obj.change_lanes,
-                'pitlane_open_after': str(round_obj.pitlane_open_after),
-                'pitlane_close_before': str(round_obj.pitlane_close_before),
+                'pitlane_open_after': format_minutes_seconds(round_obj.pitlane_open_after),
+                'pitlane_close_before': format_minutes_seconds(round_obj.pitlane_close_before),
                 'limit_time': round_obj.limit_time,
                 'limit_value': round_obj.limit_value,
                 'required_changes': round_obj.required_changes,
