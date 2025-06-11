@@ -151,7 +151,7 @@ class Round(models.Model):
         verbose_name="Minimum Driving Time",
     )
     weight_penalty = models.JSONField(
-        default=[
+        default=lambda:[
             ">=",
             [80, 0],
             [77.5, 2.5],
