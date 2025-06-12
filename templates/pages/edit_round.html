@@ -98,19 +98,40 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group mb-3">
-                            <label for="limit_time">Time Limit:</label>
+                            <label for="limit_time">Race Time Limit:</label>
                             <select class="form-control" id="limit_time" name="limit_time" required>
-                                <option value="none">No Limit</option>
-                                <option value="total">Total Time</option>
-                                <option value="session">Per Session</option>
+                                <option value="none">No Time Limit</option>
+                                <option value="race">Race Time Limit</option>
+                                <option value="session">Session Time Limit</option>
                             </select>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group mb-3">
-                            <label for="limit_value">Limit Value (minutes):</label>
+                            <label for="limit_method">Time Limit Method:</label>
+                            <select class="form-control" id="limit_method" name="limit_method" required>
+                                <option value="none">--</option>
+                                <option value="time">Time in minutes</option>
+                                <option value="percent">Average + N percents</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label for="limit_value">Time Limit Value:</label>
                             <input type="number" class="form-control" id="limit_value" name="limit_value" 
                                    min="1" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label for="limit_time_min">Minimum Driving Time (MM:SS):</label>
+                            <input type="text" class="form-control" id="limit_time_min" name="limit_time_min" 
+                                   pattern="^([0-9]{2}):([0-9]{2})$" 
+                                   placeholder="00:00" required>
                         </div>
                     </div>
                 </div>
@@ -371,7 +392,9 @@ document.addEventListener('DOMContentLoaded', function() {
                             data-pitlane-open="${round.pitlane_open_after}"
                             data-pitlane-close="${round.pitlane_close_before}"
                             data-limit-time="${round.limit_time}"
+                            data-limit-method="${round.limit_method}"
                             data-limit-value="${round.limit_value}"
+                            data-limit-time-min="${round.limit_time_min}"
                             data-required-changes="${round.required_changes}"
                             data-weight-penalty='${JSON.stringify(round.weight_penalty || [">=", [0, 0]])}'>
                             ${round.name}
@@ -406,7 +429,9 @@ document.addEventListener('DOMContentLoaded', function() {
             $('#pitlane_open_after').val(selectedOption.data('pitlane-open'));
             $('#pitlane_close_before').val(selectedOption.data('pitlane-close'));
             $('#limit_time').val(selectedOption.data('limit-time'));
+            $('#limit_method').val(selectedOption.data('limit-method'));
             $('#limit_value').val(selectedOption.data('limit-value'));
+            $('#limit_time_min').val(selectedOption.data('limit-time-min'));
             $('#required_changes').val(selectedOption.data('required-changes'));
             
             // Initialize weight penalty widget with the round's data
@@ -452,4 +477,5 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+{% endblock %} 
 {% endblock %} 

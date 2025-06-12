@@ -1143,7 +1143,9 @@ def get_championship_rounds(request, championship_id):
                 'pitlane_open_after': format_minutes_seconds(round_obj.pitlane_open_after),
                 'pitlane_close_before': format_minutes_seconds(round_obj.pitlane_close_before),
                 'limit_time': round_obj.limit_time,
+                'limit_method': round_obj.limit_method,
                 'limit_value': round_obj.limit_value,
+                'limit_time_min': format_minutes_seconds(round_obj.limit_time_min),
                 'required_changes': round_obj.required_changes,
                 'weight_penalty': round_obj.weight_penalty or [">=", [0, 0]]
             })
