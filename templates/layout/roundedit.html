@@ -48,7 +48,7 @@
         <!-- Right column fields (unchanged) -->
         <div class="col-md-6">
             <div class="form-group">
-                <label for="id_limit_time">Race Time Limit</label>
+                <label for="id_limit_time">Maximum Driving Time</label>
                 <select class="form-control" id="id_limit_time" name="limit_time">
                     {% for value, display in round.LIMIT %}
                         <option value="{{ value }}" {% if round.limit_time == value %}selected{% endif %}>{{ display }}</option>
