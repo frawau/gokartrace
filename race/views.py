@@ -1115,7 +1115,7 @@ def get_championship_rounds(request, championship_id):
     """API endpoint to get rounds for a championship"""
     try:
         championship = get_object_or_404(Championship, id=championship_id)
-        rounds = Round.objects.filter(championship=championship).order_by('start')
+        rounds = Round.objects.filter(championship=championship, ready=False).order_by('start')
         
         def format_duration(td):
             """Format timedelta as HH:MM:SS with leading zeros"""
