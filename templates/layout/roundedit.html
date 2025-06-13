@@ -19,30 +19,36 @@
 
             <div class="form-group">
                 <label for="id_duration">Duration (HH:MM:SS)</label>
-                <input type="text" class="form-control" id="id_duration" name="duration" value="{{ round.duration }}" required>
-                <small class="form-text text-muted">Format as hours:minutes:seconds</small>
+                <input type="text" class="form-control" id="id_duration" name="duration" 
+                       pattern="^([0-9]{2}):([0-9]{2}):([0-9]{2})$" 
+                       placeholder="04:00:00" value="{{ round.duration }}" required>
             </div>
 
             <div class="form-group">
-                <label for="id_change_lanes">Lane Changes</label>
-                <input type="number" class="form-control" id="id_change_lanes" name="change_lanes" value="{{ round.change_lanes }}" min="1" max="4" required>
+                <label for="id_change_lanes">Number of Pit Lanes</label>
+                <input type="number" class="form-control" id="id_change_lanes" name="change_lanes" 
+                       value="{{ round.change_lanes }}" min="1" max="4" required>
             </div>
 
             <div class="form-group">
-                <label for="id_pitlane_open_after">Pitlane Open After (minutes)</label>
-                <input type="text" class="form-control" id="id_pitlane_open_after" name="pitlane_open_after" value="{{ round.pitlane_open_after }}" required>
+                <label for="id_pitlane_open_after">Pit Lane Opens After (MM:SS)</label>
+                <input type="text" class="form-control" id="id_pitlane_open_after" name="pitlane_open_after" 
+                       pattern="^([0-9]{2}):([0-9]{2})$" 
+                       placeholder="00:00" value="{{ round.pitlane_open_after }}" required>
             </div>
 
             <div class="form-group">
-                <label for="id_pitlane_close_before">Pitlane Close Before (minutes)</label>
-                <input type="text" class="form-control" id="id_pitlane_close_before" name="pitlane_close_before" value="{{ round.pitlane_close_before }}" required>
+                <label for="id_pitlane_close_before">Pit Lane Closes Before (MM:SS)</label>
+                <input type="text" class="form-control" id="id_pitlane_close_before" name="pitlane_close_before" 
+                       pattern="^([0-9]{2}):([0-9]{2})$" 
+                       placeholder="00:00" value="{{ round.pitlane_close_before }}" required>
             </div>
         </div>
 
         <!-- Right column fields (unchanged) -->
         <div class="col-md-6">
             <div class="form-group">
-                <label for="id_limit_time">Maximum Driving Time</label>
+                <label for="id_limit_time">Race Time Limit</label>
                 <select class="form-control" id="id_limit_time" name="limit_time">
                     {% for value, display in round.LIMIT %}
                         <option value="{{ value }}" {% if round.limit_time == value %}selected{% endif %}>{{ display }}</option>
@@ -51,7 +57,7 @@
             </div>
 
             <div class="form-group">
-                <label for="id_limit_method">Maximum Driving Time Method</label>
+                <label for="id_limit_method">Time Limit Method</label>
                 <select class="form-control" id="id_limit_method" name="limit_method">
                     {% for value, display in round.LMETHOD %}
                         <option value="{{ value }}" {% if round.limit_method == value %}selected{% endif %}>{{ display }}</option>
@@ -60,8 +66,9 @@
             </div>
 
             <div class="form-group">
-                <label for="id_limit_value">Maximum Driving Time Value</label>
-                <input type="number" class="form-control" id="id_limit_value" name="limit_value" value="{{ round.limit_value }}" required>
+                <label for="id_limit_value">Time Limit Value</label>
+                <input type="number" class="form-control" id="id_limit_value" name="limit_value" 
+                       value="{{ round.limit_value }}" min="1" required>
             </div>
 
             <div class="form-group">
@@ -70,8 +77,10 @@
             </div>
 
             <div class="form-group">
-                <label for="id_limit_time_min">Minimum Driving Time (minutes)</label>
-                <input type="text" class="form-control" id="id_limit_time_min" name="limit_time_min" value="{{ round.limit_time_min }}" required>
+                <label for="id_limit_time_min">Minimum Driving Time (MM:SS)</label>
+                <input type="text" class="form-control" id="id_limit_time_min" name="limit_time_min" 
+                       pattern="^([0-9]{2}):([0-9]{2})$" 
+                       placeholder="00:00" value="{{ round.limit_time_min }}" required>
             </div>
         </div>
     </div>
