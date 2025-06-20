@@ -133,12 +133,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Initialize Select2 for country select with flag images
-    function formatCountry (country) {
+    function formatCountry(country) {
         if (!country.id) { return country.text; }
         var code = country.id.toLowerCase();
         var img = '<img src="/static/flags/' + code + '.png" style="width: 20px; height: 14px; margin-right: 8px; vertical-align: middle;">';
-        return $(img + country.text);
-    };
+        // Return both flag and country name as HTML string
+        return $('<span>' + img + country.text + '</span>');
+    }
     $('#country').select2({
         templateResult: formatCountry,
         templateSelection: formatCountry,
