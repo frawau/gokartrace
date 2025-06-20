@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize Select2 for country select with flag images
     function formatCountry (country) {
         if (!country.id) { return country.text; }
-        var code = country.id;
+        var code = country.id.toLowerCase();
         var img = '<img src="/static/flags/' + code + '.png" style="width: 20px; height: 14px; margin-right: 8px; vertical-align: middle;">';
         return $(img + country.text);
     };
