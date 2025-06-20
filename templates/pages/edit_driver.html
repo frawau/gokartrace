@@ -81,7 +81,7 @@
                     <div class="col-md-6">
                         <div class="form-group mb-3">
                             <label for="country">Country:</label>
-                            <select class="form-control" id="country" name="country" required>
+                            <select class="form-control" id="country" name="country" required style="width: 400px;">
                                 {% for code, name in countries %}
                                 <option value="{{ code }}">{{ name }}</option>
                                 {% endfor %}
@@ -143,7 +143,8 @@ document.addEventListener('DOMContentLoaded', function() {
     $('#country').select2({
         templateResult: formatCountry,
         templateSelection: formatCountry,
-        minimumResultsForSearch: -1 // always show all
+        minimumResultsForSearch: -1, // always show all
+        width: '400px'
     });
 
     // Handle driver selection
