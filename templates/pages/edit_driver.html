@@ -23,7 +23,8 @@
                                     data-gender="{{ driver.gender }}"
                                     data-birthdate="{{ driver.birthdate|date:'Y-m-d' }}"
                                     data-country="{{ driver.country.code }}"
-                                    data-email="{{ driver.email|default:'' }}">
+                                    data-email="{{ driver.email|default:'' }}"
+                                    data-mugshot="{{ driver.mugshot|default:'' }}">
                                 {{ driver.nickname }} ({{ driver.firstname }} {{ driver.surname }})
                             </option>
                             {% endfor %}
@@ -125,10 +126,23 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Select2
+    // Initialize Select2 for driver select
     $('#driver-select').select2({
         placeholder: 'Search for a driver...',
         allowClear: true
+    });
+
+    // Initialize Select2 for country select with flag images
+    function formatCountry (country) {
+        if (!country.id) { return country.text; }
+        var code = country.id;
+        var img = '<img src="/static/flags/' + code + '.png" style="width: 20px; height: 14px; margin-right: 8px; vertical-align: middle;">';
+        return $(img + country.text);
+    };
+    $('#country').select2({
+        templateResult: formatCountry,
+        templateSelection: formatCountry,
+        minimumResultsForSearch: -1 // always show all
     });
 
     // Handle driver selection
@@ -145,13 +159,15 @@ document.addEventListener('DOMContentLoaded', function() {
             $('#nickname').val(selectedOption.data('nickname'));
             $('#gender').val(selectedOption.data('gender'));
             $('#birthdate').val(selectedOption.data('birthdate'));
-            $('#country').val(selectedOption.data('country'));
+            $('#country').val(selectedOption.data('country')).trigger('change');
             $('#email').val(selectedOption.data('email'));
             
             // Handle mugshot if exists
-            const mugshotUrl = selectedOption.data('mugshot');
-            if (mugshotUrl) {
-                $('#current-mugshot').show().find('img').attr('src', mugshotUrl);
+            const mugshotField = selectedOption.data('mugshot');
+            if (mugshotField) {
+                // Construct the URL: <protocol>//<host>/<mugshot field value>
+                const url = window.location.protocol + '//' + window.location.host + '/' + mugshotField;
+                $('#current-mugshot').show().find('img').attr('src', url);
             } else {
                 $('#current-mugshot').hide();
             }
