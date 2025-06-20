@@ -195,6 +195,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.success) {
                 alert('Driver updated successfully!');
+                $('#mugshot').val('');
                 location.reload();
             } else {
                 alert('Error: ' + data.error);
@@ -209,6 +210,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle cancel button
     $('#cancel-btn').on('click', function() {
         $('#driver-select').val('').trigger('change');
+        $('#mugshot').val('');
     });
 });
 </script>
