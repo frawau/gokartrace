@@ -1033,18 +1033,22 @@ def edit_championship_view(request):
             championship_id = request.POST.get('championship_id')
             championship = get_object_or_404(Championship, id=championship_id)
             
-            # Update championship fields
-            championship.name = request.POST.get('name')
-            year = int(request.POST.get('year'))
-            
-            # Update start and end dates
-            championship.start = dt.date(year, 1, 1)
-            championship.end = dt.date(year, 12, 31)
-            
-            championship.save()
-            
             # Handle round management
             action = request.POST.get('action')
+            
+            # Only update championship fields if this is not a round management action
+            if not action:
+                # Update championship fields
+                championship.name = request.POST.get('name')
+                year_str = request.POST.get('year')
+                if year_str:
+                    year = int(year_str)
+                    # Update start and end dates
+                    championship.start = dt.date(year, 1, 1)
+                    championship.end = dt.date(year, 12, 31)
+                
+                championship.save()
+            
             if action == 'add_round':
                 # Add a new round
                 existing_rounds = Round.objects.filter(championship=championship, ready=False).order_by('start')
