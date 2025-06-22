@@ -1072,7 +1072,8 @@ def edit_championship_view(request):
                     
             elif action == 'set_rounds':
                 # Set specific number of rounds
-                target_rounds = int(request.POST.get('num_rounds', 0))
+                num_rounds_str = request.POST.get('num_rounds', '0')
+                target_rounds = int(num_rounds_str) if num_rounds_str else 0
                 current_rounds = Round.objects.filter(championship=championship, ready=False).count()
                 
                 if target_rounds > current_rounds:
