@@ -379,7 +379,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (championshipId) {
             // Fetch rounds for selected championship
-            fetch(`/api/championship/${championshipId}/rounds/`)
+            fetch(`/api/championship/${championshipId}/rounds/?only_not_ready=1`)
                 .then(response => response.json())
                 .then(data => {
                     const rounds = data.rounds;

@@ -1226,10 +1226,14 @@ def edit_round_view(request):
 @login_required
 @user_passes_test(is_admin_user)
 def get_championship_rounds(request, championship_id):
-    """API endpoint to get rounds for a championship"""
+    """API endpoint to get rounds for a championship. If ?only_not_ready=1, only return not ready rounds."""
     try:
         championship = get_object_or_404(Championship, id=championship_id)
-        rounds = Round.objects.filter(championship=championship).order_by('start')
+        only_not_ready = request.GET.get('only_not_ready') == '1'
+        if only_not_ready:
+            rounds = Round.objects.filter(championship=championship, ready=False).order_by('start')
+        else:
+            rounds = Round.objects.filter(championship=championship).order_by('start')
         
         def format_duration(td):
             """Format timedelta as HH:MM:SS with leading zeros"""
