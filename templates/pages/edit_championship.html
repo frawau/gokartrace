@@ -140,9 +140,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function loadChampionshipRounds(championshipId) {
         fetch(`/api/championship/${championshipId}/rounds/`)
             .then(response => response.json())
-            .then(rounds => {
+            .then(data => {
+                const rounds = data.rounds;
+                const total = data.total;
                 const roundsContainer = $('#current-rounds');
-                $('#num-rounds').val(rounds.length);
+                $('#num-rounds').val(total);
                 if (rounds.length === 0) {
                     roundsContainer.html('<p class="text-muted mb-0">No rounds found for this championship</p>');
                 } else {
@@ -150,13 +152,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     rounds.forEach(round => {
                         const startDate = new Date(round.start).toLocaleDateString();
                         const startTime = new Date(round.start).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                        let badgeClass = round.ready ? 'bg-success' : 'bg-primary';
                         roundsHtml += `
                             <div class="list-group-item d-flex justify-content-between align-items-center">
                                 <div>
                                     <strong>${round.name}</strong><br>
                                     <small class="text-muted">${startDate} at ${startTime}</small>
                                 </div>
-                                <span class="badge bg-primary rounded-pill">${round.duration}</span>
+                                <span class="badge ${badgeClass} rounded-pill">${round.duration}</span>
                             </div>
                         `;
                     });

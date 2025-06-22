@@ -1217,7 +1217,7 @@ def get_championship_rounds(request, championship_id):
     """API endpoint to get rounds for a championship"""
     try:
         championship = get_object_or_404(Championship, id=championship_id)
-        rounds = Round.objects.filter(championship=championship, ready=False).order_by('start')
+        rounds = Round.objects.filter(championship=championship).order_by('start')
         
         def format_duration(td):
             """Format timedelta as HH:MM:SS with leading zeros"""
@@ -1249,9 +1249,10 @@ def get_championship_rounds(request, championship_id):
                 'limit_value': round_obj.limit_value,
                 'limit_time_min': format_minutes_seconds(round_obj.limit_time_min),
                 'required_changes': round_obj.required_changes,
-                'weight_penalty': round_obj.weight_penalty or [">=", [0, 0]]
+                'weight_penalty': round_obj.weight_penalty or [">=", [0, 0]],
+                'ready': round_obj.ready,
             })
         
-        return JsonResponse(rounds_data, safe=False)
+        return JsonResponse({'rounds': rounds_data, 'total': len(rounds_data)}, safe=False)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
