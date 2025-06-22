@@ -1052,18 +1052,26 @@ def edit_championship_view(request):
             
             if action == 'add_round':
                 # Add a new round
-                existing_rounds = Round.objects.filter(championship=championship, ready=False).order_by('start')
+                round_num_re = re.compile(r'Round (\d+)')
+                all_rounds = list(Round.objects.filter(championship=championship).order_by('start'))
+                max_round_num = 0
+                for rnd in all_rounds:
+                    m = round_num_re.match(rnd.name)
+                    if m:
+                        n = int(m.group(1))
+                        if n > max_round_num:
+                            max_round_num = n
+                next_round_num = max_round_num + 1
+                existing_rounds = Round.objects.filter(championship=championship).order_by('start')
                 if existing_rounds.exists():
-                    # Calculate new round date based on last round
                     last_round = existing_rounds.last()
                     new_start = last_round.start + dt.timedelta(days=7)  # 1 week after last round
                 else:
                     # First round - start 1 week after championship start
                     new_start = dt.datetime.combine(championship.start + dt.timedelta(days=7), dt.time(18, 0))
-                
                 Round.objects.create(
                     championship=championship,
-                    name=f"Round {existing_rounds.count() + 1}",
+                    name=f"Round {next_round_num}",
                     start=new_start,
                     duration=dt.timedelta(hours=4),
                     ready=False
