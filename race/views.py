@@ -396,11 +396,11 @@ def change_kart_driver(request):
 @user_passes_test(is_admin_user)
 def round_list_update(request):
     """View to list all rounds and provide the form to update them"""
-    end_date = dt.date.today().replace(month=12).replace(day=31)
-    start_date = dt.date.today().replace(month=1).replace(day=1)
-    champ = Championship.objects.filter(start=start_date, end=end_date).get()
-    rounds = Round.objects.filter(championship=champ, ready=False).order_by("start")
-    context = {"rounds": rounds}
+    today = dt.datetime.now()
+    # Find the next round (not ready, in the future)
+    next_round = Round.objects.filter(ready=False, start__gte=today).order_by("start").first()
+    rounds = Round.objects.filter(ready=False, start__gte=today).order_by("start")
+    context = {"rounds": rounds, "next_round": next_round}
 
     if request.method == "GET" and "round_id" in request.GET:
         try:
