@@ -49,6 +49,49 @@
                     </div>
                 </div>
 
+                <!-- Round Management Section -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <h5>Round Management</h5>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group mb-3">
+                                            <label for="num-rounds">Number of Rounds:</label>
+                                            <div class="input-group">
+                                                <input type="number" class="form-control" id="num-rounds" name="num_rounds" 
+                                                       min="0" max="20" value="0">
+                                                <button type="button" class="btn btn-outline-primary" id="set-rounds-btn">Set Rounds</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group mb-3">
+                                            <label>Quick Actions:</label>
+                                            <div class="d-flex gap-2">
+                                                <button type="button" class="btn btn-success" id="add-round-btn">Add Round</button>
+                                                <button type="button" class="btn btn-danger" id="delete-round-btn">Delete Last Round</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="form-group mb-3">
+                                            <label>Current Rounds:</label>
+                                            <div id="current-rounds" class="border rounded p-3 bg-light">
+                                                <p class="text-muted mb-0">Select a championship to view rounds</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="row mt-4">
                     <div class="col-12">
                         <button type="submit" class="btn btn-primary">Save Changes</button>
@@ -84,9 +127,156 @@ document.addEventListener('DOMContentLoaded', function() {
             $('#championship-id').val(selectedOption.val());
             $('#name').val(selectedOption.data('name'));
             $('#year').val(selectedOption.data('start').split('-')[0]);
+            
+            // Load current rounds for this championship
+            loadChampionshipRounds(selectedOption.val());
         } else {
             form.hide();
+            $('#current-rounds').html('<p class="text-muted mb-0">Select a championship to view rounds</p>');
         }
+    });
+
+    // Function to load championship rounds
+    function loadChampionshipRounds(championshipId) {
+        fetch(`/api/championship/${championshipId}/rounds/`)
+            .then(response => response.json())
+            .then(rounds => {
+                const roundsContainer = $('#current-rounds');
+                if (rounds.length === 0) {
+                    roundsContainer.html('<p class="text-muted mb-0">No rounds found for this championship</p>');
+                    $('#num-rounds').val(0);
+                } else {
+                    let roundsHtml = '<div class="list-group">';
+                    rounds.forEach(round => {
+                        const startDate = new Date(round.start).toLocaleDateString();
+                        const startTime = new Date(round.start).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                        roundsHtml += `
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>${round.name}</strong><br>
+                                    <small class="text-muted">${startDate} at ${startTime}</small>
+                                </div>
+                                <span class="badge bg-primary rounded-pill">${round.duration}</span>
+                            </div>
+                        `;
+                    });
+                    roundsHtml += '</div>';
+                    roundsContainer.html(roundsHtml);
+                    $('#num-rounds').val(rounds.length);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading rounds:', error);
+                $('#current-rounds').html('<p class="text-danger mb-0">Error loading rounds</p>');
+            });
+    }
+
+    // Handle add round button
+    $('#add-round-btn').on('click', function() {
+        const championshipId = $('#championship-id').val();
+        if (!championshipId) {
+            alert('Please select a championship first');
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('championship_id', championshipId);
+        formData.append('action', 'add_round');
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        
+        fetch('{% url "edit_championship" %}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Round added successfully!');
+                loadChampionshipRounds(championshipId);
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while adding the round.');
+        });
+    });
+
+    // Handle delete round button
+    $('#delete-round-btn').on('click', function() {
+        const championshipId = $('#championship-id').val();
+        if (!championshipId) {
+            alert('Please select a championship first');
+            return;
+        }
+        
+        if (!confirm('Are you sure you want to delete the last round? This action cannot be undone.')) {
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('championship_id', championshipId);
+        formData.append('action', 'delete_round');
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        
+        fetch('{% url "edit_championship" %}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Round deleted successfully!');
+                loadChampionshipRounds(championshipId);
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while deleting the round.');
+        });
+    });
+
+    // Handle set rounds button
+    $('#set-rounds-btn').on('click', function() {
+        const championshipId = $('#championship-id').val();
+        const numRounds = parseInt($('#num-rounds').val());
+        
+        if (!championshipId) {
+            alert('Please select a championship first');
+            return;
+        }
+        
+        if (numRounds < 0 || numRounds > 20) {
+            alert('Please enter a valid number of rounds (0-20)');
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('championship_id', championshipId);
+        formData.append('action', 'set_rounds');
+        formData.append('num_rounds', numRounds);
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        
+        fetch('{% url "edit_championship" %}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Rounds updated successfully!');
+                loadChampionshipRounds(championshipId);
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while updating the rounds.');
+        });
     });
 
     // Handle form submission

@@ -1042,6 +1042,65 @@ def edit_championship_view(request):
             championship.end = dt.date(year, 12, 31)
             
             championship.save()
+            
+            # Handle round management
+            action = request.POST.get('action')
+            if action == 'add_round':
+                # Add a new round
+                existing_rounds = Round.objects.filter(championship=championship, ready=False).order_by('start')
+                if existing_rounds.exists():
+                    # Calculate new round date based on last round
+                    last_round = existing_rounds.last()
+                    new_start = last_round.start + dt.timedelta(days=7)  # 1 week after last round
+                else:
+                    # First round - start 1 week after championship start
+                    new_start = dt.datetime.combine(championship.start + dt.timedelta(days=7), dt.time(18, 0))
+                
+                Round.objects.create(
+                    championship=championship,
+                    name=f"Round {existing_rounds.count() + 1}",
+                    start=new_start,
+                    duration=dt.timedelta(hours=4),
+                    ready=False
+                )
+                
+            elif action == 'delete_round':
+                # Delete the latest round (ready=False only)
+                latest_round = Round.objects.filter(championship=championship, ready=False).order_by('-start').first()
+                if latest_round:
+                    latest_round.delete()
+                    
+            elif action == 'set_rounds':
+                # Set specific number of rounds
+                target_rounds = int(request.POST.get('num_rounds', 0))
+                current_rounds = Round.objects.filter(championship=championship, ready=False).count()
+                
+                if target_rounds > current_rounds:
+                    # Add rounds
+                    existing_rounds = Round.objects.filter(championship=championship, ready=False).order_by('start')
+                    if existing_rounds.exists():
+                        last_round = existing_rounds.last()
+                        base_start = last_round.start
+                    else:
+                        base_start = dt.datetime.combine(championship.start + dt.timedelta(days=7), dt.time(18, 0))
+                    
+                    for i in range(target_rounds - current_rounds):
+                        new_start = base_start + dt.timedelta(days=7 * (i + 1))
+                        Round.objects.create(
+                            championship=championship,
+                            name=f"Round {existing_rounds.count() + i + 2}",
+                            start=new_start,
+                            duration=dt.timedelta(hours=4),
+                            ready=False
+                        )
+                        
+                elif target_rounds < current_rounds:
+                    # Delete rounds (always delete the latest ones)
+                    rounds_to_delete = current_rounds - target_rounds
+                    latest_rounds = Round.objects.filter(championship=championship, ready=False).order_by('-start')[:rounds_to_delete]
+                    for round_obj in latest_rounds:
+                        round_obj.delete()
+            
             return JsonResponse({'success': True})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
