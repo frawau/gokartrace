@@ -395,12 +395,16 @@ def change_kart_driver(request):
 @login_required
 @user_passes_test(is_admin_user)
 def round_list_update(request):
-    """View to list all rounds and provide the form to update them"""
+    """View to list all not ready rounds for the championship whose next round is the soonest upcoming (today or after)"""
     today = dt.datetime.now()
-    # Find the next round (not ready, in the future)
+    # Find the next not ready round in any championship
     next_round = Round.objects.filter(ready=False, start__gte=today).order_by("start").first()
-    rounds = Round.objects.filter(ready=False, start__gte=today).order_by("start")
-    context = {"rounds": rounds, "next_round": next_round}
+    rounds = []
+    championship = None
+    if next_round:
+        championship = next_round.championship
+        rounds = Round.objects.filter(championship=championship, ready=False).order_by("start")
+    context = {"rounds": rounds, "next_round": next_round, "championship": championship}
 
     if request.method == "GET" and "round_id" in request.GET:
         try:
