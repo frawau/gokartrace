@@ -381,7 +381,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Fetch rounds for selected championship
             fetch(`/api/championship/${championshipId}/rounds/`)
                 .then(response => response.json())
-                .then(rounds => {
+                .then(data => {
+                    const rounds = data.rounds;
                     roundSelect.empty().append('<option value="">Search for a round...</option>');
                     rounds.forEach(round => {
                         roundSelect.append(`<option value="${round.id}" 
