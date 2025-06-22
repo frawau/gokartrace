@@ -4,6 +4,7 @@ Copyright (c) 2019 - present AppSeed.us
 """
 import datetime as dt
 import json
+import re
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate
@@ -1078,33 +1079,61 @@ def edit_championship_view(request):
                 # Set specific number of rounds
                 num_rounds_str = request.POST.get('num_rounds', '0')
                 target_rounds = int(num_rounds_str) if num_rounds_str else 0
-                current_rounds = Round.objects.filter(championship=championship, ready=False).count()
+                ready_true_rounds = list(Round.objects.filter(championship=championship, ready=True).order_by('start'))
+                ready_false_rounds = list(Round.objects.filter(championship=championship, ready=False).order_by('start'))
+                ready_true_count = len(ready_true_rounds)
+                ready_false_count = len(ready_false_rounds)
                 
-                if target_rounds > current_rounds:
+                if target_rounds < ready_true_count:
+                    return JsonResponse({'success': False, 'error': f'Cannot set number of rounds less than the number of started/completed rounds ({ready_true_count}).'})
+                
+                desired_ready_false = target_rounds - ready_true_count
+                current_ready_false = ready_false_count
+
+                # Find the highest round number among all rounds
+                round_num_re = re.compile(r'Round (\d+)')
+                max_round_num = 0
+                for rnd in ready_true_rounds + ready_false_rounds:
+                    m = round_num_re.match(rnd.name)
+                    if m:
+                        n = int(m.group(1))
+                        if n > max_round_num:
+                            max_round_num = n
+                # If no rounds, start at 1
+                next_round_num = max([int(round_num_re.match(r.name).group(1)) for r in ready_true_rounds if round_num_re.match(r.name)] or [0]) + 1
+
+                if desired_ready_false == 0:
+                    # Delete all ready=False rounds
+                    Round.objects.filter(championship=championship, ready=False).delete()
+                elif desired_ready_false > current_ready_false:
                     # Add rounds
-                    existing_rounds = Round.objects.filter(championship=championship, ready=False).order_by('start')
+                    existing_rounds = Round.objects.filter(championship=championship).order_by('start')
                     if existing_rounds.exists():
                         last_round = existing_rounds.last()
                         base_start = last_round.start
                     else:
                         base_start = dt.datetime.combine(championship.start + dt.timedelta(days=7), dt.time(18, 0))
-                    
-                    for i in range(target_rounds - current_rounds):
+                    for i in range(desired_ready_false - current_ready_false):
                         new_start = base_start + dt.timedelta(days=7 * (i + 1))
                         Round.objects.create(
                             championship=championship,
-                            name=f"Round {existing_rounds.count() + i + 2}",
+                            name=f"Round {next_round_num + i}",
                             start=new_start,
                             duration=dt.timedelta(hours=4),
                             ready=False
                         )
-                        
-                elif target_rounds < current_rounds:
-                    # Delete rounds (always delete the latest ones)
-                    rounds_to_delete = current_rounds - target_rounds
+                elif desired_ready_false < current_ready_false:
+                    # Delete rounds (always delete the latest ones, only ready=False)
+                    rounds_to_delete = current_ready_false - desired_ready_false
                     latest_rounds = Round.objects.filter(championship=championship, ready=False).order_by('-start')[:rounds_to_delete]
                     for round_obj in latest_rounds:
                         round_obj.delete()
+                    # After deletion, re-number remaining ready=False rounds
+                    remaining_false = list(Round.objects.filter(championship=championship, ready=False).order_by('start'))
+                    start_num = next_round_num
+                    for idx, rnd in enumerate(remaining_false):
+                        rnd.name = f"Round {start_num + idx}"
+                        rnd.save()
             
             return JsonResponse({'success': True})
         except Exception as e:
