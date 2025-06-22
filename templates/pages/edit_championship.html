@@ -142,9 +142,9 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(rounds => {
                 const roundsContainer = $('#current-rounds');
+                $('#num-rounds').val(rounds.length);
                 if (rounds.length === 0) {
                     roundsContainer.html('<p class="text-muted mb-0">No rounds found for this championship</p>');
-                    $('#num-rounds').val(0);
                 } else {
                     let roundsHtml = '<div class="list-group">';
                     rounds.forEach(round => {
@@ -162,7 +162,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                     roundsHtml += '</div>';
                     roundsContainer.html(roundsHtml);
-                    $('#num-rounds').val(rounds.length);
                 }
             })
             .catch(error => {

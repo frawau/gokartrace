@@ -1090,17 +1090,17 @@ def edit_championship_view(request):
                 desired_ready_false = target_rounds - ready_true_count
                 current_ready_false = ready_false_count
 
-                # Find the highest round number among all rounds
+                # Find the highest round number among all rounds (ready or not)
                 round_num_re = re.compile(r'Round (\d+)')
+                all_rounds = list(Round.objects.filter(championship=championship).order_by('start'))
                 max_round_num = 0
-                for rnd in ready_true_rounds + ready_false_rounds:
+                for rnd in all_rounds:
                     m = round_num_re.match(rnd.name)
                     if m:
                         n = int(m.group(1))
                         if n > max_round_num:
                             max_round_num = n
-                # If no rounds, start at 1
-                next_round_num = max([int(round_num_re.match(r.name).group(1)) for r in ready_true_rounds if round_num_re.match(r.name)] or [0]) + 1
+                next_round_num = max_round_num + 1
 
                 if desired_ready_false == 0:
                     # Delete all ready=False rounds
@@ -1129,10 +1129,19 @@ def edit_championship_view(request):
                     for round_obj in latest_rounds:
                         round_obj.delete()
                     # After deletion, re-number remaining ready=False rounds
+                    # Find the highest round number among all rounds again
+                    all_rounds = list(Round.objects.filter(championship=championship).order_by('start'))
+                    max_round_num = 0
+                    for rnd in all_rounds:
+                        m = round_num_re.match(rnd.name)
+                        if m:
+                            n = int(m.group(1))
+                            if n > max_round_num:
+                                max_round_num = n
+                    next_round_num = max_round_num + 1
                     remaining_false = list(Round.objects.filter(championship=championship, ready=False).order_by('start'))
-                    start_num = next_round_num
                     for idx, rnd in enumerate(remaining_false):
-                        rnd.name = f"Round {start_num + idx}"
+                        rnd.name = f"Round {next_round_num + idx}"
                         rnd.save()
             
             return JsonResponse({'success': True})
