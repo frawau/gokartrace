@@ -103,10 +103,10 @@ class TeamMembersView(View):
     static_template_name = "pages/static_team_members.html"
 
     def get_current_round(self):
-        # Get the current round (the next one starting today or later)
-        return Round.objects.filter(
-            start__gte=dt.date.today() - dt.timedelta(days=1), ended__isnull=True
-        ).first()
+        # Get the current round (the next not ready round starting today or later)
+        # Use same logic as round_list_update to ensure consistency
+        today = dt.datetime.now()
+        return Round.objects.filter(ready=False, start__gte=today).order_by("start").first()
 
     def get(self, request):
         current_round = self.get_current_round()
