@@ -138,6 +138,8 @@
                 <input type="hidden" name="remove_member" value="1">
             </form>
             {% endfor %}
+            {% else %}
+            <div class="alert alert-info">Please select a team to manage its members.</div>
             {% endif %}
         </div>
     </div>

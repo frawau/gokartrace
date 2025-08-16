@@ -14,17 +14,26 @@
                 </div>
                 <div class="card-body">
                     <!-- Round Selection -->
-                    <div class="form-group mb-4">
-                        <label for="round-select" class="form-label">Select Round</label>
-                        <select id="round-select" name="round_id" class="form-control" hx-get="{% url 'round_form' %}" hx-target="#round-form-container" hx-trigger="change">
-                            <option value="">-- Select a Round --</option>
-                            {% for round in rounds %}
-                                <option value="{{ round.id }}">{{ round.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
+                    <form method="get" class="mb-4">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="form-group">
+                                    <label for="round-select" class="form-label">Select Round</label>
+                                    <select id="round-select" name="round_id" class="form-control">
+                                        <option value="">-- Select a Round --</option>
+                                        {% for round in rounds %}
+                                            <option value="{{ round.id }}" {% if round.id == selected_round.id %}selected{% endif %}>{{ round.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary">Select Round</button>
+                            </div>
+                        </div>
+                    </form>
 
-                    <!-- Form container that will be updated with HTMX -->
+                    <!-- Form container for round details -->
                     <div id="round-form-container">
                         {% if selected_round %}
                             {% include "layout/roundedit.html" with round=selected_round %}
