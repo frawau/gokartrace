@@ -7,7 +7,10 @@
         <div class="col-md-10">
             <div class="card">
                 <div class="card-header bg-primary text-white">
-                    <h3 class="mb-0">Update Round Configuration</h3>
+                    <h4>Manage Round</h4>
+                    {% if championship %}
+                        <p class="mb-0">Championship: {{ championship.name }}</p>
+                    {% endif %}
                 </div>
                 <div class="card-body">
                     <!-- Round Selection -->
