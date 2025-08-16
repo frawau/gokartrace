@@ -623,6 +623,16 @@ class Round(models.Model):
         unique_together = ("championship", "name")
         verbose_name = _("Round")
         verbose_name_plural = _("Rounds")
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(started__isnull=True) | models.Q(ready=True),
+                name="started_requires_ready"
+            ),
+            models.CheckConstraint(
+                check=models.Q(ended__isnull=True) | models.Q(started__isnull=False),
+                name="ended_requires_started"
+            ),
+        ]
 
     def __str__(self):
         return f"{self.name} of {self.championship.name}"
