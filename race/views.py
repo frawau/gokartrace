@@ -774,7 +774,15 @@ def get_available_numbers(request):
 
 def round_info(request):
     # Get all rounds sorted by date
-    rounds = Round.objects.all().order_by("start")
+    rounds = Round.objects.select_related('championship').all().order_by("start")
+    
+    # Group rounds by championship name
+    rounds_by_championship = {}
+    for round_obj in rounds:
+        championship_name = round_obj.championship.name
+        if championship_name not in rounds_by_championship:
+            rounds_by_championship[championship_name] = []
+        rounds_by_championship[championship_name].append(round_obj)
 
     # Find closest round to today
     selected_round_id = request.GET.get("round_id")
@@ -814,6 +822,7 @@ def round_info(request):
 
     context = {
         "rounds": rounds,
+        "rounds_by_championship": rounds_by_championship,
         "selected_round": selected_round,
         "selected_round_id": int(selected_round_id) if selected_round_id else None,
         "round_teams": round_teams,

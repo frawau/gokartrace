@@ -9,10 +9,14 @@
         <div class="form-group">
             <label for="round-select">Select Round:</label>
             <select class="form-control" id="round-select" name="round_id" onchange="this.form.submit()">
-                {% for round in rounds %}
-                    <option value="{{ round.id }}" {% if round.id == selected_round_id %}selected{% endif %}>
-                        {{ round.name }} ({{ round.start|date:"Y-m-d" }})
-                    </option>
+                {% for championship_name, championship_rounds in rounds_by_championship.items %}
+                    <optgroup label="{{ championship_name }}">
+                        {% for round in championship_rounds %}
+                            <option value="{{ round.id }}" {% if round.id == selected_round_id %}selected{% endif %}>
+                                {{ round.name }} ({{ round.start|date:"Y-m-d" }})
+                            </option>
+                        {% endfor %}
+                    </optgroup>
                 {% endfor %}
             </select>
         </div>
