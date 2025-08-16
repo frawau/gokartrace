@@ -56,6 +56,23 @@ def logo_path(instance, filename):
     return f"static/logos/{instance.name}_{round(dt.datetime.now().timestamp())}"
 
 
+def default_weight_penalty():
+    return [
+        ">=",
+        [80, 0],
+        [77.5, 2.5],
+        [75, 5],
+        [72.5, 7.5],
+        [70, 10],
+        [67.5, 12.5],
+        [65, 15],
+        [62.5, 17.5],
+        [60, 20],
+        [57.5, 22.5],
+        [0, 25],
+    ]
+
+
 class Person(models.Model):
     GENDER = (
         ("M", "♂"),
@@ -151,20 +168,7 @@ class Round(models.Model):
         verbose_name="Minimum Driving Time",
     )
     weight_penalty = models.JSONField(
-        default=lambda:[
-            ">=",
-            [80, 0],
-            [77.5, 2.5],
-            [75, 5],
-            [72.5, 7.5],
-            [70, 10],
-            [67.5, 12.5],
-            [65, 15],
-            [62.5, 17.5],
-            [60, 20],
-            [57.5, 22.5],
-            [0, 25],
-        ],
+        default=default_weight_penalty,
         null=True,
         help_text="Weight penalty configuration in format: ['oper', [limit1, value1], [limit2, value2], ...]",
     )
