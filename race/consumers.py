@@ -260,3 +260,60 @@ class RoundConsumer(AsyncWebsocketConsumer):
                 }
             )
         )
+
+
+class StopAndGoConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.stopandgo_group_name = "stopandgo"
+        
+        # Join room group
+        await self.channel_layer.group_add(self.stopandgo_group_name, self.channel_name)
+        await self.accept()
+        print("Stop and Go station connected")
+
+    async def disconnect(self, close_code):
+        # Leave room group
+        await self.channel_layer.group_discard(self.stopandgo_group_name, self.channel_name)
+        print("Stop and Go station disconnected")
+
+    async def receive(self, text_data):
+        try:
+            data = json.loads(text_data)
+            
+            # Handle penalty notifications from station
+            if "penalty" in data and data["penalty"] == "ok":
+                team_number = data.get("team")
+                if team_number:
+                    print(f"Penalty served by team {team_number}")
+                    
+                    # Send acknowledgment back to station
+                    await self.send(text_data=json.dumps({
+                        "team": team_number,
+                        "served": "ok"
+                    }))
+                    
+                    # Broadcast penalty served to race control
+                    await self.channel_layer.group_send(
+                        self.stopandgo_group_name,
+                        {
+                            "type": "penalty_served",
+                            "team": team_number,
+                        }
+                    )
+                    
+        except json.JSONDecodeError:
+            print("Invalid JSON received from stop and go station")
+
+    async def send_race_command(self, event):
+        # Send race command to station
+        await self.send(text_data=json.dumps({
+            "team": event["team"],
+            "duration": event["duration"]
+        }))
+
+    async def penalty_served(self, event):
+        # Broadcast penalty served notification to race control interfaces
+        await self.send(text_data=json.dumps({
+            "type": "penalty_served",
+            "team": event["team"]
+        }))

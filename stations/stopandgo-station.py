@@ -328,7 +328,7 @@ async def main():
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
     # Replace with your WebSocket URL
-    websocket_url = "ws://race-control-server:8080/ws"
+    websocket_url = "ws://race-control-server:8080/ws/stopandgo/"
 
     station = StopAndGoStation(websocket_url)
     await station.run()
