@@ -16,8 +16,19 @@ let hmacSecret = null;
  */
 async function signMessage(messageData) {
   if (!hmacSecret) {
-    console.error('HMAC secret not available');
-    return messageData;
+    console.error('HMAC secret not available - attempting to reload from DOM');
+    
+    // Try to get the secret again
+    const roundData = document.getElementById('round-data');
+    if (roundData) {
+      hmacSecret = roundData.dataset.hmacSecret || roundData.getAttribute('data-hmac-secret');
+      console.log('Retry: HMAC secret loaded:', hmacSecret ? 'YES' : 'NO');
+    }
+    
+    if (!hmacSecret) {
+      console.error('HMAC secret still not available - message will not be signed!');
+      return messageData;
+    }
   }
   
   try {
@@ -590,9 +601,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Get HMAC secret from template data
   const roundData = document.getElementById('round-data');
+  console.log('Round data element:', roundData);
   if (roundData) {
-    hmacSecret = roundData.dataset.hmacSecret;
-    console.log('HMAC secret loaded for Stop & Go communication');
+    console.log('Round data attributes:', roundData.dataset);
+    console.log('Available dataset keys:', Object.keys(roundData.dataset));
+    
+    // Try different attribute access methods
+    hmacSecret = roundData.dataset.hmacSecret || roundData.getAttribute('data-hmac-secret');
+    console.log('HMAC secret loaded:', hmacSecret ? 'YES' : 'NO');
+    console.log('Secret value:', hmacSecret);
+    console.log('Secret length:', hmacSecret ? hmacSecret.length : 'N/A');
+  } else {
+    console.error('round-data element not found!');
   }
   
   // Initialize Stop & Go functionality with multiple attempts
