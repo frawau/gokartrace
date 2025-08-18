@@ -592,8 +592,10 @@ function updateEmptyTeamsList(teams) {
 }
 
 // --- Event Listeners Setup ---
-document.addEventListener("DOMContentLoaded", () => {
-  // Get HMAC secret from template data - do this first!
+console.log('JavaScript file loaded, setting up DOMContentLoaded listener...');
+
+// Separate function to load HMAC secret
+function loadHmacSecret() {
   console.log('Loading HMAC secret from template data...');
   const roundData = document.getElementById('round-data');
   console.log('Round data element:', roundData);
@@ -608,6 +610,24 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log('Secret length:', hmacSecret ? hmacSecret.length : 'N/A');
   } else {
     console.error('round-data element not found!');
+  }
+}
+
+// Try to load secret immediately if DOM is already ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', loadHmacSecret);
+} else {
+  // DOM is already ready
+  loadHmacSecret();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  console.log('DOMContentLoaded event fired!');
+  
+  // Ensure HMAC secret is loaded
+  if (!hmacSecret) {
+    console.log('HMAC secret not loaded yet, trying again...');
+    loadHmacSecret();
   }
   // Add listeners to all race action buttons
   const actionButtons = document.querySelectorAll(".race-action-btn");
