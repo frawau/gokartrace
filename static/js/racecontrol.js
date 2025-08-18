@@ -9,6 +9,44 @@ let emptyTeamsSocketInstance = null;
 let stopAndGoSocket = null;
 let stopAndGoState = 'idle'; // 'idle', 'active', 'served'
 let fenceEnabled = null;
+let hmacSecret = null;
+
+/**
+ * Sign message with HMAC using Web Crypto API (SHA-256 for JavaScript compatibility)
+ */
+async function signMessage(messageData) {
+  if (!hmacSecret) {
+    console.error('HMAC secret not available');
+    return messageData;
+  }
+  
+  try {
+    const messageStr = JSON.stringify(messageData);
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(hmacSecret);
+    const messageBuffer = encoder.encode(messageStr);
+    
+    const key = await crypto.subtle.importKey(
+      'raw',
+      keyData,
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    
+    const signature = await crypto.subtle.sign('HMAC', key, messageBuffer);
+    const signatureArray = new Uint8Array(signature);
+    const signatureHex = Array.from(signatureArray)
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+    
+    messageData.hmac_signature = signatureHex;
+    return messageData;
+  } catch (error) {
+    console.error('Error signing message:', error);
+    return messageData;
+  }
+}
 /**
  * Creates a WebSocket connection with automatic reconnection logic.
  * (Keep function definition as is)
@@ -550,6 +588,13 @@ document.addEventListener("DOMContentLoaded", () => {
     button.addEventListener("click", handleRaceAction);
   });
 
+  // Get HMAC secret from template data
+  const roundData = document.getElementById('round-data');
+  if (roundData) {
+    hmacSecret = roundData.dataset.hmacSecret;
+    console.log('HMAC secret loaded for Stop & Go communication');
+  }
+  
   // Initialize Stop & Go functionality with multiple attempts
   function tryInitializeStopAndGo(attempt) {
     attempt = attempt || 1;
@@ -771,30 +816,45 @@ function handleStopGoButtonClick() {
     const duration = parseInt(durationInput.value) || 20;
     
     if (offenderTeamNumber && stopAndGoSocket) {
-      // Send command to stop and go station
-      stopAndGoSocket.send(JSON.stringify({
+      // Send signed command to stop and go station
+      const message = {
         type: 'send_race_command',
         team: parseInt(offenderTeamNumber),
-        duration: duration
-      }));
+        duration: duration,
+        timestamp: new Date().toISOString()
+      };
       
-      // Update button to "Served" state
-      stopAndGoState = 'active';
-      stopGoButton.style.backgroundColor = '#fd7e14';
-      stopGoButton.style.color = 'black';
-      stopGoButton.textContent = 'Served';
-      stopGoButton.disabled = false;
-      
-      addSystemMessage(`Stop & Go penalty sent to team ${offenderTeamNumber} for ${duration} seconds`, 'info');
+      signMessage(message).then(signedMessage => {
+        stopAndGoSocket.send(JSON.stringify(signedMessage));
+        
+        // Update button to "Served" state
+        stopAndGoState = 'active';
+        stopGoButton.style.backgroundColor = '#fd7e14';
+        stopGoButton.style.color = 'black';
+        stopGoButton.textContent = 'Served';
+        stopGoButton.disabled = false;
+        
+        addSystemMessage(`Stop & Go penalty sent to team ${offenderTeamNumber} for ${duration} seconds`, 'info');
+      }).catch(error => {
+        console.error('Failed to sign message:', error);
+        addSystemMessage('Failed to send Stop & Go penalty', 'danger');
+      });
     }
   } else if (stopAndGoState === 'active') {
     // Force complete penalty
     if (stopAndGoSocket) {
-      stopAndGoSocket.send(JSON.stringify({
-        type: 'force_complete_penalty'
-      }));
+      const message = {
+        type: 'force_complete_penalty',
+        timestamp: new Date().toISOString()
+      };
       
-      addSystemMessage('Force completing penalty...', 'info');
+      signMessage(message).then(signedMessage => {
+        stopAndGoSocket.send(JSON.stringify(signedMessage));
+        addSystemMessage('Force completing penalty...', 'info');
+      }).catch(error => {
+        console.error('Failed to sign message:', error);
+        addSystemMessage('Failed to force complete penalty', 'danger');
+      });
     }
   }
 }
@@ -806,12 +866,19 @@ function handleToggleFenceClick() {
   if (stopAndGoSocket && fenceEnabled !== null) {
     const newState = !fenceEnabled;
     
-    stopAndGoSocket.send(JSON.stringify({
+    const message = {
       type: 'set_fence',
-      enabled: newState
-    }));
+      enabled: newState,
+      timestamp: new Date().toISOString()
+    };
     
-    addSystemMessage(`${newState ? 'Enabling' : 'Disabling'} fence...`, 'info');
+    signMessage(message).then(signedMessage => {
+      stopAndGoSocket.send(JSON.stringify(signedMessage));
+      addSystemMessage(`${newState ? 'Enabling' : 'Disabling'} fence...`, 'info');
+    }).catch(error => {
+      console.error('Failed to sign message:', error);
+      addSystemMessage('Failed to toggle fence', 'danger');
+    });
   }
 }
 
@@ -820,9 +887,17 @@ function handleToggleFenceClick() {
  */
 function queryFenceStatus() {
   if (stopAndGoSocket) {
-    stopAndGoSocket.send(JSON.stringify({
-      type: 'get_fence_status'
-    }));
+    const message = {
+      type: 'get_fence_status',
+      timestamp: new Date().toISOString()
+    };
+    
+    signMessage(message).then(signedMessage => {
+      stopAndGoSocket.send(JSON.stringify(signedMessage));
+    }).catch(error => {
+      console.error('Failed to sign message:', error);
+      addSystemMessage('Failed to query fence status', 'danger');
+    });
   }
 }
 

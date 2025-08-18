@@ -275,24 +275,22 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
 
     def sign_message(self, message_data):
         """Sign outgoing message with HMAC"""
-        message_str = json.dumps(message_data, sort_keys=True)
+        message_str = json.dumps(message_data, sort_keys=False, separators=(",", ":"))
         signature = hmac.new(
             self.hmac_secret,
             message_str.encode("utf-8"),
-            hashlib.blake2b,
-            digest_size=32,
+            hashlib.sha256,
         ).hexdigest()
         message_data["hmac_signature"] = signature
         return message_data
 
     def verify_hmac(self, message_data, provided_signature):
         """Verify HMAC signature for incoming message"""
-        message_str = json.dumps(message_data, sort_keys=True)
+        message_str = json.dumps(message_data, sort_keys=False, separators=(",", ":"))
         expected_signature = hmac.new(
             self.hmac_secret,
             message_str.encode("utf-8"),
-            hashlib.blake2b,
-            digest_size=32,
+            hashlib.sha256,
         ).hexdigest()
         return hmac.compare_digest(expected_signature, provided_signature)
 
@@ -325,8 +323,11 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
                 print("HMAC verification failed - rejecting message")
                 return
 
-            # Only handle responses from the station
-            if data.get("type") == "response":
+            # Handle both race control commands and station responses
+            message_type = data.get("type")
+
+            if message_type == "response":
+                # Handle station responses
                 response_type = data.get("response")
 
                 if response_type == "penalty_served":
@@ -368,9 +369,42 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
                             self.stopandgo_group_name,
                             {"type": "penalty_completed", "team": team_number},
                         )
+            else:
+                # Handle race control commands
+                if message_type == "send_race_command":
+                    # Forward race command to station
+                    team = data.get("team")
+                    duration = data.get("duration")
+                    if team and duration:
+                        await self.channel_layer.group_send(
+                            self.stopandgo_group_name,
+                            {
+                                "type": "send_race_command",
+                                "team": team,
+                                "duration": duration,
+                            },
+                        )
+                elif message_type == "get_fence_status":
+                    # Query fence status
+                    await self.channel_layer.group_send(
+                        self.stopandgo_group_name, {"type": "get_fence_status"}
+                    )
+                elif message_type == "set_fence":
+                    # Set fence status
+                    enabled = data.get("enabled")
+                    if enabled is not None:
+                        await self.channel_layer.group_send(
+                            self.stopandgo_group_name,
+                            {"type": "set_fence", "enabled": enabled},
+                        )
+                elif message_type == "force_complete_penalty":
+                    # Force complete penalty
+                    await self.channel_layer.group_send(
+                        self.stopandgo_group_name, {"type": "force_complete_penalty"}
+                    )
 
         except json.JSONDecodeError:
-            print("Invalid JSON received from stop and go station")
+            print("Invalid JSON received from stop and go connection")
 
     async def send_race_command(self, event):
         # Send signed race command to station

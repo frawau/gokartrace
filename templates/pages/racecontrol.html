@@ -236,7 +236,8 @@
 data-started="{{ round.started|yesno:'true,false' }}"
 data-ended="{{ round.ended|yesno:'true,false' }}"
 data-ready="{{ round.is_ready|yesno:'true,false' }}"
-data-lanes="{{ lanes }}">
+data-lanes="{{ lanes }}"
+data-hmac-secret="{{ settings.STOPANDGO_HMAC_SECRET }}">
 </div>
 
 {% block extra_js %}

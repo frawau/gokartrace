@@ -13,6 +13,7 @@ from django.views.decorators.http import require_http_methods, require_POST
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.urls import reverse
+from django.conf import settings
 from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
@@ -197,7 +198,12 @@ def racecontrol(request):
         return render(
             request,
             "pages/racecontrol.html",
-            {"round": cround, "lanes": lanes, "pending_sessions": pending_sessions},
+            {
+                "round": cround,
+                "lanes": lanes,
+                "pending_sessions": pending_sessions,
+                "settings": {"STOPANDGO_HMAC_SECRET": settings.STOPANDGO_HMAC_SECRET},
+            },
         )
     except:
         return render(request, "pages/norace.html")

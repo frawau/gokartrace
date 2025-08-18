@@ -231,23 +231,21 @@ class StopAndGoStation:
     def verify_hmac(self, message_data, provided_signature):
         """Verify HMAC signature for incoming message"""
         # Create message string from data (excluding signature)
-        message_str = json.dumps(message_data, sort_keys=True)
+        message_str = json.dumps(message_data, sort_keys=False, separators=(",", ":"))
         expected_signature = hmac.new(
             self.hmac_secret,
             message_str.encode("utf-8"),
-            hashlib.blake2b,  # Faster than SHA256
-            digest_size=32,
+            hashlib.sha256,
         ).hexdigest()
         return hmac.compare_digest(expected_signature, provided_signature)
 
     def sign_message(self, message_data):
         """Sign outgoing message with HMAC"""
-        message_str = json.dumps(message_data, sort_keys=True)
+        message_str = json.dumps(message_data, sort_keys=False, separators=(",", ":"))
         signature = hmac.new(
             self.hmac_secret,
             message_str.encode("utf-8"),
-            hashlib.blake2b,  # Faster than SHA256
-            digest_size=32,
+            hashlib.sha256,
         ).hexdigest()
         message_data["hmac_signature"] = signature
         return message_data
