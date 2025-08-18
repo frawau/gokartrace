@@ -302,6 +302,13 @@ function updateButtonVisibility(state, options = {}) {
       document
         .getElementById("teamSelectCard")
         ?.style.setProperty("display", "block", "important");
+      
+      // Initialize Stop & Go when card becomes visible
+      if (!window.stopAndGoInitialized) {
+        initializeStopAndGo();
+        initializeDropdownLogic();
+        window.stopAndGoInitialized = true;
+      }
       break;
     case "running": // Ready, started
       if (options.showFalseStart) {
@@ -550,11 +557,17 @@ document.addEventListener("DOMContentLoaded", () => {
     button.addEventListener("click", handleRaceAction);
   });
 
-  // Add listeners for Stop & Go functionality
-  initializeStopAndGo();
-  
-  // Initialize dropdown interactions
-  initializeDropdownLogic();
+  // Initialize Stop & Go functionality if card is visible
+  const teamSelectCard = document.getElementById('teamSelectCard');
+  if (teamSelectCard && teamSelectCard.style.display !== 'none' && 
+      window.getComputedStyle(teamSelectCard).display !== 'none') {
+    console.log('Stop & Go card is visible, initializing...');
+    initializeStopAndGo();
+    initializeDropdownLogic();
+    window.stopAndGoInitialized = true;
+  } else {
+    console.log('Stop & Go card not visible yet, will initialize when ready');
+  }
 
   // --- Set Initial Button State ---
   // Determine initial state based on which buttons are initially visible in the HTML
@@ -637,23 +650,36 @@ function initializeStopAndGo() {
  * Initialize dropdown interaction logic
  */
 function initializeDropdownLogic() {
+  console.log('Initializing dropdown logic...');
   const offenderSelect = document.getElementById('offenderSelect');
   const victimSelect = document.getElementById('victimSelect');
   const reasonSelect = document.getElementById('reasonSelect');
   const stopGoButton = document.getElementById('stopGoButton');
   
+  console.log('Elements found:', {
+    offenderSelect: !!offenderSelect,
+    victimSelect: !!victimSelect,
+    reasonSelect: !!reasonSelect,
+    stopGoButton: !!stopGoButton
+  });
+  
   if (!offenderSelect || !victimSelect || !reasonSelect || !stopGoButton) {
+    console.log('Some elements not found, skipping dropdown initialization');
     return; // Elements not found
   }
+  
+  console.log('All elements found, setting up event listeners...');
   
   // When offender is selected, populate victim dropdown and enable reason
   offenderSelect.addEventListener('change', function() {
     const selectedOffenderId = this.value;
+    console.log('Offender selected:', selectedOffenderId);
     
     if (selectedOffenderId) {
       // Enable victim and reason dropdowns
       victimSelect.disabled = false;
       reasonSelect.disabled = false;
+      console.log('Enabled victim and reason dropdowns');
       
       // Populate victim dropdown (all teams except the offender)
       populateVictimDropdown(selectedOffenderId);
@@ -666,6 +692,7 @@ function initializeDropdownLogic() {
       
       // Clear victim options
       victimSelect.innerHTML = '<option value="">Select victim team...</option>';
+      console.log('Disabled victim and reason dropdowns');
     }
     
     checkFormCompletion();
