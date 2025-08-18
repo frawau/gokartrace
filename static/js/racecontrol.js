@@ -550,14 +550,37 @@ document.addEventListener("DOMContentLoaded", () => {
     button.addEventListener("click", handleRaceAction);
   });
 
-  // Initialize Stop & Go functionality
-  setTimeout(function() {
-    if (document.getElementById('offenderSelect')) {
-      console.log('Initializing Stop & Go functionality...');
+  // Initialize Stop & Go functionality with multiple attempts
+  function tryInitializeStopAndGo(attempt) {
+    attempt = attempt || 1;
+    console.log(`Attempt ${attempt} to initialize Stop & Go...`);
+    
+    const offenderSelect = document.getElementById('offenderSelect');
+    const victimSelect = document.getElementById('victimSelect');
+    const reasonSelect = document.getElementById('reasonSelect');
+    
+    if (offenderSelect && victimSelect && reasonSelect) {
+      console.log('All Stop & Go elements found, initializing...');
       initializeStopAndGo();
       initializeDropdownLogic();
+      return true;
+    } else {
+      console.log('Stop & Go elements not found:', {
+        offender: !!offenderSelect,
+        victim: !!victimSelect,
+        reason: !!reasonSelect
+      });
+      
+      if (attempt < 5) {
+        setTimeout(() => tryInitializeStopAndGo(attempt + 1), 1000);
+      } else {
+        console.log('Failed to initialize Stop & Go after 5 attempts');
+      }
+      return false;
     }
-  }, 500); // Small delay to ensure DOM is ready
+  }
+  
+  tryInitializeStopAndGo();
 
   // --- Set Initial Button State ---
   // Determine initial state based on which buttons are initially visible in the HTML
@@ -660,16 +683,25 @@ function initializeDropdownLogic() {
   
   console.log('All elements found, setting up event listeners...');
   
+  // Test that the offender select exists and can be interacted with
+  console.log('Offender select element:', offenderSelect);
+  console.log('Offender select disabled state:', offenderSelect.disabled);
+  
   // When offender is selected, populate victim dropdown and enable reason
   offenderSelect.addEventListener('change', function() {
+    console.log('Change event fired on offender select!');
     const selectedOffenderId = this.value;
     console.log('Offender selected:', selectedOffenderId);
+    console.log('Victim select before change:', victimSelect.disabled);
+    console.log('Reason select before change:', reasonSelect.disabled);
     
     if (selectedOffenderId) {
       // Enable victim and reason dropdowns
       victimSelect.disabled = false;
       reasonSelect.disabled = false;
       console.log('Enabled victim and reason dropdowns');
+      console.log('Victim select after enable:', victimSelect.disabled);
+      console.log('Reason select after enable:', reasonSelect.disabled);
       
       // Populate victim dropdown (all teams except the offender)
       populateVictimDropdown(selectedOffenderId);
