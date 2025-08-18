@@ -593,13 +593,8 @@ function updateEmptyTeamsList(teams) {
 
 // --- Event Listeners Setup ---
 document.addEventListener("DOMContentLoaded", () => {
-  // Add listeners to all race action buttons
-  const actionButtons = document.querySelectorAll(".race-action-btn");
-  actionButtons.forEach((button) => {
-    button.addEventListener("click", handleRaceAction);
-  });
-
-  // Get HMAC secret from template data
+  // Get HMAC secret from template data - do this first!
+  console.log('Loading HMAC secret from template data...');
   const roundData = document.getElementById('round-data');
   console.log('Round data element:', roundData);
   if (roundData) {
@@ -614,7 +609,12 @@ document.addEventListener("DOMContentLoaded", () => {
   } else {
     console.error('round-data element not found!');
   }
-  
+  // Add listeners to all race action buttons
+  const actionButtons = document.querySelectorAll(".race-action-btn");
+  actionButtons.forEach((button) => {
+    button.addEventListener("click", handleRaceAction);
+  });
+
   // Initialize Stop & Go functionality with multiple attempts
   function tryInitializeStopAndGo(attempt) {
     attempt = attempt || 1;
