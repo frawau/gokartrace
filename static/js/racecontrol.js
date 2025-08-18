@@ -4,6 +4,11 @@ let falseStartTimeoutExpired = false;
 let falseRestartTimeoutId = null;
 let falseRestartTimeoutExpired = false;
 let emptyTeamsSocketInstance = null;
+
+// Stop & Go state variables
+let stopAndGoSocket = null;
+let stopAndGoState = 'idle'; // 'idle', 'active', 'served'
+let fenceEnabled = null;
 /**
  * Creates a WebSocket connection with automatic reconnection logic.
  * (Keep function definition as is)
@@ -545,13 +550,11 @@ document.addEventListener("DOMContentLoaded", () => {
     button.addEventListener("click", handleRaceAction);
   });
 
-  // Add listener for Stop&Go button (Keep as is)
-  const stopGoButton = document.getElementById("stopGoButton");
-  if (stopGoButton) {
-    stopGoButton.addEventListener("click", async () => {
-      /* ... */
-    });
-  }
+  // Add listeners for Stop & Go functionality
+  initializeStopAndGo();
+  
+  // Initialize dropdown interactions
+  initializeDropdownLogic();
 
   // --- Set Initial Button State ---
   // Determine initial state based on which buttons are initially visible in the HTML
@@ -585,3 +588,270 @@ document.addEventListener("DOMContentLoaded", () => {
     window.lanesConnected = false;
   }
 });
+
+/**
+ * Initialize Stop & Go functionality
+ */
+function initializeStopAndGo() {
+  const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+  const stopAndGoSocketUrl = `${wsScheme}://${window.location.host}/ws/stopandgo/`;
+  
+  // Create Stop & Go WebSocket connection
+  stopAndGoSocket = createWebSocketWithReconnect(
+    stopAndGoSocketUrl,
+    function(e) {
+      try {
+        const data = JSON.parse(e.data);
+        handleStopAndGoMessage(data);
+      } catch (err) {
+        console.error('Error processing Stop & Go WS message:', err, e.data);
+      }
+    },
+    function(e) {
+      console.log('Stop & Go WS connected');
+      // Query fence status on connection
+      queryFenceStatus();
+    },
+    function(e) {
+      addSystemMessage('Stop & Go station connection error.', 'danger');
+    },
+    function(e) {
+      addSystemMessage('Stop & Go station disconnected.', e.wasClean ? 'info' : 'warning');
+    }
+  );
+  
+  // Add event listeners for buttons
+  const stopGoButton = document.getElementById('stopGoButton');
+  const toggleFenceButton = document.getElementById('toggleFenceButton');
+  
+  if (stopGoButton) {
+    stopGoButton.addEventListener('click', handleStopGoButtonClick);
+  }
+  
+  if (toggleFenceButton) {
+    toggleFenceButton.addEventListener('click', handleToggleFenceClick);
+  }
+}
+
+/**
+ * Initialize dropdown interaction logic
+ */
+function initializeDropdownLogic() {
+  const offenderSelect = document.getElementById('offenderSelect');
+  const victimSelect = document.getElementById('victimSelect');
+  const reasonSelect = document.getElementById('reasonSelect');
+  const stopGoButton = document.getElementById('stopGoButton');
+  
+  if (!offenderSelect || !victimSelect || !reasonSelect || !stopGoButton) {
+    return; // Elements not found
+  }
+  
+  // When offender is selected, populate victim dropdown and enable reason
+  offenderSelect.addEventListener('change', function() {
+    const selectedOffenderId = this.value;
+    
+    if (selectedOffenderId) {
+      // Enable victim and reason dropdowns
+      victimSelect.disabled = false;
+      reasonSelect.disabled = false;
+      
+      // Populate victim dropdown (all teams except the offender)
+      populateVictimDropdown(selectedOffenderId);
+    } else {
+      // Disable victim and reason dropdowns
+      victimSelect.disabled = true;
+      reasonSelect.disabled = true;
+      victimSelect.value = '';
+      reasonSelect.value = '';
+      
+      // Clear victim options
+      victimSelect.innerHTML = '<option value="">Select victim team...</option>';
+    }
+    
+    checkFormCompletion();
+  });
+  
+  // When victim or reason changes, check form completion
+  victimSelect.addEventListener('change', checkFormCompletion);
+  reasonSelect.addEventListener('change', checkFormCompletion);
+  
+  function populateVictimDropdown(excludeOffenderId) {
+    const offenderOptions = offenderSelect.querySelectorAll('option[value]:not([value=""])');
+    victimSelect.innerHTML = '<option value="">Select victim team...</option>';
+    
+    offenderOptions.forEach(option => {
+      if (option.value !== excludeOffenderId) {
+        const newOption = option.cloneNode(true);
+        victimSelect.appendChild(newOption);
+      }
+    });
+  }
+  
+  function checkFormCompletion() {
+    const offenderSelected = offenderSelect.value !== '';
+    const victimSelected = victimSelect.value !== '';
+    const reasonSelected = reasonSelect.value !== '';
+    
+    if (offenderSelected && victimSelected && reasonSelected && stopAndGoState === 'idle') {
+      stopGoButton.disabled = false;
+      stopGoButton.style.backgroundColor = '#dc3545';
+      stopGoButton.style.color = 'yellow';
+      stopGoButton.textContent = 'Stop & Go';
+    } else {
+      stopGoButton.disabled = true;
+      if (stopAndGoState === 'idle') {
+        stopGoButton.style.backgroundColor = '#6c757d';
+        stopGoButton.style.color = '#fff';
+        stopGoButton.textContent = 'Stop & Go';
+      }
+    }
+  }
+}
+
+/**
+ * Handle Stop & Go button click
+ */
+function handleStopGoButtonClick() {
+  const offenderSelect = document.getElementById('offenderSelect');
+  const durationInput = document.getElementById('durationInput');
+  const stopGoButton = document.getElementById('stopGoButton');
+  
+  if (stopAndGoState === 'idle') {
+    // Send stop & go command
+    const offenderTeamNumber = offenderSelect.selectedOptions[0]?.dataset.teamNumber;
+    const duration = parseInt(durationInput.value) || 20;
+    
+    if (offenderTeamNumber && stopAndGoSocket) {
+      // Send command to stop and go station
+      stopAndGoSocket.send(JSON.stringify({
+        type: 'send_race_command',
+        team: parseInt(offenderTeamNumber),
+        duration: duration
+      }));
+      
+      // Update button to "Served" state
+      stopAndGoState = 'active';
+      stopGoButton.style.backgroundColor = '#fd7e14';
+      stopGoButton.style.color = 'black';
+      stopGoButton.textContent = 'Served';
+      stopGoButton.disabled = false;
+      
+      addSystemMessage(`Stop & Go penalty sent to team ${offenderTeamNumber} for ${duration} seconds`, 'info');
+    }
+  } else if (stopAndGoState === 'active') {
+    // Force complete penalty
+    if (stopAndGoSocket) {
+      stopAndGoSocket.send(JSON.stringify({
+        type: 'force_complete_penalty'
+      }));
+      
+      addSystemMessage('Force completing penalty...', 'info');
+    }
+  }
+}
+
+/**
+ * Handle Toggle Fence button click
+ */
+function handleToggleFenceClick() {
+  if (stopAndGoSocket && fenceEnabled !== null) {
+    const newState = !fenceEnabled;
+    
+    stopAndGoSocket.send(JSON.stringify({
+      type: 'set_fence',
+      enabled: newState
+    }));
+    
+    addSystemMessage(`${newState ? 'Enabling' : 'Disabling'} fence...`, 'info');
+  }
+}
+
+/**
+ * Query fence status from stop and go station
+ */
+function queryFenceStatus() {
+  if (stopAndGoSocket) {
+    stopAndGoSocket.send(JSON.stringify({
+      type: 'get_fence_status'
+    }));
+  }
+}
+
+/**
+ * Handle incoming Stop & Go WebSocket messages
+ */
+function handleStopAndGoMessage(data) {
+  console.log('Stop & Go message received:', data);
+  
+  switch (data.type) {
+    case 'penalty_served':
+      // Penalty has been served, reset form
+      resetStopAndGoForm();
+      addSystemMessage(`Penalty served by team ${data.team}`, 'success');
+      break;
+      
+    case 'fence_status':
+      // Update fence button based on status
+      fenceEnabled = data.enabled;
+      updateFenceButton();
+      break;
+      
+    case 'penalty_completed':
+      // Penalty force completed
+      resetStopAndGoForm();
+      addSystemMessage(`Penalty completed for team ${data.team}`, 'success');
+      break;
+  }
+}
+
+/**
+ * Reset Stop & Go form to initial state
+ */
+function resetStopAndGoForm() {
+  const offenderSelect = document.getElementById('offenderSelect');
+  const victimSelect = document.getElementById('victimSelect');
+  const reasonSelect = document.getElementById('reasonSelect');
+  const durationInput = document.getElementById('durationInput');
+  const stopGoButton = document.getElementById('stopGoButton');
+  
+  // Reset dropdowns
+  offenderSelect.value = '';
+  victimSelect.value = '';
+  reasonSelect.value = '';
+  
+  // Disable victim and reason
+  victimSelect.disabled = true;
+  reasonSelect.disabled = true;
+  
+  // Clear victim options
+  victimSelect.innerHTML = '<option value="">Select victim team...</option>';
+  
+  // Reset duration
+  durationInput.value = '20';
+  
+  // Reset button to idle state
+  stopAndGoState = 'idle';
+  stopGoButton.disabled = true;
+  stopGoButton.style.backgroundColor = '#6c757d';
+  stopGoButton.style.color = '#fff';
+  stopGoButton.textContent = 'Stop & Go';
+}
+
+/**
+ * Update fence button appearance based on fence status
+ */
+function updateFenceButton() {
+  const toggleFenceButton = document.getElementById('toggleFenceButton');
+  
+  if (toggleFenceButton && fenceEnabled !== null) {
+    if (fenceEnabled) {
+      toggleFenceButton.style.backgroundColor = '#28a745';
+      toggleFenceButton.style.color = 'black';
+      toggleFenceButton.textContent = 'Toggle Fence';
+    } else {
+      toggleFenceButton.style.backgroundColor = '#fd7e14';
+      toggleFenceButton.style.color = 'black';
+      toggleFenceButton.textContent = 'Toggle Fence';
+    }
+  }
+}

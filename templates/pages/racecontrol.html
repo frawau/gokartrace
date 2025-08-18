@@ -94,12 +94,45 @@
                                     <h5 class="mb-0">Stop & Go Penalty</h5>
                                 </div>
                                 <div class="card-body overflow-auto">
-                                    <select class="form-select mb-2" id="teamSelect" style="font-size: 1.2rem;">
-                                        {% for team in round.round_team_set.all %}
-                                            <option value="{{ team.id }}">{{ team.team.number }} {{ team.team.team.name }}</option>
-                                        {% endfor %}
+                                    <!-- Offender Dropdown -->
+                                    <label for="offenderSelect" class="form-label">Offender</label>
+                                    <select class="form-select mb-2" id="offenderSelect" style="font-size: 1.1rem;">
+                                        <option value="">Select offending team...</option>
+                                        {% if round %}
+                                            {% for team in round.round_team_set.all %}
+                                                <option value="{{ team.id }}" data-team-number="{{ team.team.number }}">{{ team.team.number }} {{ team.team.team.name }}</option>
+                                            {% endfor %}
+                                        {% endif %}
                                     </select>
-                                    <button class="btn btn-success w-100" id="stopGoButton">Stop&Go</button>
+                                    
+                                    <!-- Victim Dropdown -->
+                                    <label for="victimSelect" class="form-label">Victim</label>
+                                    <select class="form-select mb-2" id="victimSelect" style="font-size: 1.1rem;" disabled>
+                                        <option value="">Select victim team...</option>
+                                    </select>
+                                    
+                                    <!-- Reason Dropdown -->
+                                    <label for="reasonSelect" class="form-label">Reason</label>
+                                    <select class="form-select mb-2" id="reasonSelect" style="font-size: 1.1rem;" disabled>
+                                        <option value="">Select reason...</option>
+                                        <option value="1">Reason 1</option>
+                                        <option value="2">Reason 2</option>
+                                        <option value="3">Reason 3</option>
+                                        <option value="4">Reason 4</option>
+                                        <option value="5">Reason 5</option>
+                                        <option value="6">Reason 6</option>
+                                        <option value="7">Reason 7</option>
+                                    </select>
+                                    
+                                    <!-- Duration Input -->
+                                    <label for="durationInput" class="form-label">Duration</label>
+                                    <input type="number" class="form-control mb-3" id="durationInput" value="20" min="1" max="300" style="font-size: 1.1rem;">
+                                    
+                                    <!-- Buttons -->
+                                    <div class="d-flex gap-2">
+                                        <button class="btn flex-fill" id="stopGoButton" disabled style="background-color: #dc3545; color: yellow; font-weight: bold;">Stop & Go</button>
+                                        <button class="btn flex-fill" id="toggleFenceButton" style="background-color: #6c757d; color: black;">Toggle Fence</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
