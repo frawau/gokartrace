@@ -302,13 +302,6 @@ function updateButtonVisibility(state, options = {}) {
       document
         .getElementById("teamSelectCard")
         ?.style.setProperty("display", "block", "important");
-      
-      // Initialize Stop & Go when card becomes visible
-      if (!window.stopAndGoInitialized) {
-        initializeStopAndGo();
-        initializeDropdownLogic();
-        window.stopAndGoInitialized = true;
-      }
       break;
     case "running": // Ready, started
       if (options.showFalseStart) {
@@ -557,17 +550,14 @@ document.addEventListener("DOMContentLoaded", () => {
     button.addEventListener("click", handleRaceAction);
   });
 
-  // Initialize Stop & Go functionality if card is visible
-  const teamSelectCard = document.getElementById('teamSelectCard');
-  if (teamSelectCard && teamSelectCard.style.display !== 'none' && 
-      window.getComputedStyle(teamSelectCard).display !== 'none') {
-    console.log('Stop & Go card is visible, initializing...');
-    initializeStopAndGo();
-    initializeDropdownLogic();
-    window.stopAndGoInitialized = true;
-  } else {
-    console.log('Stop & Go card not visible yet, will initialize when ready');
-  }
+  // Initialize Stop & Go functionality
+  setTimeout(function() {
+    if (document.getElementById('offenderSelect')) {
+      console.log('Initializing Stop & Go functionality...');
+      initializeStopAndGo();
+      initializeDropdownLogic();
+    }
+  }, 500); // Small delay to ensure DOM is ready
 
   // --- Set Initial Button State ---
   // Determine initial state based on which buttons are initially visible in the HTML
