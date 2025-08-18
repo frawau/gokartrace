@@ -106,7 +106,11 @@ class TeamMembersView(View):
         # Get the current round (the next not ready round starting today or later)
         # Use same logic as round_list_update to ensure consistency
         today = dt.datetime.now()
-        return Round.objects.filter(ready=False, start__gte=today).order_by("start").first()
+        return (
+            Round.objects.filter(ready=False, start__gte=today)
+            .order_by("start")
+            .first()
+        )
 
     def get(self, request):
         current_round = self.get_current_round()

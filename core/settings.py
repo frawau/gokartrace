@@ -22,6 +22,11 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 if not SECRET_KEY:
     SECRET_KEY = "TODO_SET_SECRET_KEY"
 
+# Stop and Go Station HMAC Secret
+STOPANDGO_HMAC_SECRET = os.environ.get(
+    "STOPANDGO_HMAC_SECRET", "race_control_hmac_key_2024"
+)
+
 DEBUG = os.environ.get("DEBUG", True)
 APP_DOMAIN = os.getenv("APP_DOMAIN", "wautier.eu")
 

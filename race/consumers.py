@@ -1,6 +1,9 @@
 import asyncio
 import json
 import datetime as dt
+import hmac
+import hashlib
+from django.conf import settings
 from channels.generic.websocket import AsyncWebsocketConsumer
 from .models import ChangeLane, round_team, team_member, championship_team, Round
 from django.template.loader import render_to_string
@@ -263,9 +266,39 @@ class RoundConsumer(AsyncWebsocketConsumer):
 
 
 class StopAndGoConsumer(AsyncWebsocketConsumer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Get HMAC secret from settings or use default
+        self.hmac_secret = getattr(
+            settings, "STOPANDGO_HMAC_SECRET", "race_control_hmac_key_2024"
+        ).encode("utf-8")
+
+    def sign_message(self, message_data):
+        """Sign outgoing message with HMAC"""
+        message_str = json.dumps(message_data, sort_keys=True)
+        signature = hmac.new(
+            self.hmac_secret,
+            message_str.encode("utf-8"),
+            hashlib.blake2b,
+            digest_size=32,
+        ).hexdigest()
+        message_data["hmac_signature"] = signature
+        return message_data
+
+    def verify_hmac(self, message_data, provided_signature):
+        """Verify HMAC signature for incoming message"""
+        message_str = json.dumps(message_data, sort_keys=True)
+        expected_signature = hmac.new(
+            self.hmac_secret,
+            message_str.encode("utf-8"),
+            hashlib.blake2b,
+            digest_size=32,
+        ).hexdigest()
+        return hmac.compare_digest(expected_signature, provided_signature)
+
     async def connect(self):
         self.stopandgo_group_name = "stopandgo"
-        
+
         # Join room group
         await self.channel_layer.group_add(self.stopandgo_group_name, self.channel_name)
         await self.accept()
@@ -273,47 +306,129 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
         # Leave room group
-        await self.channel_layer.group_discard(self.stopandgo_group_name, self.channel_name)
+        await self.channel_layer.group_discard(
+            self.stopandgo_group_name, self.channel_name
+        )
         print("Stop and Go station disconnected")
 
     async def receive(self, text_data):
         try:
             data = json.loads(text_data)
-            
-            # Handle penalty notifications from station
-            if "penalty" in data and data["penalty"] == "ok":
-                team_number = data.get("team")
-                if team_number:
-                    print(f"Penalty served by team {team_number}")
-                    
-                    # Send acknowledgment back to station
-                    await self.send(text_data=json.dumps({
-                        "team": team_number,
-                        "served": "ok"
-                    }))
-                    
-                    # Broadcast penalty served to race control
+
+            # Verify HMAC signature for all incoming messages
+            provided_signature = data.pop("hmac_signature", None)
+            if not provided_signature:
+                print("Received message without HMAC signature")
+                return
+
+            if not self.verify_hmac(data, provided_signature):
+                print("HMAC verification failed - rejecting message")
+                return
+
+            # Only handle responses from the station
+            if data.get("type") == "response":
+                response_type = data.get("response")
+
+                if response_type == "penalty_served":
+                    team_number = data.get("team")
+                    if team_number:
+                        print(f"Penalty served by team {team_number}")
+
+                        # Send signed acknowledgment back to station
+                        message = {
+                            "type": "command",
+                            "command": "penalty_ack",
+                            "team": team_number,
+                            "timestamp": dt.datetime.now().isoformat(),
+                        }
+                        signed_message = self.sign_message(message)
+                        await self.send(text_data=json.dumps(signed_message))
+
+                        # Broadcast penalty served to race control
+                        await self.channel_layer.group_send(
+                            self.stopandgo_group_name,
+                            {
+                                "type": "penalty_served",
+                                "team": team_number,
+                            },
+                        )
+
+                elif response_type == "fence_status":
+                    # Forward fence status to race control
                     await self.channel_layer.group_send(
                         self.stopandgo_group_name,
-                        {
-                            "type": "penalty_served",
-                            "team": team_number,
-                        }
+                        {"type": "fence_status", "enabled": data.get("enabled", True)},
                     )
-                    
+
+                elif response_type == "penalty_completed":
+                    team_number = data.get("team")
+                    if team_number:
+                        print(f"Penalty force completed for team {team_number}")
+                        await self.channel_layer.group_send(
+                            self.stopandgo_group_name,
+                            {"type": "penalty_completed", "team": team_number},
+                        )
+
         except json.JSONDecodeError:
             print("Invalid JSON received from stop and go station")
 
     async def send_race_command(self, event):
-        # Send race command to station
-        await self.send(text_data=json.dumps({
+        # Send signed race command to station
+        message = {
+            "type": "command",
+            "command": "start_race",
             "team": event["team"],
-            "duration": event["duration"]
-        }))
+            "duration": event["duration"],
+            "timestamp": dt.datetime.now().isoformat(),
+        }
+        signed_message = self.sign_message(message)
+        await self.send(text_data=json.dumps(signed_message))
+
+    async def set_fence(self, event):
+        # Send signed fence enable/disable command to station
+        message = {
+            "type": "command",
+            "command": "set_fence",
+            "enabled": event["enabled"],
+            "timestamp": dt.datetime.now().isoformat(),
+        }
+        signed_message = self.sign_message(message)
+        await self.send(text_data=json.dumps(signed_message))
+
+    async def get_fence_status(self, event):
+        # Send signed query for fence status from station
+        message = {
+            "type": "command",
+            "command": "get_fence_status",
+            "timestamp": dt.datetime.now().isoformat(),
+        }
+        signed_message = self.sign_message(message)
+        await self.send(text_data=json.dumps(signed_message))
+
+    async def force_complete_penalty(self, event):
+        # Send signed force complete penalty command to station
+        message = {
+            "type": "command",
+            "command": "force_complete",
+            "timestamp": dt.datetime.now().isoformat(),
+        }
+        signed_message = self.sign_message(message)
+        await self.send(text_data=json.dumps(signed_message))
 
     async def penalty_served(self, event):
         # Broadcast penalty served notification to race control interfaces
-        await self.send(text_data=json.dumps({
-            "type": "penalty_served",
-            "team": event["team"]
-        }))
+        await self.send(
+            text_data=json.dumps({"type": "penalty_served", "team": event["team"]})
+        )
+
+    async def fence_status(self, event):
+        # Broadcast fence status to race control interfaces
+        await self.send(
+            text_data=json.dumps({"type": "fence_status", "enabled": event["enabled"]})
+        )
+
+    async def penalty_completed(self, event):
+        # Broadcast penalty completion notification to race control interfaces
+        await self.send(
+            text_data=json.dumps({"type": "penalty_completed", "team": event["team"]})
+        )

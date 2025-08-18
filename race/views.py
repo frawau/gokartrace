@@ -398,12 +398,16 @@ def round_list_update(request):
     """View to list all not ready rounds for the championship whose next round is the soonest upcoming (today or after)"""
     today = dt.datetime.now()
     # Find the next not ready round in any championship
-    next_round = Round.objects.filter(ready=False, start__gte=today).order_by("start").first()
+    next_round = (
+        Round.objects.filter(ready=False, start__gte=today).order_by("start").first()
+    )
     rounds = []
     championship = None
     if next_round:
         championship = next_round.championship
-        rounds = Round.objects.filter(championship=championship, ready=False).order_by("start")
+        rounds = Round.objects.filter(championship=championship, ready=False).order_by(
+            "start"
+        )
     context = {"rounds": rounds, "next_round": next_round, "championship": championship}
 
     if request.method == "GET" and "round_id" in request.GET:
@@ -774,8 +778,8 @@ def get_available_numbers(request):
 
 def round_info(request):
     # Get all rounds sorted by date
-    rounds = Round.objects.select_related('championship').all().order_by("start")
-    
+    rounds = Round.objects.select_related("championship").all().order_by("start")
+
     # Group rounds by championship name
     rounds_by_championship = {}
     for round_obj in rounds:
@@ -932,91 +936,91 @@ def all_teams_view(request):
 @login_required
 @user_passes_test(is_admin_user)
 def edit_driver_view(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         try:
-            driver_id = request.POST.get('driver_id')
+            driver_id = request.POST.get("driver_id")
             driver = get_object_or_404(Person, id=driver_id)
-            
+
             # Update driver fields
-            driver.surname = request.POST.get('surname')
-            driver.firstname = request.POST.get('firstname')
-            driver.nickname = request.POST.get('nickname')
-            driver.gender = request.POST.get('gender')
-            driver.birthdate = request.POST.get('birthdate')
-            driver.country = request.POST.get('country')
-            driver.email = request.POST.get('email') or None
-            
+            driver.surname = request.POST.get("surname")
+            driver.firstname = request.POST.get("firstname")
+            driver.nickname = request.POST.get("nickname")
+            driver.gender = request.POST.get("gender")
+            driver.birthdate = request.POST.get("birthdate")
+            driver.country = request.POST.get("country")
+            driver.email = request.POST.get("email") or None
+
             # Handle mugshot upload
-            if 'mugshot' in request.FILES:
-                driver.mugshot = request.FILES['mugshot']
-            
+            if "mugshot" in request.FILES:
+                driver.mugshot = request.FILES["mugshot"]
+
             driver.save()
-            return JsonResponse({'success': True})
+            return JsonResponse({"success": True})
         except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
-    
+            return JsonResponse({"success": False, "error": str(e)})
+
     # GET request - show the form
-    drivers = Person.objects.all().order_by('nickname')
+    drivers = Person.objects.all().order_by("nickname")
     countries_list = list(countries)
-    
+
     context = {
-        'drivers': drivers,
-        'countries': countries_list,
+        "drivers": drivers,
+        "countries": countries_list,
     }
-    return render(request, 'pages/edit_driver.html', context)
+    return render(request, "pages/edit_driver.html", context)
+
 
 @login_required
 @user_passes_test(is_admin_user)
 def edit_team_view(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         try:
-            team_id = request.POST.get('team_id')
+            team_id = request.POST.get("team_id")
             team = get_object_or_404(Team, id=team_id)
-            
+
             # Update team fields
-            team.name = request.POST.get('name')
-            
+            team.name = request.POST.get("name")
+
             # Handle logo upload
-            if 'logo' in request.FILES:
-                team.logo = request.FILES['logo']
-            
+            if "logo" in request.FILES:
+                team.logo = request.FILES["logo"]
+
             team.save()
-            return JsonResponse({'success': True})
+            return JsonResponse({"success": True})
         except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
-    
+            return JsonResponse({"success": False, "error": str(e)})
+
     # GET request - show the form
-    teams = Team.objects.all().order_by('name')
-    
+    teams = Team.objects.all().order_by("name")
+
     context = {
-        'teams': teams,
+        "teams": teams,
     }
-    return render(request, 'pages/edit_team.html', context)
+    return render(request, "pages/edit_team.html", context)
+
 
 @login_required
 @user_passes_test(is_admin_user)
 def create_championship_view(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         try:
-            name = request.POST.get('name')
-            year = int(request.POST.get('year'))
-            num_rounds = int(request.POST.get('rounds'))
-            
+            name = request.POST.get("name")
+            year = int(request.POST.get("year"))
+            num_rounds = int(request.POST.get("rounds"))
+
             # Create championship with start and end dates
             start_date = dt.date(year, 1, 1)
             end_date = dt.date(year, 12, 31)
-            
+
             championship = Championship.objects.create(
-                name=name,
-                start=start_date,
-                end=end_date
+                name=name, start=start_date, end=end_date
             )
-            
+
             # Create rounds
             # Calculate days between rounds to spread them evenly
             days_between_rounds = (end_date - start_date).days // (num_rounds + 1)
             current_date = start_date + dt.timedelta(days=days_between_rounds)
-            
+
             for i in range(num_rounds):
                 round_start = dt.datetime.combine(current_date, dt.time(18, 0))  # 18:00
                 Round.objects.create(
@@ -1024,49 +1028,52 @@ def create_championship_view(request):
                     name=f"Round {i + 1}",
                     start=round_start,
                     duration=dt.timedelta(hours=4),
-                    ready=False
+                    ready=False,
                 )
                 current_date += dt.timedelta(days=days_between_rounds)
-            
-            return JsonResponse({'success': True})
+
+            return JsonResponse({"success": True})
         except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
-    
+            return JsonResponse({"success": False, "error": str(e)})
+
     # GET request - show the form
     current_year = dt.date.today().year
     context = {
-        'current_year': current_year,
+        "current_year": current_year,
     }
-    return render(request, 'pages/create_championship.html', context)
+    return render(request, "pages/create_championship.html", context)
+
 
 @login_required
 @user_passes_test(is_admin_user)
 def edit_championship_view(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         try:
-            championship_id = request.POST.get('championship_id')
+            championship_id = request.POST.get("championship_id")
             championship = get_object_or_404(Championship, id=championship_id)
-            
+
             # Handle round management
-            action = request.POST.get('action')
-            
+            action = request.POST.get("action")
+
             # Only update championship fields if this is not a round management action
             if not action:
                 # Update championship fields
-                championship.name = request.POST.get('name')
-                year_str = request.POST.get('year')
+                championship.name = request.POST.get("name")
+                year_str = request.POST.get("year")
                 if year_str:
                     year = int(year_str)
                     # Update start and end dates
                     championship.start = dt.date(year, 1, 1)
                     championship.end = dt.date(year, 12, 31)
-                
+
                 championship.save()
-            
-            if action == 'add_round':
+
+            if action == "add_round":
                 # Add a new round
-                round_num_re = re.compile(r'Round (\d+)')
-                all_rounds = list(Round.objects.filter(championship=championship).order_by('start'))
+                round_num_re = re.compile(r"Round (\d+)")
+                all_rounds = list(
+                    Round.objects.filter(championship=championship).order_by("start")
+                )
                 max_round_num = 0
                 for rnd in all_rounds:
                     m = round_num_re.match(rnd.name)
@@ -1075,45 +1082,70 @@ def edit_championship_view(request):
                         if n > max_round_num:
                             max_round_num = n
                 next_round_num = max_round_num + 1
-                existing_rounds = Round.objects.filter(championship=championship).order_by('start')
+                existing_rounds = Round.objects.filter(
+                    championship=championship
+                ).order_by("start")
                 if existing_rounds.exists():
                     last_round = existing_rounds.last()
-                    new_start = last_round.start + dt.timedelta(days=7)  # 1 week after last round
+                    new_start = last_round.start + dt.timedelta(
+                        days=7
+                    )  # 1 week after last round
                 else:
                     # First round - start 1 week after championship start
-                    new_start = dt.datetime.combine(championship.start + dt.timedelta(days=7), dt.time(18, 0))
+                    new_start = dt.datetime.combine(
+                        championship.start + dt.timedelta(days=7), dt.time(18, 0)
+                    )
                 Round.objects.create(
                     championship=championship,
                     name=f"Round {next_round_num}",
                     start=new_start,
                     duration=dt.timedelta(hours=4),
-                    ready=False
+                    ready=False,
                 )
-                
-            elif action == 'delete_round':
+
+            elif action == "delete_round":
                 # Delete the latest round (ready=False only)
-                latest_round = Round.objects.filter(championship=championship, ready=False).order_by('-start').first()
+                latest_round = (
+                    Round.objects.filter(championship=championship, ready=False)
+                    .order_by("-start")
+                    .first()
+                )
                 if latest_round:
                     latest_round.delete()
-                    
-            elif action == 'set_rounds':
+
+            elif action == "set_rounds":
                 # Set specific number of rounds
-                num_rounds_str = request.POST.get('num_rounds', '0')
+                num_rounds_str = request.POST.get("num_rounds", "0")
                 target_rounds = int(num_rounds_str) if num_rounds_str else 0
-                ready_true_rounds = list(Round.objects.filter(championship=championship, ready=True).order_by('start'))
-                ready_false_rounds = list(Round.objects.filter(championship=championship, ready=False).order_by('start'))
+                ready_true_rounds = list(
+                    Round.objects.filter(
+                        championship=championship, ready=True
+                    ).order_by("start")
+                )
+                ready_false_rounds = list(
+                    Round.objects.filter(
+                        championship=championship, ready=False
+                    ).order_by("start")
+                )
                 ready_true_count = len(ready_true_rounds)
                 ready_false_count = len(ready_false_rounds)
-                
+
                 if target_rounds < ready_true_count:
-                    return JsonResponse({'success': False, 'error': f'Cannot set number of rounds less than the number of started/completed rounds ({ready_true_count}).'})
-                
+                    return JsonResponse(
+                        {
+                            "success": False,
+                            "error": f"Cannot set number of rounds less than the number of started/completed rounds ({ready_true_count}).",
+                        }
+                    )
+
                 desired_ready_false = target_rounds - ready_true_count
                 current_ready_false = ready_false_count
 
                 # Find the highest round number among all rounds (ready or not)
-                round_num_re = re.compile(r'Round (\d+)')
-                all_rounds = list(Round.objects.filter(championship=championship).order_by('start'))
+                round_num_re = re.compile(r"Round (\d+)")
+                all_rounds = list(
+                    Round.objects.filter(championship=championship).order_by("start")
+                )
                 max_round_num = 0
                 for rnd in all_rounds:
                     m = round_num_re.match(rnd.name)
@@ -1125,15 +1157,21 @@ def edit_championship_view(request):
 
                 if desired_ready_false == 0:
                     # Delete all ready=False rounds
-                    Round.objects.filter(championship=championship, ready=False).delete()
+                    Round.objects.filter(
+                        championship=championship, ready=False
+                    ).delete()
                 elif desired_ready_false > current_ready_false:
                     # Add rounds
-                    existing_rounds = Round.objects.filter(championship=championship).order_by('start')
+                    existing_rounds = Round.objects.filter(
+                        championship=championship
+                    ).order_by("start")
                     if existing_rounds.exists():
                         last_round = existing_rounds.last()
                         base_start = last_round.start
                     else:
-                        base_start = dt.datetime.combine(championship.start + dt.timedelta(days=7), dt.time(18, 0))
+                        base_start = dt.datetime.combine(
+                            championship.start + dt.timedelta(days=7), dt.time(18, 0)
+                        )
                     for i in range(desired_ready_false - current_ready_false):
                         new_start = base_start + dt.timedelta(days=7 * (i + 1))
                         Round.objects.create(
@@ -1141,17 +1179,23 @@ def edit_championship_view(request):
                             name=f"Round {next_round_num + i}",
                             start=new_start,
                             duration=dt.timedelta(hours=4),
-                            ready=False
+                            ready=False,
                         )
                 elif desired_ready_false < current_ready_false:
                     # Delete rounds (always delete the latest ones, only ready=False)
                     rounds_to_delete = current_ready_false - desired_ready_false
-                    latest_rounds = Round.objects.filter(championship=championship, ready=False).order_by('-start')[:rounds_to_delete]
+                    latest_rounds = Round.objects.filter(
+                        championship=championship, ready=False
+                    ).order_by("-start")[:rounds_to_delete]
                     for round_obj in latest_rounds:
                         round_obj.delete()
                     # After deletion, re-number remaining ready=False rounds
                     # Find the highest round number among all rounds again
-                    all_rounds = list(Round.objects.filter(championship=championship).order_by('start'))
+                    all_rounds = list(
+                        Round.objects.filter(championship=championship).order_by(
+                            "start"
+                        )
+                    )
                     max_round_num = 0
                     for rnd in all_rounds:
                         m = round_num_re.match(rnd.name)
@@ -1160,77 +1204,91 @@ def edit_championship_view(request):
                             if n > max_round_num:
                                 max_round_num = n
                     next_round_num = max_round_num + 1
-                    remaining_false = list(Round.objects.filter(championship=championship, ready=False).order_by('start'))
+                    remaining_false = list(
+                        Round.objects.filter(
+                            championship=championship, ready=False
+                        ).order_by("start")
+                    )
                     for idx, rnd in enumerate(remaining_false):
                         rnd.name = f"Round {next_round_num + idx}"
                         rnd.save()
-            
-            return JsonResponse({'success': True})
+
+            return JsonResponse({"success": True})
         except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
-    
+            return JsonResponse({"success": False, "error": str(e)})
+
     # GET request - show the form
-    championships = Championship.objects.all().order_by('-start')
-    
+    championships = Championship.objects.all().order_by("-start")
+
     context = {
-        'championships': championships,
+        "championships": championships,
     }
-    return render(request, 'pages/edit_championship.html', context)
+    return render(request, "pages/edit_championship.html", context)
+
 
 @login_required
 @user_passes_test(is_admin_user)
 def edit_round_view(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         try:
-            round_id = request.POST.get('round_id')
+            round_id = request.POST.get("round_id")
             round_obj = get_object_or_404(Round, id=round_id)
-            
+
             # Update round fields
-            round_obj.name = request.POST.get('name')
-            round_obj.start = request.POST.get('start')
-            
+            round_obj.name = request.POST.get("name")
+            round_obj.start = request.POST.get("start")
+
             # Parse duration strings
             def parse_duration(duration_str):
                 if ":" in duration_str:
                     parts = duration_str.split(":")
                     if len(parts) == 3:  # HH:MM:SS
                         hours, minutes, seconds = map(int, parts)
-                        return dt.timedelta(hours=hours, minutes=minutes, seconds=seconds)
+                        return dt.timedelta(
+                            hours=hours, minutes=minutes, seconds=seconds
+                        )
                     elif len(parts) == 2:  # MM:SS
                         minutes, seconds = map(int, parts)
                         return dt.timedelta(minutes=minutes, seconds=seconds)
                 return dt.timedelta(0)
 
-            round_obj.duration = parse_duration(request.POST.get('duration'))
-            round_obj.pitlane_open_after = parse_duration(request.POST.get('pitlane_open_after'))
-            round_obj.pitlane_close_before = parse_duration(request.POST.get('pitlane_close_before'))
-            
+            round_obj.duration = parse_duration(request.POST.get("duration"))
+            round_obj.pitlane_open_after = parse_duration(
+                request.POST.get("pitlane_open_after")
+            )
+            round_obj.pitlane_close_before = parse_duration(
+                request.POST.get("pitlane_close_before")
+            )
+
             # Update other fields
-            round_obj.change_lanes = int(request.POST.get('change_lanes'))
-            round_obj.limit_time = request.POST.get('limit_time')
-            round_obj.limit_value = int(request.POST.get('limit_value'))
-            round_obj.required_changes = int(request.POST.get('required_changes'))
-            
+            round_obj.change_lanes = int(request.POST.get("change_lanes"))
+            round_obj.limit_time = request.POST.get("limit_time")
+            round_obj.limit_value = int(request.POST.get("limit_value"))
+            round_obj.required_changes = int(request.POST.get("required_changes"))
+
             # Handle weight penalty JSON field
-            weight_penalty_json = request.POST.get('weight_penalty', '[">=", [0, 0]]')
+            weight_penalty_json = request.POST.get("weight_penalty", '[">=", [0, 0]]')
             try:
                 weight_penalty = json.loads(weight_penalty_json)
                 round_obj.weight_penalty = weight_penalty
             except json.JSONDecodeError:
-                return JsonResponse({'success': False, 'error': 'Invalid weight penalty format'})
-            
+                return JsonResponse(
+                    {"success": False, "error": "Invalid weight penalty format"}
+                )
+
             round_obj.save()
-            return JsonResponse({'success': True})
+            return JsonResponse({"success": True})
         except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
-    
+            return JsonResponse({"success": False, "error": str(e)})
+
     # GET request - show the form
-    championships = Championship.objects.all().order_by('-start')
-    
+    championships = Championship.objects.all().order_by("-start")
+
     context = {
-        'championships': championships,
+        "championships": championships,
     }
-    return render(request, 'pages/edit_round.html', context)
+    return render(request, "pages/edit_round.html", context)
+
 
 @login_required
 @user_passes_test(is_admin_user)
@@ -1238,12 +1296,14 @@ def get_championship_rounds(request, championship_id):
     """API endpoint to get rounds for a championship. If ?only_not_ready=1, only return not ready rounds."""
     try:
         championship = get_object_or_404(Championship, id=championship_id)
-        only_not_ready = request.GET.get('only_not_ready') == '1'
+        only_not_ready = request.GET.get("only_not_ready") == "1"
         if only_not_ready:
-            rounds = Round.objects.filter(championship=championship, ready=False).order_by('start')
+            rounds = Round.objects.filter(
+                championship=championship, ready=False
+            ).order_by("start")
         else:
-            rounds = Round.objects.filter(championship=championship).order_by('start')
-        
+            rounds = Round.objects.filter(championship=championship).order_by("start")
+
         def format_duration(td):
             """Format timedelta as HH:MM:SS with leading zeros"""
             total_seconds = int(td.total_seconds())
@@ -1251,33 +1311,41 @@ def get_championship_rounds(request, championship_id):
             minutes = (total_seconds % 3600) // 60
             seconds = total_seconds % 60
             return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
-        
+
         def format_minutes_seconds(td):
             """Format timedelta as MM:SS with leading zeros"""
             total_seconds = int(td.total_seconds())
             minutes = total_seconds // 60
             seconds = total_seconds % 60
             return f"{minutes:02d}:{seconds:02d}"
-        
+
         rounds_data = []
         for round_obj in rounds:
-            rounds_data.append({
-                'id': round_obj.id,
-                'name': round_obj.name,
-                'start': round_obj.start.isoformat(),
-                'duration': format_duration(round_obj.duration),
-                'change_lanes': round_obj.change_lanes,
-                'pitlane_open_after': format_minutes_seconds(round_obj.pitlane_open_after),
-                'pitlane_close_before': format_minutes_seconds(round_obj.pitlane_close_before),
-                'limit_time': round_obj.limit_time,
-                'limit_method': round_obj.limit_method,
-                'limit_value': round_obj.limit_value,
-                'limit_time_min': format_minutes_seconds(round_obj.limit_time_min),
-                'required_changes': round_obj.required_changes,
-                'weight_penalty': round_obj.weight_penalty or [">=", [0, 0]],
-                'ready': round_obj.ready,
-            })
-        
-        return JsonResponse({'rounds': rounds_data, 'total': len(rounds_data)}, safe=False)
+            rounds_data.append(
+                {
+                    "id": round_obj.id,
+                    "name": round_obj.name,
+                    "start": round_obj.start.isoformat(),
+                    "duration": format_duration(round_obj.duration),
+                    "change_lanes": round_obj.change_lanes,
+                    "pitlane_open_after": format_minutes_seconds(
+                        round_obj.pitlane_open_after
+                    ),
+                    "pitlane_close_before": format_minutes_seconds(
+                        round_obj.pitlane_close_before
+                    ),
+                    "limit_time": round_obj.limit_time,
+                    "limit_method": round_obj.limit_method,
+                    "limit_value": round_obj.limit_value,
+                    "limit_time_min": format_minutes_seconds(round_obj.limit_time_min),
+                    "required_changes": round_obj.required_changes,
+                    "weight_penalty": round_obj.weight_penalty or [">=", [0, 0]],
+                    "ready": round_obj.ready,
+                }
+            )
+
+        return JsonResponse(
+            {"rounds": rounds_data, "total": len(rounds_data)}, safe=False
+        )
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
+        return JsonResponse({"error": str(e)}, status=400)

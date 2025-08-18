@@ -6,6 +6,9 @@ import struct
 import json
 import logging
 import argparse
+import hmac
+import hashlib
+from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
 import aiohttp
 import RPi.GPIO as GPIO
@@ -163,10 +166,11 @@ class FramebufferDisplay:
 
 
 class StopAndGoStation:
-    def __init__(self, websocket_url, button_pin, sensor_pin):
+    def __init__(self, websocket_url, button_pin, sensor_pin, hmac_secret):
         self.websocket_url = websocket_url
         self.button_pin = button_pin
         self.sensor_pin = sensor_pin
+        self.hmac_secret = hmac_secret.encode("utf-8")  # Convert to bytes
         self.display = FramebufferDisplay()
         self.relay = I2CRelay()
         self.current_team = None
@@ -178,6 +182,7 @@ class StopAndGoStation:
         self.websocket = None
         self.penalty_ack_received = False
         self.connected = False
+        self.fence_enabled = True  # Default: fence function enabled
 
         # Setup GPIO
         GPIO.setmode(GPIO.BOARD)  # Use physical pin numbers
@@ -223,29 +228,104 @@ class StopAndGoStation:
 
                 await asyncio.sleep(5)  # Wait before reconnecting
 
+    def verify_hmac(self, message_data, provided_signature):
+        """Verify HMAC signature for incoming message"""
+        # Create message string from data (excluding signature)
+        message_str = json.dumps(message_data, sort_keys=True)
+        expected_signature = hmac.new(
+            self.hmac_secret,
+            message_str.encode("utf-8"),
+            hashlib.blake2b,  # Faster than SHA256
+            digest_size=32,
+        ).hexdigest()
+        return hmac.compare_digest(expected_signature, provided_signature)
+
+    def sign_message(self, message_data):
+        """Sign outgoing message with HMAC"""
+        message_str = json.dumps(message_data, sort_keys=True)
+        signature = hmac.new(
+            self.hmac_secret,
+            message_str.encode("utf-8"),
+            hashlib.blake2b,  # Faster than SHA256
+            digest_size=32,
+        ).hexdigest()
+        message_data["hmac_signature"] = signature
+        return message_data
+
     async def handle_message(self, data):
+        # Verify HMAC signature for all incoming messages
+        provided_signature = data.pop("hmac_signature", None)
+        if not provided_signature:
+            logging.warning("Received message without HMAC signature")
+            return
+
+        if not self.verify_hmac(data, provided_signature):
+            logging.warning("HMAC verification failed - rejecting message")
+            return
+
+        logging.debug("HMAC verification successful")  # Use debug to reduce log spam
+
+        # Only process messages marked as commands
+        if data.get("type") != "command":
+            return
+
+        command = data.get("command")
+
         # Handle race command
-        if "team" in data and "duration" in data:
+        if command == "start_race" and "team" in data and "duration" in data:
             await self.handle_race_command(data)
 
         # Handle penalty acknowledgment
-        if "team" in data and "served" in data and data["served"] == "ok":
+        elif command == "penalty_ack" and "team" in data:
             if data["team"] == self.current_team:
                 self.penalty_ack_received = True
                 logging.info(
                     f"Penalty acknowledgment received for team {self.current_team}"
                 )
 
+        # Handle fence enable/disable command
+        elif command == "set_fence":
+            self.fence_enabled = data.get("enabled", True)
+            logging.info(
+                f"Fence function {'enabled' if self.fence_enabled else 'disabled'}"
+            )
+            # Send response
+            await self.send_response("fence_status", {"enabled": self.fence_enabled})
+
+        # Handle fence status query
+        elif command == "get_fence_status":
+            await self.send_response("fence_status", {"enabled": self.fence_enabled})
+
+        # Handle force penalty completion
+        elif command == "force_complete":
+            if self.state == "green" and self.current_team:
+                logging.info(f"Force completing penalty for team {self.current_team}")
+                await self.reset_to_idle()
+                await self.send_response(
+                    "penalty_completed", {"team": self.current_team}
+                )
+
+    async def send_response(self, response_type, data):
+        """Send a response message via websocket with HMAC signature"""
+        if self.websocket:
+            try:
+                message = {
+                    "type": "response",
+                    "response": response_type,
+                    "timestamp": datetime.now().isoformat(),
+                    **data,
+                }
+                # Sign the message
+                signed_message = self.sign_message(message)
+                await self.websocket.send_str(json.dumps(signed_message))
+                logging.info(f"Sent signed response: {response_type}")
+            except Exception as e:
+                logging.error(f"Failed to send response: {e}")
+
     async def send_penalty_ok(self):
         """Send penalty ok message every 5 seconds until acknowledged"""
         while self.state == "green" and not self.penalty_ack_received:
-            if self.websocket:
-                try:
-                    message = {"team": self.current_team, "penalty": "ok"}
-                    await self.websocket.send_str(json.dumps(message))
-                    logging.info(f"Sent penalty ok for team {self.current_team}")
-                except Exception as e:
-                    logging.error(f"Failed to send penalty ok: {e}")
+            await self.send_response("penalty_served", {"team": self.current_team})
             await asyncio.sleep(5)
 
     async def handle_race_command(self, data):
@@ -284,23 +364,30 @@ class StopAndGoStation:
     async def sensor_monitor(self):
         sensor_triggered = False
         while True:
-            current_state = not GPIO.input(self.sensor_pin)  # Inverted because pull-up
+            # Only monitor sensor if fence function is enabled
+            if self.fence_enabled:
+                current_state = not GPIO.input(
+                    self.sensor_pin
+                )  # Inverted because pull-up
 
-            if current_state and not sensor_triggered:
-                sensor_triggered = True
-                if self.state in ["waiting_button", "countdown"]:
-                    await self.handle_sensor_triggered()
-                elif self.state == "green":
-                    # Wait for sensor to go from triggered to not triggered
-                    pass
-            elif not current_state and sensor_triggered:
+                if current_state and not sensor_triggered:
+                    sensor_triggered = True
+                    if self.state in ["waiting_button", "countdown"]:
+                        await self.handle_sensor_triggered()
+                    elif self.state == "green":
+                        # Wait for sensor to go from triggered to not triggered
+                        pass
+                elif not current_state and sensor_triggered:
+                    sensor_triggered = False
+                    if self.state == "sensor_triggered":
+                        await self.return_to_waiting()
+                    elif self.state == "green":
+                        # Only reset if penalty was acknowledged
+                        if self.penalty_ack_received:
+                            await self.reset_to_idle()
+            else:
+                # If fence is disabled, reset sensor state
                 sensor_triggered = False
-                if self.state == "sensor_triggered":
-                    await self.return_to_waiting()
-                elif self.state == "green":
-                    # Only reset if penalty was acknowledged
-                    if self.penalty_ack_received:
-                        await self.reset_to_idle()
 
             await asyncio.sleep(0.1)
 
@@ -427,6 +514,11 @@ def parse_arguments():
     parser.add_argument(
         "-i", "--info", action="store_true", help="Set log level to INFO"
     )
+    parser.add_argument(
+        "--hmac-secret",
+        default="race_control_hmac_key_2024",
+        help="HMAC secret key for message authentication (default: race_control_hmac_key_2024)",
+    )
     return parser.parse_args()
 
 
@@ -449,7 +541,7 @@ async def main():
     logging.info(f"Connecting to: {websocket_url}")
     logging.info(f"Button pin: {args.button}, Fence sensor pin: {args.fence}")
 
-    station = StopAndGoStation(websocket_url, args.button, args.fence)
+    station = StopAndGoStation(websocket_url, args.button, args.fence, args.hmac_secret)
     await station.run()
 
 

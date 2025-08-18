@@ -630,11 +630,11 @@ class Round(models.Model):
         constraints = [
             models.CheckConstraint(
                 check=models.Q(started__isnull=True) | models.Q(ready=True),
-                name="started_requires_ready"
+                name="started_requires_ready",
             ),
             models.CheckConstraint(
                 check=models.Q(ended__isnull=True) | models.Q(started__isnull=False),
-                name="ended_requires_started"
+                name="ended_requires_started",
             ),
         ]
 
