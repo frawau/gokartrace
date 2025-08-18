@@ -25,6 +25,12 @@ async function signMessage(messageData) {
       console.log('Retry: HMAC secret loaded:', hmacSecret ? 'YES' : 'NO');
     }
     
+    // Try fallback from window
+    if (!hmacSecret && window.STOPANDGO_HMAC_SECRET) {
+      hmacSecret = window.STOPANDGO_HMAC_SECRET;
+      console.log('Using fallback HMAC secret from window:', hmacSecret ? 'YES' : 'NO');
+    }
+    
     if (!hmacSecret) {
       console.error('HMAC secret still not available - message will not be signed!');
       return messageData;
@@ -610,6 +616,12 @@ function loadHmacSecret() {
     console.log('Secret length:', hmacSecret ? hmacSecret.length : 'N/A');
   } else {
     console.error('round-data element not found!');
+    
+    // Try fallback from window
+    if (window.STOPANDGO_HMAC_SECRET) {
+      hmacSecret = window.STOPANDGO_HMAC_SECRET;
+      console.log('Using fallback HMAC secret from window:', hmacSecret ? 'YES' : 'NO');
+    }
   }
 }
 
