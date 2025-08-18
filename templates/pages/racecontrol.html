@@ -19,7 +19,7 @@
             <div class="card" style="height: 100%; background-color: transparent;">
                 <div class="card-body d-flex flex-column" style="height: 100%;">
                     <div class="d-flex w-100" style="height: 40%;">
-                        <div id="race-control-buttons" style="width: 50%;" class="p-2 d-flex align-items-center flex-wrap" {% if round %}data-round-id="{{ round.id }}"{% endif %}>
+                        <div id="race-control-buttons" style="width: 35%;" class="p-2 d-flex align-items-center flex-wrap" {% if round %}data-round-id="{{ round.id }}"{% endif %}>
                             {% csrf_token %}
 
                             {% if round %}
@@ -76,7 +76,7 @@
                                 <p class="text-muted">No round active.</p>
                             {% endif %}
                         </div>
-                        <div style="width: 50%;" class="p-2" id="teamsListContainer">
+                        <div style="width: 65%;" class="p-2" id="teamsListContainer">
                             <div class="card h-100" id="emptyTeamsCard" {% if round and round.ready %}style="display: none;"{% endif %}>
                                 <div class="card-header d-flex justify-content-between align-items-center">
                                     <h5 class="mb-0">Teams with No Members</h5>
@@ -94,47 +94,55 @@
                                     <h5 class="mb-0">Stop & Go Penalty</h5>
                                 </div>
                                 <div class="card-body overflow-auto">
-                                    <!-- Offender Dropdown -->
-                                    <label for="offenderSelect" class="form-label">Offender</label>
-                                    <select class="form-select mb-2" id="offenderSelect" style="font-size: 1.1rem;">
-                                        <option value="">Select offending team...</option>
-                                        {% if round %}
-                                            {% for team in round.round_team_set.all %}
-                                                <option value="{{ team.id }}" data-team-number="{{ team.team.number }}">{{ team.team.number }} {{ team.team.team.name }}</option>
-                                            {% endfor %}
-                                        {% endif %}
-                                    </select>
-                                    
-                                    <!-- Victim Dropdown -->
-                                    <label for="victimSelect" class="form-label">Victim</label>
-                                    <select class="form-select mb-2" id="victimSelect" style="font-size: 1.1rem;" disabled>
-                                        <option value="">Select victim team...</option>
-                                    </select>
-                                    
-                                    <!-- Reason Dropdown -->
-                                    <label for="reasonSelect" class="form-label">Reason</label>
-                                    <select class="form-select mb-2" id="reasonSelect" style="font-size: 1.1rem;" disabled>
-                                        <option value="">Select reason...</option>
-                                        <option value="1">Reason 1</option>
-                                        <option value="2">Reason 2</option>
-                                        <option value="3">Reason 3</option>
-                                        <option value="4">Reason 4</option>
-                                        <option value="5">Reason 5</option>
-                                        <option value="6">Reason 6</option>
-                                        <option value="7">Reason 7</option>
-                                    </select>
-                                    
-                                    <!-- Duration Input -->
-                                    <label for="durationInput" class="form-label">Duration</label>
-                                    <input type="number" class="form-control mb-3" id="durationInput" value="20" min="1" max="300" style="font-size: 1.1rem;">
-                                    
-                                    <!-- Buttons -->
-                                    <div class="row g-2 mt-2">
-                                        <div class="col-6">
-                                            <button class="btn w-100" id="stopGoButton" disabled style="background-color: #dc3545; color: yellow; font-weight: bold; min-height: 40px;">Stop & Go</button>
+                                    <div class="row">
+                                        <!-- Left side - Form inputs -->
+                                        <div class="col-8">
+                                            <!-- Offender Dropdown -->
+                                            <label for="offenderSelect" class="form-label">Offender</label>
+                                            <select class="form-select mb-2" id="offenderSelect" style="font-size: 1.0rem;">
+                                                <option value="">Select offending team...</option>
+                                                {% if round %}
+                                                    {% for team in round.round_team_set.all %}
+                                                        <option value="{{ team.id }}" data-team-number="{{ team.team.number }}">{{ team.team.number }} {{ team.team.team.name }}</option>
+                                                    {% endfor %}
+                                                {% endif %}
+                                            </select>
+                                            
+                                            <!-- Victim Dropdown -->
+                                            <label for="victimSelect" class="form-label">Victim</label>
+                                            <select class="form-select mb-2" id="victimSelect" style="font-size: 1.0rem;" disabled>
+                                                <option value="">Select victim team...</option>
+                                            </select>
+                                            
+                                            <!-- Reason Dropdown -->
+                                            <label for="reasonSelect" class="form-label">Reason</label>
+                                            <select class="form-select mb-2" id="reasonSelect" style="font-size: 1.0rem;" disabled>
+                                                <option value="">Select reason...</option>
+                                                <option value="1">Reason 1</option>
+                                                <option value="2">Reason 2</option>
+                                                <option value="3">Reason 3</option>
+                                                <option value="4">Reason 4</option>
+                                                <option value="5">Reason 5</option>
+                                                <option value="6">Reason 6</option>
+                                                <option value="7">Reason 7</option>
+                                            </select>
+                                            
+                                            <!-- Duration Input -->
+                                            <label for="durationInput" class="form-label">Duration</label>
+                                            <input type="number" class="form-control" id="durationInput" value="20" min="1" max="300" style="font-size: 1.0rem;">
                                         </div>
-                                        <div class="col-6">
-                                            <button class="btn w-100" id="toggleFenceButton" style="background-color: #6c757d; color: black; min-height: 40px;">Toggle Fence</button>
+                                        
+                                        <!-- Right side - Buttons -->
+                                        <div class="col-4 d-flex flex-column justify-content-between">
+                                            <!-- Stop & Go Button - Top -->
+                                            <div class="mb-2">
+                                                <button class="btn w-100" id="stopGoButton" disabled style="background-color: #dc3545; color: yellow; font-weight: bold; min-height: 45px; font-size: 0.9rem;">Stop & Go</button>
+                                            </div>
+                                            
+                                            <!-- Toggle Fence Button - Bottom -->
+                                            <div class="mt-auto">
+                                                <button class="btn w-100" id="toggleFenceButton" style="background-color: #6c757d; color: black; min-height: 45px; font-size: 0.9rem;">Toggle Fence</button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
