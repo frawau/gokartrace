@@ -28,7 +28,7 @@ STOPANDGO_HMAC_SECRET = os.environ.get(
 )
 
 DEBUG = os.environ.get("DEBUG", True)
-APP_DOMAIN = os.getenv("APP_DOMAIN", "wautier.eu")
+APP_DOMAIN = os.getenv("APP_DOMAIN", "gokart.wautier.eu")
 
 # HOSTs List
 ALLOWED_HOSTS = [

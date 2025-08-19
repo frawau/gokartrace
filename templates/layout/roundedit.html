@@ -1,6 +1,8 @@
 {% load static %}
 {% load json_filters %}
 
+<script src="{% static 'js/weight-penalty-widget.js' %}"></script>
+
 <form method="POST" action="{% url 'update_round' round.id %}">
     {% csrf_token %}
 
@@ -120,4 +122,11 @@
         <a href="{% url 'rounds_list' %}" class="btn btn-secondary btn-lg">Cancel</a>
     </div>
 </form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize the weight penalty widget using the library
+    initWeightPenaltyWidget();
+});
+</script>
 
