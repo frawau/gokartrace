@@ -107,10 +107,12 @@ class TeamMembersView(View):
         # This allows access even when races are delayed
         now = dt.datetime.now()
         # Allow access until end of tomorrow (gives plenty of buffer for delayed races)
-        tomorrow_end = (now + dt.timedelta(days=1)).replace(hour=23, minute=59, second=59, microsecond=999999)
-        
+        yesterday_start = (now - dt.timedelta(days=1)).replace(
+            hour=0, minute=0, second=0
+        )
+
         return (
-            Round.objects.filter(ready=False, start__lte=tomorrow_end)
+            Round.objects.filter(ready=False, start__gte=yesterday_start)
             .order_by("start")
             .first()
         )
