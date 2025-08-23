@@ -216,6 +216,5 @@ def handle_session_delete(sender, instance, **kwargs):
             "driver id": driver.id,
             "driver status": dstatus,
             "completed sessions": completed_sessions_count,
-            "team_number": driver.team.team.number,
         },
     )

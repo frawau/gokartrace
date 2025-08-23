@@ -187,7 +187,7 @@
                                                 </thead>
                                                 <tbody>
                                                     {% for session in pending_sessions %}
-                                                        <tr id="pending-row-{{ session.driver.team.team.number }}-{{ session.driver.id }}"
+                                                        <tr id="pending-row-{{ session.driver.id }}"
                                                             class="pending-row"
                                                             data-driver-id="{{ session.driver.id }}"
                                                             data-team-id="{{ session.driver.team.id }}"
@@ -366,7 +366,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                         if (status === "register") {
                             // Add new row if it doesn't exist
-                            const rowId = `pending-row-${data.team_number}-${driverId}`;
+                            const rowId = `pending-row-${driverId}`;
                             if (!document.getElementById(rowId)) {
                                 // Fetch driver info from API
                                 fetch(`/api/driver/${driverId}/info/`)
@@ -382,7 +382,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                         newRow.id = rowId;
                                         newRow.className = 'pending-row';
                                         newRow.setAttribute('data-driver-id', driverId);
-                                        newRow.setAttribute('data-team-number', driverInfo.team_number);
 
                                         newRow.innerHTML = `
                                             <td>${driverInfo.team_number}</td>
@@ -399,7 +398,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                         } else if (status === "start" || status === "reset") {
                             // Remove the row (start = driver started session, reset = driver removed from queue)
-                            const rowId = `pending-row-${data.team_number}-${driverId}`;
+                            const rowId = `pending-row-${driverId}`;
                             const row = document.getElementById(rowId);
                             if (row) {
                                 row.remove();

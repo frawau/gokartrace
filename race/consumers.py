@@ -245,7 +245,6 @@ class RoundConsumer(AsyncWebsocketConsumer):
                     "driver_id": event["driver id"],
                     "driver_status": event["driver status"],
                     "completed_sessions": event["completed sessions"],
-                    "team_number": event.get("team_number"),
                 }
             )
         )
