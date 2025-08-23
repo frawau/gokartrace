@@ -199,7 +199,7 @@ def handle_session_delete(sender, instance, **kwargs):
     if round_instance.started:
         try:
             completed_sessions_count = Session.objects.filter(
-                driver__team=round_team, end__isnull=False
+                driver__team=driver.team, end__isnull=False
             ).count()
         except:
             return
@@ -216,5 +216,6 @@ def handle_session_delete(sender, instance, **kwargs):
             "driver id": driver.id,
             "driver status": dstatus,
             "completed sessions": completed_sessions_count,
+            "team_number": driver.team.team.number,
         },
     )

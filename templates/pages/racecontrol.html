@@ -397,8 +397,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                         addSystemMessage("Error fetching driver information", "danger");
                                     });
                             }
-                        } else if (status === "start") {
-                            // Remove the row
+                        } else if (status === "start" || status === "reset") {
+                            // Remove the row (start = driver started session, reset = driver removed from queue)
                             const rowId = `pending-row-${data.team_number}-${driverId}`;
                             const row = document.getElementById(rowId);
                             if (row) {
