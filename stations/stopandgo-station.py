@@ -493,6 +493,9 @@ def parse_arguments():
         "-p", "--port", type=int, default=8000, help="Server port (default: 8000)"
     )
     parser.add_argument(
+        "-S", "--secure", action="store_true", help="Use secure WebSocket (wss://) instead of ws://"
+    )
+    parser.add_argument(
         "-b",
         "--button",
         type=int,
@@ -513,7 +516,7 @@ def parse_arguments():
         "-i", "--info", action="store_true", help="Set log level to INFO"
     )
     parser.add_argument(
-        "--hmac-secret",
+        "-H", "--hmac-secret",
         default="race_control_hmac_key_2024",
         help="HMAC secret key for message authentication (default: race_control_hmac_key_2024)",
     )
@@ -535,7 +538,9 @@ async def main():
     )
 
     # Build WebSocket URL from arguments
-    websocket_url = f"ws://{args.server}:{args.port}/ws/stopandgo/"
+    # Use secure WebSocket if --secure flag is provided or port is 443
+    schema = "wss" if args.secure or args.port == 443 else "ws"
+    websocket_url = f"{schema}://{args.server}:{args.port}/ws/stopandgo/"
     logging.info(f"Connecting to: {websocket_url}")
     logging.info(f"Button pin: {args.button}, Fence sensor pin: {args.fence}")
 
