@@ -282,20 +282,33 @@ def agent_login(request):
             {"status": "error", "message": "No Championship Round today."},
             status=status.HTTP_401_UNAUTHORIZED,
         )
-    schema = request.scheme
-    server = request.META.get("HTTP_HOST") or request.META.get("SERVER_NAME")
-    port = request.META.get("SERVER_PORT")
-
-    if ":" in server:
-        # If HTTP_HOST already contains the port (e.g., 'example.com:8000')
-        server_name, _ = server.split(":", 1)
+    # Use external domain from settings instead of internal server details
+    # This fixes the issue when Django is behind Nginx proxy
+    if hasattr(settings, "APP_DOMAIN") and settings.APP_DOMAIN:
+        # Check if request is secure (HTTPS) by looking at headers set by reverse proxy
+        is_secure = (
+            request.META.get("HTTP_X_FORWARDED_PROTO") == "https"
+            or request.META.get("HTTP_X_FORWARDED_SSL") == "on"
+            or request.is_secure()
+        )
+        schema = "https" if is_secure else "http"
+        servurl = f"{schema}://{settings.APP_DOMAIN}"
     else:
-        server_name = server
+        # Fallback to original logic if APP_DOMAIN is not configured
+        schema = request.scheme
+        server = request.META.get("HTTP_HOST") or request.META.get("SERVER_NAME")
+        port = request.META.get("SERVER_PORT")
 
-    if port and port not in ("80", "443"):  # Only include non-standard ports
-        servurl = f"{schema}://{server_name}:{port}"
-    else:
-        servurl = f"{schema}://{server_name}"
+        if ":" in server:
+            # If HTTP_HOST already contains the port (e.g., 'example.com:8000')
+            server_name, _ = server.split(":", 1)
+        else:
+            server_name = server
+
+        if port and port not in ("80", "443"):  # Only include non-standard ports
+            servurl = f"{schema}://{server_name}:{port}"
+        else:
+            servurl = f"{schema}://{server_name}"
     username = request.data.get("username")
     password = request.data.get("password")
     user = authenticate(request, username=username, password=password)
