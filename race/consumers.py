@@ -369,9 +369,22 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
                             self.stopandgo_group_name,
                             {"type": "penalty_completed", "team": team_number},
                         )
+            elif message_type == "penalty_acknowledged":
+                # Handle penalty acknowledgment from race control
+                team_number = data.get("team")
+                if team_number:
+                    print(f"Race control acknowledged penalty for team {team_number}")
+                    # Send penalty_acknowledged message to station (not as command)
+                    message = {
+                        "type": "penalty_acknowledged",
+                        "team": team_number,
+                        "timestamp": dt.datetime.now().isoformat(),
+                    }
+                    signed_message = self.sign_message(message)
+                    await self.send(text_data=json.dumps(signed_message))
             else:
                 # Handle race control commands
-                if message_type == "send_race_command":
+                if message_type == "penalty_required":
                     # Forward race command to station
                     team = data.get("team")
                     duration = data.get("duration")
@@ -379,7 +392,7 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
                         await self.channel_layer.group_send(
                             self.stopandgo_group_name,
                             {
-                                "type": "send_race_command",
+                                "type": "penalty_required",
                                 "team": team,
                                 "duration": duration,
                             },
@@ -406,7 +419,7 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
         except json.JSONDecodeError:
             print("Invalid JSON received from stop and go connection")
 
-    async def send_race_command(self, event):
+    async def penalty_required(self, event):
         # Send signed race command to station
         message = {
             "type": "command",

@@ -899,7 +899,7 @@ function handleStopGoButtonClick() {
     if (offenderTeamNumber && stopAndGoSocket) {
       // Send signed command to stop and go station
       const message = {
-        type: 'send_race_command',
+        type: 'penalty_required',
         team: parseInt(offenderTeamNumber),
         duration: duration,
         timestamp: new Date().toISOString()
