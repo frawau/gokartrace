@@ -60,9 +60,7 @@ class Command(BaseCommand):
                     "- Setting ready=False and started=False\n"
                     "- Deleting all sessions for this round\n"
                     "- Deleting all pauses for this round\n"
-                    "- Deleting all pit lanes (ChangeLane) for this round\n"
-                    "- Clearing ended timestamp\n"
-                    "- Clearing is_paused flag\n\n"
+                    "- Deleting all pit lanes (ChangeLane) for this round\n\n"
                     "Run without --dry-run to actually perform the reset."
                 )
             )
@@ -98,17 +96,13 @@ class Command(BaseCommand):
                 # Reset the round flags
                 current_round.ready = False
                 current_round.started = False
-                current_round.ended = None
-                current_round.is_paused = False
                 current_round.save()
 
                 self.stdout.write(
                     self.style.SUCCESS(
                         f"Successfully reset round: {current_round.name}\n"
                         "- Set ready=False\n"
-                        "- Set started=False\n"
-                        "- Cleared ended timestamp\n"
-                        "- Set is_paused=False"
+                        "- Set started=False"
                     )
                 )
 
