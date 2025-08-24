@@ -8,7 +8,9 @@ import logging
 import argparse
 import hmac
 import hashlib
+import time
 from datetime import datetime
+from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 import aiohttp
 import RPi.GPIO as GPIO
@@ -22,9 +24,10 @@ DEFAULT_SENSOR_PIN = 24  # Physical pin 24 (GPIO8)
 I2C_BUS = 1
 RELAY_ADDRESS = 0x10  # Adjust based on your relay board
 
-# Font sizes
-COUNTDOWN_FONT_SIZE = 200
-TEAM_FONT_SIZE = 150
+# Font sizes - doubled for better visibility
+COUNTDOWN_FONT_SIZE = 400
+TEAM_FONT_SIZE = 400
+STATUS_FONT_SIZE = 200  # Smaller font for status messages
 
 
 class I2CRelay:
@@ -64,7 +67,7 @@ class FramebufferDisplay:
         self.fb_fd = os.open(self.fb_device, os.O_RDWR)
         self.fb_map = mmap.mmap(self.fb_fd, self.screen_size)
 
-        # Load font
+        # Load fonts
         try:
             self.countdown_font = ImageFont.truetype(
                 "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
@@ -73,9 +76,16 @@ class FramebufferDisplay:
             self.team_font = ImageFont.truetype(
                 "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", TEAM_FONT_SIZE
             )
+            self.status_font = ImageFont.truetype(
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", STATUS_FONT_SIZE
+            )
         except:
             self.countdown_font = ImageFont.load_default()
             self.team_font = ImageFont.load_default()
+            self.status_font = ImageFont.load_default()
+
+        # Measure display performance for timing compensation
+        self.display_time = self._measure_display_time()
 
     def get_screen_info(self):
         # Try to detect from /sys/class/graphics/fb0/virtual_size first
@@ -95,6 +105,19 @@ class FramebufferDisplay:
 
         self.bpp = 32
         self.screen_size = self.width * self.height * (self.bpp // 8)
+
+    def _measure_display_time(self):
+        """Measure how long it takes to generate and display a countdown number"""
+        logging.info("Measuring display performance...")
+
+        # Test with number "20" as a representative sample
+        start_time = time.perf_counter()
+        self.display_text("20", (255, 165, 0), (0, 0, 0))
+        end_time = time.perf_counter()
+
+        display_time = end_time - start_time
+        logging.info(f"Display time measured: {display_time:.4f} seconds")
+        return display_time
 
     def fill_screen(self, color):
         pixel = struct.pack("BBBB", color[2], color[1], color[0], 255)
@@ -160,6 +183,10 @@ class FramebufferDisplay:
         self.fb_map.write(data)
         self.fb_map.flush()
 
+    def display_status_text(self, text, bg_color=(0, 255, 0), text_color=(0, 0, 0)):
+        """Display status message with smaller font"""
+        self.display_text(text, bg_color, text_color, self.status_font)
+
     def close(self):
         self.fb_map.close()
         os.close(self.fb_fd)
@@ -175,14 +202,14 @@ class StopAndGoStation:
         self.relay = I2CRelay()
         self.current_team = None
         self.current_duration = None
-        self.state = (
-            "idle"  # idle, waiting_button, countdown, green, sensor_triggered, what_now
-        )
+        self.state = "idle"  # idle, wait_countdown, countdown, breached, green, button_pressed, fence_breach
         self.countdown_task = None
         self.websocket = None
         self.penalty_ack_received = False
         self.connected = False
         self.fence_enabled = True  # Default: fence function enabled
+        self.green_screen_task = None
+        self.breach_state = False  # Current fence breach status
 
         # Setup GPIO
         GPIO.setmode(GPIO.BOARD)  # Use physical pin numbers
@@ -190,7 +217,7 @@ class StopAndGoStation:
         GPIO.setup(self.sensor_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
         # Initial state - show connecting
-        self.display.display_text("Connecting", (255, 255, 0), (0, 0, 0))
+        self.display.display_status_text("Connecting", (255, 255, 0), (0, 0, 0))
 
     async def websocket_handler(self):
         while True:
@@ -203,9 +230,7 @@ class StopAndGoStation:
 
                         # Show race mode screen when connected
                         if self.state == "idle":
-                            self.display.display_text(
-                                "Race Mode", (0, 255, 0), (0, 0, 0)
-                            )
+                            self.display.display_status_text("Race Mode")
 
                         async for msg in ws:
                             if msg.type == aiohttp.WSMsgType.TEXT:
@@ -224,7 +249,9 @@ class StopAndGoStation:
 
                 # Show connecting screen when disconnected
                 if self.state == "idle":
-                    self.display.display_text("Connecting", (255, 255, 0), (0, 0, 0))
+                    self.display.display_status_text(
+                        "Connecting", (255, 255, 0), (0, 0, 0)
+                    )
 
                 await asyncio.sleep(5)  # Wait before reconnecting
 
@@ -254,7 +281,7 @@ class StopAndGoStation:
         # Verify HMAC signature for all incoming messages
         provided_signature = data.pop("hmac_signature", None)
         if not provided_signature:
-            logging.warning("Received message without HMAC signature")
+            logging.warning(f"Received message without HMAC signature: {data}")
             return
 
         if not self.verify_hmac(data, provided_signature):
@@ -296,7 +323,9 @@ class StopAndGoStation:
 
         # Handle force penalty completion
         elif command == "force_complete":
-            if self.state == "green" and self.current_team:
+            if (
+                self.state == "green" or self.state == "breached"
+            ) and self.current_team:
                 logging.info(f"Force completing penalty for team {self.current_team}")
                 await self.reset_to_idle()
                 await self.send_response(
@@ -330,7 +359,7 @@ class StopAndGoStation:
         if "team" in data and "duration" in data:
             self.current_team = data["team"]
             self.current_duration = data["duration"]
-            self.state = "waiting_button"
+            self.state = "wait_countdown"
             self.penalty_ack_received = False  # Reset for new race
 
             # Turn on relay and show team number
@@ -343,49 +372,83 @@ class StopAndGoStation:
             )
 
     async def button_monitor(self):
-        button_pressed = False
+        last_button_state = False
         while True:
-            current_state = not GPIO.input(self.button_pin)  # Inverted because pull-up
+            current_button_state = not GPIO.input(
+                self.button_pin
+            )  # Inverted because pull-up
 
-            if current_state and not button_pressed:
-                button_pressed = True
-                if self.state == "waiting_button":
+            # Detect button press (transition from not pressed to pressed)
+            if current_button_state and not last_button_state:
+                if self.state == "wait_countdown" or (
+                    self.state == "breached" and not self.breach_state
+                ):
+                    # Button pressed in wait_countdown or breached with fence clear -> start countdown
+                    if self.countdown_task and not self.countdown_task.done():
+                        self.countdown_task.cancel()
+                    self.state = "countdown"
                     await self.start_countdown()
+                    if self.state == "breached":
+                        logging.info(
+                            "Button pressed with fence clear - restarting countdown"
+                        )
+                elif self.state == "countdown":
+                    # Button pressed during countdown -> do nothing
+                    pass
+                elif self.state == "breached":
+                    # Button pressed during breached state but fence still breached
+                    logging.info("Button pressed but fence still breached - ignoring")
                 elif self.state == "idle" and self.connected:
                     # Button pressed when no stop and go is active
-                    await self.show_what_now()
-            elif not current_state:
-                button_pressed = False
+                    await self.show_button_pressed()
+                elif self.state == "green":
+                    # Button pressed during green screen - reset to race mode immediately
+                    await self.reset_to_idle()
 
+            last_button_state = current_button_state
             await asyncio.sleep(0.1)
 
     async def sensor_monitor(self):
-        sensor_triggered = False
         while True:
             # Only monitor sensor if fence function is enabled
             if self.fence_enabled:
-                current_state = not GPIO.input(
+                current_breach = not GPIO.input(
                     self.sensor_pin
                 )  # Inverted because pull-up
 
-                if current_state and not sensor_triggered:
-                    sensor_triggered = True
-                    if self.state in ["waiting_button", "countdown"]:
-                        await self.handle_sensor_triggered()
-                    elif self.state == "green":
-                        # Wait for sensor to go from triggered to not triggered
-                        pass
-                elif not current_state and sensor_triggered:
-                    sensor_triggered = False
-                    if self.state == "sensor_triggered":
-                        await self.return_to_waiting()
-                    elif self.state == "green":
-                        # Only reset if penalty was acknowledged
-                        if self.penalty_ack_received:
+                # Update breach state when it changes
+                if current_breach != self.breach_state:
+                    self.breach_state = current_breach
+
+                    if current_breach:  # Fence just got breached
+                        if self.state == "wait_countdown":
+                            # Go to breached state and redraw with breach colors
+                            self.state = "breached"
+                            self.display.display_text(
+                                str(self.current_team),
+                                (255, 0, 0),
+                                (255, 255, 0),
+                                self.display.team_font,
+                            )
+                            logging.info(
+                                "Fence breached during wait_countdown - going to breached state"
+                            )
+                        elif self.state == "countdown":
+                            # Go to breached state, continue countdown with different colors
+                            self.state = "breached"
+                            logging.info(
+                                "Fence breached during countdown - going to breached state, continuing countdown"
+                            )
+                        elif self.state == "idle" and self.connected:
+                            # Fence breached when no stop and go is active
+                            await self.show_fence_breach()
+                    else:  # Fence just cleared
+                        if self.state == "green" and self.penalty_ack_received:
+                            # Green screen and penalty acknowledged - can reset
                             await self.reset_to_idle()
             else:
-                # If fence is disabled, reset sensor state
-                sensor_triggered = False
+                # If fence is disabled, clear breach state
+                self.breach_state = False
 
             await asyncio.sleep(0.1)
 
@@ -410,29 +473,56 @@ class StopAndGoStation:
         self.state = "countdown"
         await self.relay.turn_off()
 
-        # Start countdown
+        # Start countdown task but don't await it
         self.countdown_task = asyncio.create_task(self.countdown())
-        try:
-            await self.countdown_task
-        except asyncio.CancelledError:
-            pass
 
     async def countdown(self):
-        for i in range(self.current_duration, 0, -1):
-            if self.state != "countdown":
+        for i in range(
+            self.current_duration, -1, -1
+        ):  # Go down to 0 instead of stopping at 1
+            if self.state not in ["countdown", "breached"]:
                 return
-            self.display.display_text(
-                str(i), (255, 165, 0), (0, 0, 0)
-            )  # Uses countdown_font by default
-            await asyncio.sleep(1)
 
-        # Countdown finished
-        self.state = "green"
-        self.display.fill_screen((0, 255, 0))  # Green screen
-        logging.info("Countdown finished - showing green screen")
+            # Display the number and measure actual time taken
+            start_time = time.perf_counter()
 
-        # Start sending penalty ok messages
-        asyncio.create_task(self.send_penalty_ok())
+            # Choose colors based on FSM state
+            if self.state == "breached":
+                # Yellow text on red background when in breached state
+                bg_color = (255, 0, 0)
+                text_color = (255, 255, 0)
+            else:
+                # Normal orange background with black text
+                bg_color = (255, 165, 0)
+                text_color = (0, 0, 0)
+
+            self.display.display_text(str(i), bg_color, text_color)
+            display_time = time.perf_counter() - start_time
+
+            # Don't sleep after displaying 0
+            if i > 0:
+                sleep_time = max(0, 1.0 - display_time)
+                await asyncio.sleep(sleep_time)
+
+        # Countdown finished - check FSM state
+        if self.state == "breached":
+            # Breached countdown finished - stay on yellow 0 on red and wait
+            # Keep state as "breached", display will show yellow 0 on red
+            logging.info(
+                "Breached countdown finished - staying in breached state, waiting for fence clear and button press"
+            )
+            # Don't send penalty served message, just wait
+        else:
+            # Normal countdown finished
+            self.state = "green"
+            self.display.fill_screen((0, 255, 0))  # Green screen
+            logging.info("Countdown finished - showing green screen")
+
+            # Start sending penalty ok messages
+            asyncio.create_task(self.send_penalty_ok())
+
+            # Start green screen timeout (10 seconds)
+            self.green_screen_task = asyncio.create_task(self.green_screen_timeout())
 
     async def reset_to_idle(self):
         self.state = "idle"
@@ -440,27 +530,60 @@ class StopAndGoStation:
         self.current_duration = None
         await self.relay.turn_off()
 
+        # Cancel green screen timeout if it exists
+        if self.green_screen_task:
+            self.green_screen_task.cancel()
+            self.green_screen_task = None
+
+        # Cancel countdown task if it exists
+        if self.countdown_task and not self.countdown_task.done():
+            self.countdown_task.cancel()
+
         # Show appropriate idle screen based on connection status
         if self.connected:
-            self.display.display_text("Race Mode", (0, 255, 0), (0, 0, 0))
+            self.display.display_status_text("Race Mode")
         else:
-            self.display.display_text("Connecting", (255, 255, 0), (0, 0, 0))
+            self.display.display_status_text("Connecting", (255, 255, 0), (0, 0, 0))
 
         logging.info("Reset to idle state")
 
-    async def show_what_now(self):
-        """Show 'What Now?' screen for 3 seconds when button pressed in idle state"""
-        self.state = "what_now"
-        self.display.display_text(
-            "What Now?", (0, 0, 255), (255, 255, 255)
+    async def show_button_pressed(self):
+        """Show 'Button Pressed' screen for 3 seconds when button pressed in idle state"""
+        self.state = "button_pressed"
+        self.display.display_status_text(
+            "Button Pressed", (0, 0, 255), (255, 255, 255)
         )  # Blue background, white text
-        logging.info("Button pressed in idle state - showing 'What Now?' screen")
+        logging.info("Button pressed in idle state - showing 'Button Pressed' screen")
 
         await asyncio.sleep(3)
 
         # Return to appropriate idle screen
-        if self.state == "what_now":  # Make sure we haven't changed state
+        if self.state == "button_pressed":  # Make sure we haven't changed state
             await self.reset_to_idle()
+
+    async def show_fence_breach(self):
+        """Show 'Breach' screen for 3 seconds when fence breached in idle state"""
+        self.state = "fence_breach"
+        self.display.display_status_text(
+            "Breach", (255, 0, 0), (255, 255, 255)
+        )  # Red background, white text
+        logging.info("Fence breached in idle state - showing 'Breach' screen")
+
+        await asyncio.sleep(3)
+
+        # Return to appropriate idle screen
+        if self.state == "fence_breach":  # Make sure we haven't changed state
+            await self.reset_to_idle()
+
+    async def green_screen_timeout(self):
+        """Auto-return to race mode after 10 seconds on green screen"""
+        try:
+            await asyncio.sleep(10)
+            if self.state == "green":
+                logging.info("Green screen timeout - returning to race mode")
+                await self.reset_to_idle()
+        except asyncio.CancelledError:
+            pass
 
     async def run(self):
         tasks = [
@@ -471,12 +594,38 @@ class StopAndGoStation:
 
         try:
             await asyncio.gather(*tasks)
-        except KeyboardInterrupt:
-            logging.info("Shutting down...")
+        except (KeyboardInterrupt, asyncio.CancelledError):
+            logging.info("Received Ctrl-C, shutting down gracefully...")
+
+            # Cancel all running tasks
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
+
+            # Cancel countdown and green screen tasks if running
+            if self.countdown_task and not self.countdown_task.done():
+                self.countdown_task.cancel()
+            if self.green_screen_task and not self.green_screen_task.done():
+                self.green_screen_task.cancel()
+
+            # Wait for tasks to clean up and suppress CancelledError
+            try:
+                await asyncio.gather(*tasks, return_exceptions=True)
+            except:
+                pass
+
+        except Exception as e:
+            logging.error(f"Unexpected error: {e}")
         finally:
+            logging.info("Cleaning up hardware...")
+            try:
+                await self.relay.turn_off()
+            except:
+                pass
             self.display.close()
             self.relay.close()
             GPIO.cleanup()
+            logging.info("Shutdown complete")
 
 
 def parse_arguments():
@@ -493,7 +642,10 @@ def parse_arguments():
         "-p", "--port", type=int, default=8000, help="Server port (default: 8000)"
     )
     parser.add_argument(
-        "-S", "--secure", action="store_true", help="Use secure WebSocket (wss://) instead of ws://"
+        "-S",
+        "--secure",
+        action="store_true",
+        help="Use secure WebSocket (wss://) instead of ws://",
     )
     parser.add_argument(
         "-b",
@@ -516,7 +668,8 @@ def parse_arguments():
         "-i", "--info", action="store_true", help="Set log level to INFO"
     )
     parser.add_argument(
-        "-H", "--hmac-secret",
+        "-H",
+        "--hmac-secret",
         default="race_control_hmac_key_2024",
         help="HMAC secret key for message authentication (default: race_control_hmac_key_2024)",
     )
