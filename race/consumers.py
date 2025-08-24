@@ -420,10 +420,10 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
             print("Invalid JSON received from stop and go connection")
 
     async def penalty_required(self, event):
-        # Send signed race command to station
+        # Send signed penalty required command to station
         message = {
             "type": "command",
-            "command": "start_race",
+            "command": "penalty_required",
             "team": event["team"],
             "duration": event["duration"],
             "timestamp": dt.datetime.now().isoformat(),

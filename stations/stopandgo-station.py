@@ -305,8 +305,8 @@ class StopAndGoStation:
 
         command = data.get("command")
 
-        # Handle race command
-        if command == "start_race" and "team" in data and "duration" in data:
+        # Handle penalty required command
+        if command == "penalty_required" and "team" in data and "duration" in data:
             await self.handle_race_command(data)
 
         # Handle fence enable/disable command
@@ -367,7 +367,7 @@ class StopAndGoStation:
                 str(self.current_team), (255, 165, 0), (0, 0, 0), self.display.team_font
             )
             logging.info(
-                f"Race started for team {self.current_team}, duration {self.current_duration}s"
+                f"Penalty required for team {self.current_team}, duration {self.current_duration}s"
             )
 
     async def button_monitor(self):
