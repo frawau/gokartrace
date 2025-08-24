@@ -289,7 +289,9 @@ class StopAndGoStation:
             logging.warning("HMAC verification failed - rejecting message")
             return
 
-        logging.debug("HMAC verification successful")  # Use debug to reduce log spam
+        logging.debug(
+            f"HMAC verification successful for {data}"
+        )  # Use debug to reduce log spam
 
         # Handle penalty acknowledgment messages (not command type)
         if data.get("type") == "penalty_acknowledged" and "team" in data:
@@ -300,6 +302,8 @@ class StopAndGoStation:
                 )
                 # Reset last_team after acknowledgment
                 self.last_team = None
+                # Reset to idle after receiving acknowledgment
+                await self.reset_to_idle()
             return
 
         # Only process messages marked as commands for other message types
@@ -310,7 +314,7 @@ class StopAndGoStation:
 
         # Handle penalty required command
         if command == "penalty_required" and "team" in data and "duration" in data:
-            await self.handle_race_command(data)
+            await self.handle_penalty_command(data)
 
         # Handle fence enable/disable command
         elif command == "set_fence":
@@ -359,7 +363,7 @@ class StopAndGoStation:
             await self.send_response("penalty_served", {"team": self.last_team})
             await asyncio.sleep(5)
 
-    async def handle_race_command(self, data):
+    async def handle_penalty_command(self, data):
         if "team" in data and "duration" in data:
             self.current_team = data["team"]
             self.current_duration = data["duration"]
