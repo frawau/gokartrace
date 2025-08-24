@@ -202,6 +202,7 @@ class StopAndGoStation:
         self.relay = I2CRelay()
         self.current_team = None
         self.current_duration = None
+        self.last_team = None  # Track team for acknowledgment handling
         self.state = "idle"  # idle, wait_countdown, countdown, breached, green, button_pressed, fence_breach
         self.countdown_task = None
         self.websocket = None
@@ -292,11 +293,13 @@ class StopAndGoStation:
 
         # Handle penalty acknowledgment messages (not command type)
         if data.get("type") == "penalty_acknowledged" and "team" in data:
-            if data["team"] == self.current_team:
+            if data["team"] == self.last_team:
                 self.penalty_ack_received = True
                 logging.info(
-                    f"Penalty acknowledgment received for team {self.current_team}"
+                    f"Penalty acknowledgment received for team {self.last_team}"
                 )
+                # Reset last_team after acknowledgment
+                self.last_team = None
             return
 
         # Only process messages marked as commands for other message types
@@ -328,8 +331,8 @@ class StopAndGoStation:
                 self.state == "green" or self.state == "breached"
             ) and self.current_team:
                 logging.info(f"Force completing penalty for team {self.current_team}")
-                await self.send_penalty_ok()
-                await self.reset_to_idle()
+                # Send penalty served message (will set last_team)
+                asyncio.create_task(self.send_penalty_ok())
 
     async def send_response(self, response_type, data):
         """Send a response message via websocket with HMAC signature"""
@@ -350,8 +353,10 @@ class StopAndGoStation:
 
     async def send_penalty_ok(self):
         """Send penalty ok message every 5 seconds until acknowledged"""
+        # Set last_team when sending penalty served
+        self.last_team = self.current_team
         while not self.penalty_ack_received:
-            await self.send_response("penalty_served", {"team": self.current_team})
+            await self.send_response("penalty_served", {"team": self.last_team})
             await asyncio.sleep(5)
 
     async def handle_race_command(self, data):
@@ -527,6 +532,8 @@ class StopAndGoStation:
         self.state = "idle"
         self.current_team = None
         self.current_duration = None
+        self.last_team = None  # Reset last_team
+        self.penalty_ack_received = False  # Reset for next penalty
         await self.relay.turn_off()
 
         # Cancel green screen timeout if it exists
