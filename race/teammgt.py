@@ -112,7 +112,7 @@ class TeamMembersView(View):
         )
 
         return (
-            Round.objects.filter(ready=False, start__gte=yesterday_start)
+            Round.objects.filter(start__gte=yesterday_start, ended__isnull=True)
             .order_by("start")
             .first()
         )

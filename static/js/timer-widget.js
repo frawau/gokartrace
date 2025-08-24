@@ -135,8 +135,9 @@ class TimerWidget {
     formatTime(totalSeconds) {
         const totalSecondsAbs = Math.abs(totalSeconds);
         const hours = Math.floor(totalSecondsAbs / 3600);
-        const minutes = Math.floor((totalSecondsAbs % 3600) / 60);
-        const seconds = totalSecondsAbs % 60;
+        const remainingAfterHours = totalSecondsAbs % 3600;
+        const minutes = Math.floor(remainingAfterHours / 60);
+        const seconds = remainingAfterHours % 60;
 
         let formattedTime = '';
 

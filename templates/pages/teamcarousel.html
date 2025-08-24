@@ -155,8 +155,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (!headerRow) return;
                     let changesHeader = headerRow.querySelector('th:first-child');
                     if (changesHeader) {
-                        changesHeader.textContent = `${data.completed_sessions} Changes`;
-                    console.log(`Updated header to: ${data.completed_sessions} Changes`);
+                        const completedSessions = Math.max(0, parseInt(data.completed_sessions) || 0);
+                        changesHeader.textContent = `${completedSessions} Changes`;
+                    console.log(`Updated header to: ${completedSessions} Changes`);
                     }
                 }
 
