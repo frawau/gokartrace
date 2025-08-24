@@ -375,7 +375,12 @@ function updateButtonVisibility(state, options = {}) {
       break;
     case "running": // Ready, started
       if (options.showFalseStart) {
-        document.getElementById("falseStartButton")?.removeAttribute("hidden"); // Show initially
+        const falseStartBtn = document.getElementById("falseStartButton");
+        if (falseStartBtn) {
+          falseStartBtn.removeAttribute("hidden");
+          falseStartBtn.innerHTML = '<i class="fas fa-undo me-1"></i> False Start';
+          falseStartBtn.disabled = false;
+        }
         if (!options.keepFalseStart) {
           // Avoid restarting timeout if already running
           falseStartTimeoutId = setTimeout(() => {
@@ -384,9 +389,12 @@ function updateButtonVisibility(state, options = {}) {
           }, 15000); // 15 seconds
         }
       } else if (options.showFalseRestart) {
-        document
-          .getElementById("falseRestartButton")
-          ?.removeAttribute("hidden"); // Show initially
+        const falseRestartBtn = document.getElementById("falseRestartButton");
+        if (falseRestartBtn) {
+          falseRestartBtn.removeAttribute("hidden");
+          falseRestartBtn.innerHTML = '<i class="fas fa-history me-1"></i> False Restart';
+          falseRestartBtn.disabled = false;
+        }
         // Start timeout to hide False Restart button after a delay
         if (!options.keepFalseRestart) {
           // Avoid restarting timeout
