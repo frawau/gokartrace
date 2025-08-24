@@ -290,7 +290,16 @@ class StopAndGoStation:
 
         logging.debug("HMAC verification successful")  # Use debug to reduce log spam
 
-        # Only process messages marked as commands
+        # Handle penalty acknowledgment messages (not command type)
+        if data.get("type") == "penalty_acknowledged" and "team" in data:
+            if data["team"] == self.current_team:
+                self.penalty_ack_received = True
+                logging.info(
+                    f"Penalty acknowledgment received for team {self.current_team}"
+                )
+            return
+
+        # Only process messages marked as commands for other message types
         if data.get("type") != "command":
             return
 
@@ -299,14 +308,6 @@ class StopAndGoStation:
         # Handle race command
         if command == "start_race" and "team" in data and "duration" in data:
             await self.handle_race_command(data)
-
-        # Handle penalty acknowledgment
-        elif command == "penalty_ack" and "team" in data:
-            if data["team"] == self.current_team:
-                self.penalty_ack_received = True
-                logging.info(
-                    f"Penalty acknowledgment received for team {self.current_team}"
-                )
 
         # Handle fence enable/disable command
         elif command == "set_fence":
@@ -327,10 +328,8 @@ class StopAndGoStation:
                 self.state == "green" or self.state == "breached"
             ) and self.current_team:
                 logging.info(f"Force completing penalty for team {self.current_team}")
+                await self.send_penalty_ok()
                 await self.reset_to_idle()
-                await self.send_response(
-                    "penalty_completed", {"team": self.current_team}
-                )
 
     async def send_response(self, response_type, data):
         """Send a response message via websocket with HMAC signature"""
@@ -351,7 +350,7 @@ class StopAndGoStation:
 
     async def send_penalty_ok(self):
         """Send penalty ok message every 5 seconds until acknowledged"""
-        while self.state == "green" and not self.penalty_ack_received:
+        while not self.penalty_ack_received:
             await self.send_response("penalty_served", {"team": self.current_team})
             await asyncio.sleep(5)
 
