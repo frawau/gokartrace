@@ -469,11 +469,12 @@ async function handleRaceAction(event) {
             "warning",
           );
         }
-        // Restore clicked button text
+        // Restore clicked button text and re-enable it
         button.innerHTML = originalButtonHTML;
-        // Determine current state to re-enable correct buttons (or rely on WS)
-        // For now, just re-enable all potentially visible buttons for simplicity on error
-        allActionButtons.forEach((btn) => (btn.disabled = false));
+        button.disabled = false;
+        
+        // Don't re-enable all buttons on error - let the current state determine visibility
+        // The WebSocket or page state should handle proper button visibility
       } else {
         // --- Handle Logical Success ---
         console.log(`Action '${action}' successful logically.`);
@@ -526,14 +527,14 @@ async function handleRaceAction(event) {
       let errorMsg = `Error: ${response.status}`;
       /* ... get details ... */ addSystemMessage(errorMsg, "danger");
       button.innerHTML = originalButtonHTML; // Restore button text
-      allActionButtons.forEach((btn) => (btn.disabled = false)); // Re-enable all on HTTP error
+      button.disabled = false; // Re-enable only the clicked button on HTTP error
     }
   } catch (error) {
     // Handle network errors
     console.error(`Network error:`, error);
     addSystemMessage(`Network error: ${error}.`, "danger");
     button.innerHTML = originalButtonHTML; // Restore button text
-    allActionButtons.forEach((btn) => (btn.disabled = false)); // Re-enable all on network error
+    button.disabled = false; // Re-enable only the clicked button on network error
   }
   // No finally block needed as enablement is handled in error/success paths now
 }
