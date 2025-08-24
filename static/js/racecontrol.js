@@ -293,7 +293,12 @@ function hideFalseStartButton() {
     console.log("Hiding False Start button due to timeout or state change.");
     btn.hidden = true;
     if (falseStartTimeoutExpired) {
-      document.getElementById("pauseButton")?.removeAttribute("hidden");
+      const pauseBtn = document.getElementById("pauseButton");
+      if (pauseBtn) {
+        pauseBtn.removeAttribute("hidden");
+        pauseBtn.innerHTML = '<i class="fas fa-pause me-1"></i> Pause Race';
+        pauseBtn.disabled = false;
+      }
     }
   }
   falseStartTimeoutExpired = false;
@@ -312,7 +317,12 @@ function hideFalseRestartButton() {
     console.log("Hiding False Restart button due to timeout or state change.");
     btn.hidden = true;
     if (falseRestartTimeoutExpired) {
-      document.getElementById("pauseButton")?.removeAttribute("hidden");
+      const pauseBtn = document.getElementById("pauseButton");
+      if (pauseBtn) {
+        pauseBtn.removeAttribute("hidden");
+        pauseBtn.innerHTML = '<i class="fas fa-pause me-1"></i> Pause Race';
+        pauseBtn.disabled = false;
+      }
     }
   }
   falseRestartTimeoutExpired = false;
