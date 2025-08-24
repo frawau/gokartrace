@@ -24,9 +24,9 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "--confirm",
+            "--dry-run",
             action="store_true",
-            help="Confirm the reset operation",
+            help="Show what would be reset without actually doing it",
         )
 
     def handle(self, *args, **options):
@@ -42,21 +42,6 @@ class Command(BaseCommand):
         self.stdout.write(f"Ready: {current_round.ready}")
         self.stdout.write(f"Started: {current_round.started}")
 
-        if not options["confirm"]:
-            self.stdout.write(
-                self.style.WARNING(
-                    "This will reset the current round by:\n"
-                    "- Setting ready=False and started=False\n"
-                    "- Deleting all sessions for this round\n"
-                    "- Deleting all pauses for this round\n"
-                    "- Deleting all pit lanes (ChangeLane) for this round\n"
-                    "- Clearing ended timestamp\n"
-                    "- Clearing is_paused flag\n\n"
-                    "Use --confirm to actually perform the reset."
-                )
-            )
-            return
-
         # Count what will be deleted
         sessions_count = Session.objects.filter(
             driver__team__round=current_round
@@ -67,6 +52,21 @@ class Command(BaseCommand):
         self.stdout.write(f"Found {sessions_count} sessions to delete")
         self.stdout.write(f"Found {pauses_count} pauses to delete")
         self.stdout.write(f"Found {changelanes_count} pit lanes to delete")
+
+        if options["dry_run"]:
+            self.stdout.write(
+                self.style.WARNING(
+                    "DRY RUN - This would reset the current round by:\n"
+                    "- Setting ready=False and started=False\n"
+                    "- Deleting all sessions for this round\n"
+                    "- Deleting all pauses for this round\n"
+                    "- Deleting all pit lanes (ChangeLane) for this round\n"
+                    "- Clearing ended timestamp\n"
+                    "- Clearing is_paused flag\n\n"
+                    "Run without --dry-run to actually perform the reset."
+                )
+            )
+            return
 
         # Perform the reset in a transaction
         try:
