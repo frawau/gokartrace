@@ -57,7 +57,7 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.WARNING(
                     "DRY RUN - This would reset the current round by:\n"
-                    "- Setting ready=False and started=False\n"
+                    "- Setting ready=False and started=None\n"
                     "- Deleting all sessions for this round\n"
                     "- Deleting all pauses for this round\n"
                     "- Deleting all pit lanes (ChangeLane) for this round\n\n"
@@ -95,14 +95,14 @@ class Command(BaseCommand):
 
                 # Reset the round flags
                 current_round.ready = False
-                current_round.started = False
+                current_round.started = None
                 current_round.save()
 
                 self.stdout.write(
                     self.style.SUCCESS(
                         f"Successfully reset round: {current_round.name}\n"
                         "- Set ready=False\n"
-                        "- Set started=False"
+                        "- Set started=None"
                     )
                 )
 
