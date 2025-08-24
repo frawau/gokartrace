@@ -350,7 +350,12 @@ function updateButtonVisibility(state, options = {}) {
         ?.style.setProperty("display", "none", "important");
       break;
     case "ready": // Ready, not started
-      document.getElementById("startButton")?.removeAttribute("hidden");
+      const startBtn = document.getElementById("startButton");
+      if (startBtn) {
+        startBtn.removeAttribute("hidden");
+        startBtn.innerHTML = '<i class="fas fa-play me-1"></i> Start Race';
+        startBtn.disabled = false;
+      }
       document
         .getElementById("emptyTeamsCard")
         ?.style.setProperty("display", "none", "important");
@@ -386,7 +391,12 @@ function updateButtonVisibility(state, options = {}) {
       break;
 
     case "paused": // Started, paused
-      document.getElementById("resumeButton")?.removeAttribute("hidden"); // Show initially
+      const resumeBtn = document.getElementById("resumeButton");
+      if (resumeBtn) {
+        resumeBtn.removeAttribute("hidden");
+        resumeBtn.innerHTML = '<i class="fas fa-play-circle me-1"></i> Resume Race';
+        resumeBtn.disabled = false;
+      }
       break;
     case "ended": // Ended
       // No buttons shown by default in 'ended' state
