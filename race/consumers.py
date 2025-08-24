@@ -337,8 +337,7 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
 
                         # Send signed acknowledgment back to station
                         message = {
-                            "type": "command",
-                            "command": "penalty_ack",
+                            "type": "penalty_acknowledged",
                             "team": team_number,
                             "timestamp": dt.datetime.now().isoformat(),
                         }
