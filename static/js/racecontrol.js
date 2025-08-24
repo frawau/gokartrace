@@ -993,6 +993,22 @@ function handleStopAndGoMessage(data) {
       // Penalty has been served, reset form
       resetStopAndGoForm();
       addSystemMessage(`Penalty served by team ${data.team}`, 'success');
+      
+      // Send acknowledgment back to station
+      if (stopAndGoSocket) {
+        const ackMessage = {
+          type: 'penalty_acknowledged',
+          team: data.team,
+          timestamp: new Date().toISOString()
+        };
+        
+        signMessage(ackMessage).then(signedMessage => {
+          stopAndGoSocket.send(JSON.stringify(signedMessage));
+          console.log('Sent penalty acknowledgment for team', data.team);
+        }).catch(error => {
+          console.error('Failed to sign acknowledgment:', error);
+        });
+      }
       break;
       
     case 'fence_status':
