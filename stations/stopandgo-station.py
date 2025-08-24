@@ -211,6 +211,7 @@ class StopAndGoStation:
         self.fence_enabled = True  # Default: fence function enabled
         self.green_screen_task = None
         self.breach_state = False  # Current fence breach status
+        self.penalty_ok_task = None  # Track penalty_served sending task
 
         # Setup GPIO
         GPIO.setmode(GPIO.BOARD)  # Use physical pin numbers
@@ -300,6 +301,10 @@ class StopAndGoStation:
                 logging.info(
                     f"Penalty acknowledgment received for team {self.last_team}"
                 )
+                # Cancel the penalty_ok sending task
+                if self.penalty_ok_task and not self.penalty_ok_task.done():
+                    self.penalty_ok_task.cancel()
+                    self.penalty_ok_task = None
                 # Reset last_team after acknowledgment
                 self.last_team = None
                 # Reset to idle after receiving acknowledgment
@@ -336,7 +341,7 @@ class StopAndGoStation:
             ) and self.current_team:
                 logging.info(f"Force completing penalty for team {self.current_team}")
                 # Send penalty served message (will set last_team)
-                asyncio.create_task(self.send_penalty_ok())
+                self.penalty_ok_task = asyncio.create_task(self.send_penalty_ok())
 
     async def send_response(self, response_type, data):
         """Send a response message via websocket with HMAC signature"""
@@ -527,7 +532,7 @@ class StopAndGoStation:
             logging.info("Countdown finished - showing green screen")
 
             # Start sending penalty ok messages
-            asyncio.create_task(self.send_penalty_ok())
+            self.penalty_ok_task = asyncio.create_task(self.send_penalty_ok())
 
             # Start green screen timeout (10 seconds)
             self.green_screen_task = asyncio.create_task(self.green_screen_timeout())
@@ -544,6 +549,11 @@ class StopAndGoStation:
         if self.green_screen_task:
             self.green_screen_task.cancel()
             self.green_screen_task = None
+
+        # Cancel penalty_ok task if it exists
+        if self.penalty_ok_task and not self.penalty_ok_task.done():
+            self.penalty_ok_task.cancel()
+            self.penalty_ok_task = None
 
         # Cancel countdown task if it exists
         if self.countdown_task and not self.countdown_task.done():
