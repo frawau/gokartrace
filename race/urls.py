@@ -71,4 +71,14 @@ urlpatterns = [
         name="get_championship_rounds",
     ),
     path("penalty/manage/", views.penalty_management_view, name="penalty_management"),
+    path(
+        "api/championship/<int:championship_id>/available-penalties/",
+        views.get_available_penalties,
+        name="get_available_penalties",
+    ),
+    path(
+        "api/championship/<int:championship_id>/penalties/",
+        views.get_championship_penalties,
+        name="get_championship_penalties",
+    ),
 ]

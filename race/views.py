@@ -1135,6 +1135,76 @@ def edit_championship_view(request):
                 if latest_round:
                     latest_round.delete()
 
+            elif action == "add_championship_penalty":
+                # Add championship penalty
+                championship_id = request.POST.get("championship_id")
+                penalty_id = request.POST.get("penalty_id")
+                sanction = request.POST.get("sanction")
+                value = request.POST.get("value")
+
+                championship = get_object_or_404(Championship, id=championship_id)
+                penalty = get_object_or_404(Penalty, id=penalty_id)
+
+                # Check if this penalty is already configured for this championship
+                if ChampionshipPenalty.objects.filter(
+                    championship=championship, penalty=penalty
+                ).exists():
+                    return JsonResponse(
+                        {
+                            "success": False,
+                            "error": "This penalty is already configured for this championship.",
+                        }
+                    )
+
+                ChampionshipPenalty.objects.create(
+                    championship=championship,
+                    penalty=penalty,
+                    sanction=sanction,
+                    value=int(value),
+                )
+
+                return JsonResponse(
+                    {
+                        "success": True,
+                        "message": "Championship penalty added successfully",
+                    }
+                )
+
+            elif action == "edit_championship_penalty":
+                # Edit championship penalty
+                championship_penalty_id = request.POST.get("championship_penalty_id")
+                sanction = request.POST.get("sanction")
+                value = request.POST.get("value")
+
+                championship_penalty = get_object_or_404(
+                    ChampionshipPenalty, id=championship_penalty_id
+                )
+                championship_penalty.sanction = sanction
+                championship_penalty.value = int(value)
+                championship_penalty.save()
+
+                return JsonResponse(
+                    {
+                        "success": True,
+                        "message": "Championship penalty updated successfully",
+                    }
+                )
+
+            elif action == "delete_championship_penalty":
+                # Delete championship penalty
+                championship_penalty_id = request.POST.get("championship_penalty_id")
+                championship_penalty = get_object_or_404(
+                    ChampionshipPenalty, id=championship_penalty_id
+                )
+                championship_penalty.delete()
+
+                return JsonResponse(
+                    {
+                        "success": True,
+                        "message": "Championship penalty deleted successfully",
+                    }
+                )
+
             elif action == "set_rounds":
                 # Set specific number of rounds
                 num_rounds_str = request.POST.get("num_rounds", "0")
@@ -1426,3 +1496,61 @@ def penalty_management_view(request):
         "penalties": penalties,
     }
     return render(request, "pages/penalty_management.html", context)
+
+
+@login_required
+@user_passes_test(is_admin_user)
+def get_available_penalties(request, championship_id):
+    """API endpoint to get penalties not yet configured for a championship."""
+    try:
+        championship = get_object_or_404(Championship, id=championship_id)
+
+        # Get penalties that are already configured for this championship
+        configured_penalty_ids = ChampionshipPenalty.objects.filter(
+            championship=championship
+        ).values_list("penalty_id", flat=True)
+
+        # Get all penalties not in the configured list
+        available_penalties = Penalty.objects.exclude(
+            id__in=configured_penalty_ids
+        ).order_by("name")
+
+        penalties_data = [
+            {"id": penalty.id, "name": penalty.name, "description": penalty.description}
+            for penalty in available_penalties
+        ]
+
+        return JsonResponse({"penalties": penalties_data})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@login_required
+@user_passes_test(is_admin_user)
+def get_championship_penalties(request, championship_id):
+    """API endpoint to get penalties configured for a championship."""
+    try:
+        championship = get_object_or_404(Championship, id=championship_id)
+
+        championship_penalties = (
+            ChampionshipPenalty.objects.filter(championship=championship)
+            .select_related("penalty")
+            .order_by("penalty__name")
+        )
+
+        penalties_data = [
+            {
+                "id": cp.id,
+                "penalty_id": cp.penalty.id,
+                "penalty_name": cp.penalty.name,
+                "penalty_description": cp.penalty.description,
+                "sanction": cp.sanction,
+                "sanction_display": cp.get_sanction_display(),
+                "value": cp.value,
+            }
+            for cp in championship_penalties
+        ]
+
+        return JsonResponse({"penalties": penalties_data})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)

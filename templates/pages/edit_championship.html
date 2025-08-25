@@ -92,6 +92,63 @@
                     </div>
                 </div>
 
+                <!-- Penalty Configuration Section -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <h5>Penalty Configuration</h5>
+                        <div class="card">
+                            <div class="card-body">
+                                <!-- Add New Championship Penalty -->
+                                <div class="mb-4">
+                                    <h6>Add Championship Penalty</h6>
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <select id="penalty-select" class="form-control">
+                                                <option value="">Select a penalty...</option>
+                                                <!-- Options will be populated via JavaScript -->
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <select id="sanction-select" class="form-control">
+                                                <option value="">Select sanction...</option>
+                                                <option value="S">Stop & Go</option>
+                                                <option value="L">Laps</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="number" id="penalty-value" class="form-control" placeholder="Value" min="1" max="120" value="20">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <button type="button" id="add-penalty-btn" class="btn btn-success">Add</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Existing Championship Penalties List -->
+                                <div class="mb-4">
+                                    <h6>Current Championship Penalties</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-striped" id="championship-penalties-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Penalty</th>
+                                                    <th>Description</th>
+                                                    <th>Sanction</th>
+                                                    <th>Value</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <!-- Will be populated via JavaScript -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="row mt-4">
                     <div class="col-12">
                         <button type="submit" class="btn btn-primary">Save Changes</button>
@@ -130,6 +187,10 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Load current rounds for this championship
             loadChampionshipRounds(selectedOption.val());
+            
+            // Load penalty configuration for this championship
+            loadAvailablePenalties(selectedOption.val());
+            loadChampionshipPenalties(selectedOption.val());
         } else {
             form.hide();
             $('#current-rounds').html('<p class="text-muted mb-0">Select a championship to view rounds</p>');
@@ -313,6 +374,182 @@ document.addEventListener('DOMContentLoaded', function() {
     $('#cancel-btn').on('click', function() {
         $('#championship-select').val('').trigger('change');
     });
+
+    // Penalty management functions
+    function loadAvailablePenalties(championshipId) {
+        fetch(`/api/championship/${championshipId}/available-penalties/`)
+            .then(response => response.json())
+            .then(data => {
+                const penaltySelect = $('#penalty-select');
+                penaltySelect.html('<option value="">Select a penalty...</option>');
+                
+                data.penalties.forEach(penalty => {
+                    penaltySelect.append(
+                        `<option value="${penalty.id}" title="${penalty.description}">${penalty.name}</option>`
+                    );
+                });
+            })
+            .catch(error => {
+                console.error('Error loading available penalties:', error);
+            });
+    }
+
+    function loadChampionshipPenalties(championshipId) {
+        fetch(`/api/championship/${championshipId}/penalties/`)
+            .then(response => response.json())
+            .then(data => {
+                const tbody = $('#championship-penalties-table tbody');
+                tbody.empty();
+                
+                if (data.penalties.length === 0) {
+                    tbody.append('<tr><td colspan="5" class="text-center text-muted">No penalties configured for this championship</td></tr>');
+                } else {
+                    data.penalties.forEach(penalty => {
+                        tbody.append(`
+                            <tr id="penalty-row-${penalty.id}">
+                                <td>${penalty.penalty_name}</td>
+                                <td title="${penalty.penalty_description}">${penalty.penalty_description.substring(0, 50)}${penalty.penalty_description.length > 50 ? '...' : ''}</td>
+                                <td>${penalty.sanction_display}</td>
+                                <td>${penalty.value}</td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="editChampionshipPenalty(${penalty.id}, '${penalty.sanction}', ${penalty.value})">
+                                        Edit
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteChampionshipPenalty(${penalty.id})">
+                                        Delete
+                                    </button>
+                                </td>
+                            </tr>
+                        `);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error loading championship penalties:', error);
+            });
+    }
+
+    // Handle add championship penalty button
+    $('#add-penalty-btn').on('click', function() {
+        const championshipId = $('#championship-id').val();
+        const penaltyId = $('#penalty-select').val();
+        const sanction = $('#sanction-select').val();
+        const value = $('#penalty-value').val();
+        
+        if (!championshipId) {
+            alert('Please select a championship first');
+            return;
+        }
+        
+        if (!penaltyId || !sanction || !value) {
+            alert('Please fill in all fields');
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('championship_id', championshipId);
+        formData.append('penalty_id', penaltyId);
+        formData.append('sanction', sanction);
+        formData.append('value', value);
+        formData.append('action', 'add_championship_penalty');
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        
+        fetch('{% url "edit_championship" %}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                // Reset form
+                $('#penalty-select').val('');
+                $('#sanction-select').val('');
+                $('#penalty-value').val('20');
+                // Reload penalties
+                loadAvailablePenalties(championshipId);
+                loadChampionshipPenalties(championshipId);
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while adding the penalty.');
+        });
+    });
+
+    // Global functions for penalty management
+    window.editChampionshipPenalty = function(championshipPenaltyId, currentSanction, currentValue) {
+        const newSanction = prompt('Select sanction (S for Stop & Go, L for Laps):', currentSanction);
+        if (!newSanction || (newSanction !== 'S' && newSanction !== 'L')) {
+            alert('Please enter S or L');
+            return;
+        }
+        
+        const newValue = prompt('Enter penalty value:', currentValue);
+        if (!newValue || isNaN(newValue) || newValue < 1 || newValue > 120) {
+            alert('Please enter a valid value between 1 and 120');
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('championship_penalty_id', championshipPenaltyId);
+        formData.append('sanction', newSanction);
+        formData.append('value', newValue);
+        formData.append('action', 'edit_championship_penalty');
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        
+        fetch('{% url "edit_championship" %}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                const championshipId = $('#championship-id').val();
+                loadChampionshipPenalties(championshipId);
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while updating the penalty.');
+        });
+    };
+
+    window.deleteChampionshipPenalty = function(championshipPenaltyId) {
+        if (!confirm('Are you sure you want to delete this championship penalty?')) {
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('championship_penalty_id', championshipPenaltyId);
+        formData.append('action', 'delete_championship_penalty');
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        
+        fetch('{% url "edit_championship" %}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                const championshipId = $('#championship-id').val();
+                loadAvailablePenalties(championshipId);
+                loadChampionshipPenalties(championshipId);
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while deleting the penalty.');
+        });
+    };
 });
 </script>
 {% endblock %} 
