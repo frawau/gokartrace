@@ -988,9 +988,15 @@ class ChampionshipPenalty(models.Model):
 
 class RoundPenalty(models.Model):
     round = models.ForeignKey(Round, on_delete=models.CASCADE)
-    offender = models.ForeignKey(round_team, on_delete=models.CASCADE)
+    offender = models.ForeignKey(
+        round_team, on_delete=models.CASCADE, related_name="offender_penalties"
+    )
     victim = models.ForeignKey(
-        round_team, on_delete=models.CASCADE, null=True, blank=True
+        round_team,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="victim_penalties",
     )
     penalty = models.ForeignKey(ChampionshipPenalty, on_delete=models.CASCADE)
     imposed = models.DateTimeField()
