@@ -449,18 +449,25 @@ document.addEventListener('DOMContentLoaded', function() {
         const value = $('#penalty-value').val();
         const option = $('#option-select').val();
         const editingId = $('#editing-penalty-id').val();
+        const isEditing = editingId !== '';
         
         if (!championshipId) {
             alert('Please select a championship first');
             return;
         }
         
-        if (!penaltyId || !sanction || !value) {
-            alert('Please fill in all fields');
-            return;
+        // Different validation for edit vs add mode
+        if (isEditing) {
+            if (!sanction || !value) {
+                alert('Please fill in sanction and value fields');
+                return;
+            }
+        } else {
+            if (!penaltyId || !sanction || !value) {
+                alert('Please fill in all fields');
+                return;
+            }
         }
-        
-        const isEditing = editingId !== '';
         const formData = new FormData();
         
         if (isEditing) {
