@@ -1141,6 +1141,7 @@ def edit_championship_view(request):
                 penalty_id = request.POST.get("penalty_id")
                 sanction = request.POST.get("sanction")
                 value = request.POST.get("value")
+                per_hour = request.POST.get("per_hour") == "true"
 
                 championship = get_object_or_404(Championship, id=championship_id)
                 penalty = get_object_or_404(Penalty, id=penalty_id)
@@ -1161,6 +1162,7 @@ def edit_championship_view(request):
                     penalty=penalty,
                     sanction=sanction,
                     value=int(value),
+                    per_hour=per_hour,
                 )
 
                 return JsonResponse(
@@ -1175,12 +1177,14 @@ def edit_championship_view(request):
                 championship_penalty_id = request.POST.get("championship_penalty_id")
                 sanction = request.POST.get("sanction")
                 value = request.POST.get("value")
+                per_hour = request.POST.get("per_hour") == "true"
 
                 championship_penalty = get_object_or_404(
                     ChampionshipPenalty, id=championship_penalty_id
                 )
                 championship_penalty.sanction = sanction
                 championship_penalty.value = int(value)
+                championship_penalty.per_hour = per_hour
                 championship_penalty.save()
 
                 return JsonResponse(
@@ -1547,6 +1551,7 @@ def get_championship_penalties(request, championship_id):
                 "sanction": cp.sanction,
                 "sanction_display": cp.get_sanction_display(),
                 "value": cp.value,
+                "per_hour": cp.per_hour,
             }
             for cp in championship_penalties
         ]

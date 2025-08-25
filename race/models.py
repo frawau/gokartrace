@@ -969,6 +969,7 @@ class ChampionshipPenalty(models.Model):
     PTYPE = (
         ("S", "Stop & Go"),
         ("L", "Laps"),
+        ("P", "Post Race Laps"),
     )
     championship = models.ForeignKey(Championship, on_delete=models.CASCADE)
     penalty = models.ForeignKey(Penalty, on_delete=models.CASCADE)
@@ -976,6 +977,7 @@ class ChampionshipPenalty(models.Model):
     value = models.IntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(120)], default=20
     )
+    per_hour = models.BooleanField(default=False, verbose_name="Per Hour")
 
     class Meta:
         unique_together = ("championship", "penalty")
