@@ -120,10 +120,11 @@
                                             <input type="number" id="penalty-value" class="form-control" placeholder="Value" min="1" max="120" value="20">
                                         </div>
                                         <div class="col-md-2">
-                                            <div class="form-check">
-                                                <input type="checkbox" id="per-hour-checkbox" class="form-check-input">
-                                                <label class="form-check-label" for="per-hour-checkbox">Per Hour</label>
-                                            </div>
+                                            <select id="option-select" class="form-control">
+                                                <option value="fixed">Fixed</option>
+                                                <option value="variable">Variable</option>
+                                                <option value="per_hour">Per Hour</option>
+                                            </select>
                                         </div>
                                         <div class="col-md-3">
                                             <button type="button" id="add-penalty-btn" class="btn btn-success">Add</button>
@@ -142,7 +143,7 @@
                                                     <th>Description</th>
                                                     <th>Sanction</th>
                                                     <th>Value</th>
-                                                    <th>Per Hour</th>
+                                                    <th>Option</th>
                                                     <th>Actions</th>
                                                 </tr>
                                             </thead>
@@ -413,16 +414,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     tbody.append('<tr><td colspan="6" class="text-center text-muted">No penalties configured for this championship</td></tr>');
                 } else {
                     data.penalties.forEach(penalty => {
-                        const perHourIcon = penalty.per_hour ? '<i class="fas fa-check text-success"></i>' : '<i class="fas fa-times text-muted"></i>';
                         tbody.append(`
                             <tr id="penalty-row-${penalty.id}">
                                 <td>${penalty.penalty_name}</td>
                                 <td title="${penalty.penalty_description}">${penalty.penalty_description.substring(0, 50)}${penalty.penalty_description.length > 50 ? '...' : ''}</td>
                                 <td>${penalty.sanction_display}</td>
                                 <td>${penalty.value}</td>
-                                <td class="text-center">${perHourIcon}</td>
+                                <td>${penalty.option_display}</td>
                                 <td>
-                                    <button type="button" class="btn btn-sm btn-primary" onclick="editChampionshipPenalty(${penalty.id}, '${penalty.sanction}', ${penalty.value}, ${penalty.per_hour})">
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="editChampionshipPenalty(${penalty.id}, '${penalty.sanction}', ${penalty.value}, '${penalty.option}')">
                                         Edit
                                     </button>
                                     <button type="button" class="btn btn-sm btn-danger" onclick="deleteChampionshipPenalty(${penalty.id})">
@@ -445,7 +445,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const penaltyId = $('#penalty-select').val();
         const sanction = $('#sanction-select').val();
         const value = $('#penalty-value').val();
-        const perHour = $('#per-hour-checkbox').is(':checked');
+        const option = $('#option-select').val();
         
         if (!championshipId) {
             alert('Please select a championship first');
@@ -462,7 +462,7 @@ document.addEventListener('DOMContentLoaded', function() {
         formData.append('penalty_id', penaltyId);
         formData.append('sanction', sanction);
         formData.append('value', value);
-        formData.append('per_hour', perHour);
+        formData.append('option', option);
         formData.append('action', 'add_championship_penalty');
         formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
         
@@ -478,7 +478,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 $('#penalty-select').val('');
                 $('#sanction-select').val('');
                 $('#penalty-value').val('20');
-                $('#per-hour-checkbox').prop('checked', false);
+                $('#option-select').val('fixed');
                 // Reload penalties
                 loadAvailablePenalties(championshipId);
                 loadChampionshipPenalties(championshipId);
@@ -493,7 +493,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Global functions for penalty management
-    window.editChampionshipPenalty = function(championshipPenaltyId, currentSanction, currentValue, currentPerHour) {
+    window.editChampionshipPenalty = function(championshipPenaltyId, currentSanction, currentValue, currentOption) {
         const newSanction = prompt('Select sanction (S for Stop & Go, L for Laps, P for Post Race Laps):', currentSanction);
         if (!newSanction || (newSanction !== 'S' && newSanction !== 'L' && newSanction !== 'P')) {
             alert('Please enter S, L, or P');
@@ -506,13 +506,17 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        const newPerHour = confirm('Per Hour? Click OK for Yes, Cancel for No');
+        const newOption = prompt('Select option (fixed, variable, per_hour):', currentOption);
+        if (!newOption || (newOption !== 'fixed' && newOption !== 'variable' && newOption !== 'per_hour')) {
+            alert('Please enter fixed, variable, or per_hour');
+            return;
+        }
         
         const formData = new FormData();
         formData.append('championship_penalty_id', championshipPenaltyId);
         formData.append('sanction', newSanction);
         formData.append('value', newValue);
-        formData.append('per_hour', newPerHour);
+        formData.append('option', newOption);
         formData.append('action', 'edit_championship_penalty');
         formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
         

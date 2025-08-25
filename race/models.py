@@ -971,13 +971,20 @@ class ChampionshipPenalty(models.Model):
         ("L", "Laps"),
         ("P", "Post Race Laps"),
     )
+    OPTION_CHOICES = (
+        ("fixed", "Fixed"),
+        ("variable", "Variable"),
+        ("per_hour", "Per Hour"),
+    )
     championship = models.ForeignKey(Championship, on_delete=models.CASCADE)
     penalty = models.ForeignKey(Penalty, on_delete=models.CASCADE)
     sanction = models.CharField(max_length=1, choices=PTYPE)
     value = models.IntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(120)], default=20
     )
-    per_hour = models.BooleanField(default=False, verbose_name="Per Hour")
+    option = models.CharField(
+        max_length=10, choices=OPTION_CHOICES, default="fixed", verbose_name="Option"
+    )
 
     class Meta:
         unique_together = ("championship", "penalty")
