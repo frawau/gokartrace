@@ -38,6 +38,9 @@ from .models import (
     team_member,
     ChangeLane,
     Session,
+    Penalty,
+    ChampionshipPenalty,
+    RoundPenalty,
 )
 from .serializers import ChangeLaneSerializer
 from .utils import datadecode, is_admin_user
@@ -1368,3 +1371,58 @@ def get_championship_rounds(request, championship_id):
         )
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
+
+
+@login_required
+@user_passes_test(is_admin_user)
+def penalty_management_view(request):
+    if request.method == "POST":
+        try:
+            action = request.POST.get("action")
+
+            if action == "create_penalty":
+                name = request.POST.get("name")
+                description = request.POST.get("description", "")
+
+                penalty = Penalty.objects.create(name=name, description=description)
+
+                if "illustration" in request.FILES:
+                    penalty.illustration = request.FILES["illustration"]
+                    penalty.save()
+
+                return JsonResponse(
+                    {"success": True, "message": "Penalty created successfully"}
+                )
+
+            elif action == "edit_penalty":
+                penalty_id = request.POST.get("penalty_id")
+                penalty = get_object_or_404(Penalty, id=penalty_id)
+
+                penalty.name = request.POST.get("name")
+                penalty.description = request.POST.get("description", "")
+
+                if "illustration" in request.FILES:
+                    penalty.illustration = request.FILES["illustration"]
+
+                penalty.save()
+                return JsonResponse(
+                    {"success": True, "message": "Penalty updated successfully"}
+                )
+
+            elif action == "delete_penalty":
+                penalty_id = request.POST.get("penalty_id")
+                penalty = get_object_or_404(Penalty, id=penalty_id)
+                penalty.delete()
+                return JsonResponse(
+                    {"success": True, "message": "Penalty deleted successfully"}
+                )
+
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+
+    # GET request - show the penalties
+    penalties = Penalty.objects.all().order_by("name")
+    context = {
+        "penalties": penalties,
+    }
+    return render(request, "pages/penalty_management.html", context)

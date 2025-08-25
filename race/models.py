@@ -51,6 +51,10 @@ def mugshot_path(instance, filename):
     return f"static/person/mug_{instance.surname}_{instance.country}_{round(dt.datetime.now().timestamp())}"
 
 
+def illustration_path(instance, filename):
+    return f"static/illustration/penalty_{instance.name}"
+
+
 def logo_path(instance, filename):
     # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
     return f"static/logos/{instance.name}_{round(dt.datetime.now().timestamp())}"
@@ -946,3 +950,55 @@ class ChangeLane(models.Model):
 
     def __str__(self):
         return f"{self.round.name} Lane {self.lane}"
+
+
+class Penalty(models.Model):
+    name = models.CharField(max_length=32, unique=True)
+    description = models.CharField(max_length=256)
+    illustration = models.ImageField(upload_to=illustration_path, null=True, blank=True)
+
+    class Meta:
+        verbose_name = _("Penalty")
+        verbose_name_plural = _("Penalties")
+
+    def __str__(self):
+        return self.name
+
+
+class ChampionshipPenalty(models.Model):
+    PTYPE = (
+        ("S", "Stop & Go"),
+        ("L", "Laps"),
+    )
+    championship = models.ForeignKey(Championship, on_delete=models.CASCADE)
+    penalty = models.ForeignKey(Penalty, on_delete=models.CASCADE)
+    sanction = models.CharField(max_length=1, choices=PTYPE)
+    value = models.IntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(120)], default=20
+    )
+
+    class Meta:
+        unique_together = ("championship", "penalty")
+        verbose_name = _("Championship Penalty")
+        verbose_name_plural = _("Championship Penalties")
+
+    def __str__(self):
+        return f"{self.penalty.name} in {self.championship.name}"
+
+
+class RoundPenalty(models.Model):
+    round = models.ForeignKey(Round, on_delete=models.CASCADE)
+    offender = models.ForeignKey(round_team, on_delete=models.CASCADE)
+    victim = models.ForeignKey(
+        round_team, on_delete=models.CASCADE, null=True, blank=True
+    )
+    penalty = models.ForeignKey(ChampionshipPenalty, on_delete=models.CASCADE)
+    imposed = models.DateTimeField()
+    served = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = _("Round Penalty")
+        verbose_name_plural = _("Round Penalties")
+
+    def __str__(self):
+        return f"{self.penalty.penalty.name} for {self.offender}"

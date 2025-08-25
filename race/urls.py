@@ -70,4 +70,5 @@ urlpatterns = [
         views.get_championship_rounds,
         name="get_championship_rounds",
     ),
+    path("penalty/manage/", views.penalty_management_view, name="penalty_management"),
 ]
