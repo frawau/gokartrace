@@ -159,7 +159,10 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.success) {
                 alert(data.message);
-                location.reload(); // Reload to show the new penalty
+                // Reset the form fields
+                document.getElementById('create-penalty-form').reset();
+                // Reload to show the new penalty in the table
+                location.reload();
             } else {
                 alert('Error: ' + data.error);
             }
