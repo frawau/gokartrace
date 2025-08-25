@@ -100,7 +100,8 @@
                             <div class="card-body">
                                 <!-- Add New Championship Penalty -->
                                 <div class="mb-4">
-                                    <h6>Add Championship Penalty</h6>
+                                    <h6 id="penalty-form-title">Add Championship Penalty</h6>
+                                    <input type="hidden" id="editing-penalty-id" value="">
                                     <div class="row">
                                         <div class="col-md-3">
                                             <select id="penalty-select" class="form-control">
@@ -128,6 +129,7 @@
                                         </div>
                                         <div class="col-md-3">
                                             <button type="button" id="add-penalty-btn" class="btn btn-success">Add</button>
+                                            <button type="button" id="cancel-edit-penalty-btn" class="btn btn-secondary ms-2" style="display: none;">Cancel</button>
                                         </div>
                                     </div>
                                 </div>
@@ -422,7 +424,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <td>${penalty.value}</td>
                                 <td>${penalty.option_display}</td>
                                 <td>
-                                    <button type="button" class="btn btn-sm btn-primary" onclick="editChampionshipPenalty(${penalty.id}, '${penalty.sanction}', ${penalty.value}, '${penalty.option}')">
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="editChampionshipPenalty(${penalty.id}, ${penalty.penalty_id}, '${penalty.sanction}', ${penalty.value}, '${penalty.option}')">
                                         Edit
                                     </button>
                                     <button type="button" class="btn btn-sm btn-danger" onclick="deleteChampionshipPenalty(${penalty.id})">
@@ -439,13 +441,14 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    // Handle add championship penalty button
+    // Handle add/update championship penalty button
     $('#add-penalty-btn').on('click', function() {
         const championshipId = $('#championship-id').val();
         const penaltyId = $('#penalty-select').val();
         const sanction = $('#sanction-select').val();
         const value = $('#penalty-value').val();
         const option = $('#option-select').val();
+        const editingId = $('#editing-penalty-id').val();
         
         if (!championshipId) {
             alert('Please select a championship first');
@@ -457,13 +460,23 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        const isEditing = editingId !== '';
         const formData = new FormData();
-        formData.append('championship_id', championshipId);
-        formData.append('penalty_id', penaltyId);
-        formData.append('sanction', sanction);
-        formData.append('value', value);
-        formData.append('option', option);
-        formData.append('action', 'add_championship_penalty');
+        
+        if (isEditing) {
+            formData.append('championship_penalty_id', editingId);
+            formData.append('sanction', sanction);
+            formData.append('value', value);
+            formData.append('option', option);
+            formData.append('action', 'edit_championship_penalty');
+        } else {
+            formData.append('championship_id', championshipId);
+            formData.append('penalty_id', penaltyId);
+            formData.append('sanction', sanction);
+            formData.append('value', value);
+            formData.append('option', option);
+            formData.append('action', 'add_championship_penalty');
+        }
         formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
         
         fetch('{% url "edit_championship" %}', {
@@ -474,11 +487,8 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.success) {
                 alert(data.message);
-                // Reset form
-                $('#penalty-select').val('');
-                $('#sanction-select').val('');
-                $('#penalty-value').val('20');
-                $('#option-select').val('fixed');
+                // Reset form and edit mode
+                resetPenaltyForm();
                 // Reload penalties
                 loadAvailablePenalties(championshipId);
                 loadChampionshipPenalties(championshipId);
@@ -492,52 +502,48 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // Handle cancel edit button
+    $('#cancel-edit-penalty-btn').on('click', function() {
+        resetPenaltyForm();
+    });
+
+    // Helper functions
+    function resetPenaltyForm() {
+        $('#penalty-select').val('');
+        $('#sanction-select').val('');
+        $('#penalty-value').val('20');
+        $('#option-select').val('fixed');
+        $('#editing-penalty-id').val('');
+        $('#penalty-form-title').text('Add Championship Penalty');
+        $('#add-penalty-btn').text('Add').removeClass('btn-primary').addClass('btn-success');
+        $('#cancel-edit-penalty-btn').hide();
+        $('#penalty-select').prop('disabled', false);
+        
+        // Show the hidden row if it was being edited
+        const hiddenRow = $('.penalty-row-editing');
+        if (hiddenRow.length) {
+            hiddenRow.show().removeClass('penalty-row-editing');
+        }
+    }
+
+    function enterEditMode(penaltyId, penaltyIdValue, sanction, value, option) {
+        $('#editing-penalty-id').val(penaltyId);
+        $('#penalty-select').val(penaltyIdValue).prop('disabled', true);
+        $('#sanction-select').val(sanction);
+        $('#penalty-value').val(value);
+        $('#option-select').val(option);
+        $('#penalty-form-title').text('Edit Championship Penalty');
+        $('#add-penalty-btn').text('Update').removeClass('btn-success').addClass('btn-primary');
+        $('#cancel-edit-penalty-btn').show();
+        
+        // Hide the row being edited
+        $(`#penalty-row-${penaltyId}`).hide().addClass('penalty-row-editing');
+    }
+
     // Global functions for penalty management
-    window.editChampionshipPenalty = function(championshipPenaltyId, currentSanction, currentValue, currentOption) {
-        const newSanction = prompt('Select sanction (S for Stop & Go, L for Laps, P for Post Race Laps):', currentSanction);
-        if (!newSanction || (newSanction !== 'S' && newSanction !== 'L' && newSanction !== 'P')) {
-            alert('Please enter S, L, or P');
-            return;
-        }
-        
-        const newValue = prompt('Enter penalty value:', currentValue);
-        if (!newValue || isNaN(newValue) || newValue < 1 || newValue > 120) {
-            alert('Please enter a valid value between 1 and 120');
-            return;
-        }
-        
-        const newOption = prompt('Select option (fixed, variable, per_hour):', currentOption);
-        if (!newOption || (newOption !== 'fixed' && newOption !== 'variable' && newOption !== 'per_hour')) {
-            alert('Please enter fixed, variable, or per_hour');
-            return;
-        }
-        
-        const formData = new FormData();
-        formData.append('championship_penalty_id', championshipPenaltyId);
-        formData.append('sanction', newSanction);
-        formData.append('value', newValue);
-        formData.append('option', newOption);
-        formData.append('action', 'edit_championship_penalty');
-        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-        
-        fetch('{% url "edit_championship" %}', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert(data.message);
-                const championshipId = $('#championship-id').val();
-                loadChampionshipPenalties(championshipId);
-            } else {
-                alert('Error: ' + data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while updating the penalty.');
-        });
+    window.editChampionshipPenalty = function(championshipPenaltyId, penaltyId, sanction, value, option) {
+        // Enter edit mode with current values
+        enterEditMode(championshipPenaltyId, penaltyId, sanction, value, option);
     };
 
     window.deleteChampionshipPenalty = function(championshipPenaltyId) {

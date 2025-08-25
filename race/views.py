@@ -1071,11 +1071,27 @@ def create_championship_view(request):
 def edit_championship_view(request):
     if request.method == "POST":
         try:
+            action = request.POST.get("action")
+
+            # Handle delete championship penalty first (doesn't need championship object)
+            if action == "delete_championship_penalty":
+                # Delete championship penalty
+                championship_penalty_id = request.POST.get("championship_penalty_id")
+                championship_penalty = get_object_or_404(
+                    ChampionshipPenalty, id=championship_penalty_id
+                )
+                championship_penalty.delete()
+
+                return JsonResponse(
+                    {
+                        "success": True,
+                        "message": "Championship penalty deleted successfully",
+                    }
+                )
+
+            # For other actions, get the championship
             championship_id = request.POST.get("championship_id")
             championship = get_object_or_404(Championship, id=championship_id)
-
-            # Handle round management
-            action = request.POST.get("action")
 
             # Only update championship fields if this is not a round management action
             if not action:
@@ -1191,21 +1207,6 @@ def edit_championship_view(request):
                     {
                         "success": True,
                         "message": "Championship penalty updated successfully",
-                    }
-                )
-
-            elif action == "delete_championship_penalty":
-                # Delete championship penalty
-                championship_penalty_id = request.POST.get("championship_penalty_id")
-                championship_penalty = get_object_or_404(
-                    ChampionshipPenalty, id=championship_penalty_id
-                )
-                championship_penalty.delete()
-
-                return JsonResponse(
-                    {
-                        "success": True,
-                        "message": "Championship penalty deleted successfully",
                     }
                 )
 
