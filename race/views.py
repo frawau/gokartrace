@@ -1073,7 +1073,7 @@ def edit_championship_view(request):
         try:
             action = request.POST.get("action")
 
-            # Handle delete championship penalty first (doesn't need championship object)
+            # Handle penalty actions that don't need championship object
             if action == "delete_championship_penalty":
                 # Delete championship penalty
                 championship_penalty_id = request.POST.get("championship_penalty_id")
@@ -1086,6 +1086,28 @@ def edit_championship_view(request):
                     {
                         "success": True,
                         "message": "Championship penalty deleted successfully",
+                    }
+                )
+
+            elif action == "edit_championship_penalty":
+                # Edit championship penalty
+                championship_penalty_id = request.POST.get("championship_penalty_id")
+                sanction = request.POST.get("sanction")
+                value = request.POST.get("value")
+                option = request.POST.get("option", "fixed")
+
+                championship_penalty = get_object_or_404(
+                    ChampionshipPenalty, id=championship_penalty_id
+                )
+                championship_penalty.sanction = sanction
+                championship_penalty.value = int(value)
+                championship_penalty.option = option
+                championship_penalty.save()
+
+                return JsonResponse(
+                    {
+                        "success": True,
+                        "message": "Championship penalty updated successfully",
                     }
                 )
 
@@ -1185,28 +1207,6 @@ def edit_championship_view(request):
                     {
                         "success": True,
                         "message": "Championship penalty added successfully",
-                    }
-                )
-
-            elif action == "edit_championship_penalty":
-                # Edit championship penalty
-                championship_penalty_id = request.POST.get("championship_penalty_id")
-                sanction = request.POST.get("sanction")
-                value = request.POST.get("value")
-                option = request.POST.get("option", "fixed")
-
-                championship_penalty = get_object_or_404(
-                    ChampionshipPenalty, id=championship_penalty_id
-                )
-                championship_penalty.sanction = sanction
-                championship_penalty.value = int(value)
-                championship_penalty.option = option
-                championship_penalty.save()
-
-                return JsonResponse(
-                    {
-                        "success": True,
-                        "message": "Championship penalty updated successfully",
                     }
                 )
 
