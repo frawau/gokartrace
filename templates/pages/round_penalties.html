@@ -50,9 +50,9 @@
                             <img src="{% get_media_prefix %}{{ penalty.penalty.penalty.illustration }}" 
                                  alt="{{ penalty.penalty.penalty.name }}" 
                                  class="penalty-illustration" 
-                                 style="max-width: 50px; max-height: 50px; object-fit: contain;">
+                                 style="max-width: 80px; max-height: 80px; object-fit: contain;">
                         {% else %}
-                            <i class="fas fa-flag text-muted"></i>
+                            <i class="fas fa-flag text-muted" style="font-size: 2rem;"></i>
                         {% endif %}
                     </td>
                     <td>{{ penalty.penalty.penalty.description|default:penalty.penalty.penalty.name }}</td>
@@ -79,7 +79,11 @@
                         {% if penalty.served %}
                             <small class="text-success">{{ penalty.served|date:"M d, H:i" }}</small>
                         {% else %}
-                            <span class="text-warning">Pending</span>
+                            {% if penalty.penalty.sanction == 'S' %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
                         {% endif %}
                     </td>
                 </tr>
@@ -178,14 +182,45 @@ document.addEventListener('DOMContentLoaded', function() {
 .penalty-illustration {
     border-radius: 4px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease;
+    cursor: pointer;
+}
+
+.penalty-illustration:hover {
+    transform: scale(1.5);
+    z-index: 1000;
+    position: relative;
+}
+
+.penalties-table tbody tr {
+    height: 90px;
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
 }
 
 .penalties-table tbody tr:hover {
     background-color: #f8f9fa;
 }
 
+.penalties-table tbody td {
+    vertical-align: middle;
+    padding: 1rem 0.75rem;
+    color: #212529;
+}
+
+.penalties-table thead th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    color: #495057;
+    font-weight: 600;
+}
+
 .badge {
     font-size: 0.85em;
+}
+
+.table-hover tbody tr:hover {
+    color: #212529;
 }
 </style>
 {% endblock extra_js %}
