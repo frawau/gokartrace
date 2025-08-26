@@ -1008,6 +1008,10 @@ class RoundPenalty(models.Model):
         related_name="victim_penalties",
     )
     penalty = models.ForeignKey(ChampionshipPenalty, on_delete=models.CASCADE)
+    value = models.IntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(120)],
+        help_text="Penalty value at the time of imposition",
+    )
     imposed = models.DateTimeField()
     served = models.DateTimeField(null=True, blank=True)
 
@@ -1016,4 +1020,4 @@ class RoundPenalty(models.Model):
         verbose_name_plural = _("Round Penalties")
 
     def __str__(self):
-        return f"{self.penalty.penalty.name} for {self.offender}"
+        return f"{self.penalty.penalty.name} ({self.value}) for {self.offender}"
