@@ -434,10 +434,16 @@ document.addEventListener('DOMContentLoaded', function() {
                             // Fix CSS syntax errors in the HTML
                             const fixedHtml = data.lane_html
                                 .replace('style="flex;"', 'style="flex: 1;"')
-                                .replace('left-padding:', 'padding-left:');
+                                .replace('left-padding:', 'padding-left:')
+                                .replace('/div>', '</div>'); // Fix malformed closing div tags
                             
-                            // Update lane content with the fixed HTML
-                            laneElement.querySelector('.card-body').innerHTML = fixedHtml;
+                            // Update lane card-body content with the fixed HTML
+                            const cardBody = laneElement.querySelector('.card-body');
+                            if (cardBody) {
+                                cardBody.innerHTML = fixedHtml;
+                            } else {
+                                console.warn(`Card body not found for lane ${i}`);
+                            }
                         }
                     } catch (err) {
                         console.error(`Error processing pit lane ${i} WS message:`, err, e.data);
