@@ -10,6 +10,9 @@ let stopAndGoSocket = null;
 let stopAndGoState = 'idle'; // 'idle', 'active', 'served'
 let fenceEnabled = null;
 let hmacSecret = null;
+let currentRoundId = null;
+let selectedPenalty = null;
+let currentRoundPenaltyId = null;
 
 /**
  * Sign message with HMAC using Web Crypto API (SHA-256 for JavaScript compatibility)
@@ -681,20 +684,29 @@ document.addEventListener("DOMContentLoaded", () => {
     attempt = attempt || 1;
     console.log(`Attempt ${attempt} to initialize Stop & Go...`);
     
+    const penaltySelect = document.getElementById('penaltySelect');
     const offenderSelect = document.getElementById('offenderSelect');
     const victimSelect = document.getElementById('victimSelect');
-    const reasonSelect = document.getElementById('reasonSelect');
     
-    if (offenderSelect && victimSelect && reasonSelect) {
+    if (penaltySelect && offenderSelect && victimSelect) {
       console.log('All Stop & Go elements found, initializing...');
+      
+      // Get current round ID
+      const roundIdContainer = document.getElementById('race-control-buttons');
+      currentRoundId = roundIdContainer?.dataset.roundId;
+      
+      if (currentRoundId) {
+        loadStopAndGoPenalties();
+      }
+      
       initializeStopAndGo();
       initializeDropdownLogic();
       return true;
     } else {
       console.log('Stop & Go elements not found:', {
+        penalty: !!penaltySelect,
         offender: !!offenderSelect,
-        victim: !!victimSelect,
-        reason: !!reasonSelect
+        victim: !!victimSelect
       });
       
       if (attempt < 5) {
@@ -786,69 +798,121 @@ function initializeStopAndGo() {
 }
 
 /**
+ * Load Stop & Go penalties for current round
+ */
+function loadStopAndGoPenalties() {
+  if (!currentRoundId) return;
+  
+  fetch(`/api/round/${currentRoundId}/stop-go-penalties/`)
+    .then(response => response.json())
+    .then(data => {
+      const penaltySelect = document.getElementById('penaltySelect');
+      if (penaltySelect && data.penalties) {
+        penaltySelect.innerHTML = '<option value="">Select penalty...</option>';
+        data.penalties.forEach(penalty => {
+          const option = document.createElement('option');
+          option.value = penalty.id;
+          option.textContent = `${penalty.penalty_name} (${penalty.value}s)`;
+          option.dataset.penaltyValue = penalty.value;
+          option.dataset.penaltyOption = penalty.option;
+          penaltySelect.appendChild(option);
+        });
+      }
+    })
+    .catch(error => {
+      console.error('Error loading Stop & Go penalties:', error);
+    });
+}
+
+/**
  * Initialize dropdown interaction logic
  */
 function initializeDropdownLogic() {
   console.log('Initializing dropdown logic...');
+  const penaltySelect = document.getElementById('penaltySelect');
   const offenderSelect = document.getElementById('offenderSelect');
   const victimSelect = document.getElementById('victimSelect');
-  const reasonSelect = document.getElementById('reasonSelect');
+  const durationInput = document.getElementById('durationInput');
   const stopGoButton = document.getElementById('stopGoButton');
   
   console.log('Elements found:', {
+    penaltySelect: !!penaltySelect,
     offenderSelect: !!offenderSelect,
     victimSelect: !!victimSelect,
-    reasonSelect: !!reasonSelect,
+    durationInput: !!durationInput,
     stopGoButton: !!stopGoButton
   });
   
-  if (!offenderSelect || !victimSelect || !reasonSelect || !stopGoButton) {
+  if (!penaltySelect || !offenderSelect || !victimSelect || !durationInput || !stopGoButton) {
     console.log('Some elements not found, skipping dropdown initialization');
-    return; // Elements not found
+    return;
   }
   
-  console.log('All elements found, setting up event listeners...');
-  
-  // Test that the offender select exists and can be interacted with
-  console.log('Offender select element:', offenderSelect);
-  console.log('Offender select disabled state:', offenderSelect.disabled);
-  
-  // When offender is selected, populate victim dropdown and enable reason
-  offenderSelect.addEventListener('change', function() {
-    console.log('Change event fired on offender select!');
-    const selectedOffenderId = this.value;
-    console.log('Offender selected:', selectedOffenderId);
-    console.log('Victim select before change:', victimSelect.disabled);
-    console.log('Reason select before change:', reasonSelect.disabled);
+  // When penalty is selected, enable offender dropdown and set duration
+  penaltySelect.addEventListener('change', function() {
+    const selectedPenaltyId = this.value;
+    const selectedOption = this.selectedOptions[0];
     
-    if (selectedOffenderId) {
-      // Enable victim and reason dropdowns
-      victimSelect.disabled = false;
-      reasonSelect.disabled = false;
-      console.log('Enabled victim and reason dropdowns');
-      console.log('Victim select after enable:', victimSelect.disabled);
-      console.log('Reason select after enable:', reasonSelect.disabled);
+    if (selectedPenaltyId) {
+      selectedPenalty = {
+        id: selectedPenaltyId,
+        value: parseInt(selectedOption.dataset.penaltyValue),
+        option: selectedOption.dataset.penaltyOption
+      };
       
-      // Populate victim dropdown (all teams except the offender)
-      populateVictimDropdown(selectedOffenderId);
+      // Enable offender dropdown
+      offenderSelect.disabled = false;
+      
+      // Set default duration value
+      durationInput.value = selectedPenalty.value;
+      
+      // Enable/disable duration input based on penalty option
+      if (selectedPenalty.option === 'variable') {
+        durationInput.disabled = false;
+      } else {
+        durationInput.disabled = true;
+      }
+      
     } else {
-      // Disable victim and reason dropdowns
+      selectedPenalty = null;
+      offenderSelect.disabled = true;
+      offenderSelect.value = '';
       victimSelect.disabled = true;
-      reasonSelect.disabled = true;
       victimSelect.value = '';
-      reasonSelect.value = '';
+      durationInput.disabled = true;
+      durationInput.value = '20';
       
       // Clear victim options
       victimSelect.innerHTML = '<option value="">Select victim team...</option>';
-      console.log('Disabled victim and reason dropdowns');
     }
     
     checkFormCompletion();
   });
   
-  // When victim or reason changes, check form completion
+  // When offender is selected, enable victim dropdown
+  offenderSelect.addEventListener('change', function() {
+    const selectedOffenderId = this.value;
+    
+    if (selectedOffenderId) {
+      // Enable victim dropdown
+      victimSelect.disabled = false;
+      
+      // Populate victim dropdown (all teams except the offender)
+      populateVictimDropdown(selectedOffenderId);
+    } else {
+      // Disable victim dropdown
+      victimSelect.disabled = true;
+      victimSelect.value = '';
+      
+      // Clear victim options
+      victimSelect.innerHTML = '<option value="">Select victim team...</option>';
+    }
+    
+    checkFormCompletion();
+  });
+  
+  // When victim changes, check form completion
   victimSelect.addEventListener('change', checkFormCompletion);
-  reasonSelect.addEventListener('change', checkFormCompletion);
   
   function populateVictimDropdown(excludeOffenderId) {
     const offenderOptions = offenderSelect.querySelectorAll('option[value]:not([value=""])');
@@ -863,11 +927,11 @@ function initializeDropdownLogic() {
   }
   
   function checkFormCompletion() {
+    const penaltySelected = selectedPenalty !== null;
     const offenderSelected = offenderSelect.value !== '';
     const victimSelected = victimSelect.value !== '';
-    const reasonSelected = reasonSelect.value !== '';
     
-    if (offenderSelected && victimSelected && reasonSelected && stopAndGoState === 'idle') {
+    if (penaltySelected && offenderSelected && victimSelected && stopAndGoState === 'idle') {
       stopGoButton.disabled = false;
       stopGoButton.style.backgroundColor = '#dc3545';
       stopGoButton.style.color = 'yellow';
@@ -888,24 +952,55 @@ function initializeDropdownLogic() {
  */
 function handleStopGoButtonClick() {
   const offenderSelect = document.getElementById('offenderSelect');
+  const victimSelect = document.getElementById('victimSelect');
   const durationInput = document.getElementById('durationInput');
   const stopGoButton = document.getElementById('stopGoButton');
   
   if (stopAndGoState === 'idle') {
-    // Send stop & go command
+    // First create RoundPenalty record
+    const offenderId = offenderSelect.value;
+    const victimId = victimSelect.value || null;
     const offenderTeamNumber = offenderSelect.selectedOptions[0]?.dataset.teamNumber;
     const duration = parseInt(durationInput.value) || 20;
     
-    if (offenderTeamNumber && stopAndGoSocket) {
-      // Send signed command to stop and go station
-      const message = {
-        type: 'penalty_required',
-        team: parseInt(offenderTeamNumber),
-        duration: duration,
-        timestamp: new Date().toISOString()
+    if (selectedPenalty && offenderId && offenderTeamNumber && stopAndGoSocket) {
+      // Create RoundPenalty record first
+      const penaltyData = {
+        round_id: currentRoundId,
+        offender_id: offenderId,
+        victim_id: victimId,
+        championship_penalty_id: selectedPenalty.id,
+        value: duration
       };
       
-      signMessage(message).then(signedMessage => {
+      fetch('/api/create-round-penalty/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(penaltyData)
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          currentRoundPenaltyId = data.penalty_id;
+          
+          // Now send signed command to stop and go station
+          const message = {
+            type: 'penalty_required',
+            team: parseInt(offenderTeamNumber),
+            duration: duration,
+            penalty_id: currentRoundPenaltyId,
+            timestamp: new Date().toISOString()
+          };
+          
+          return signMessage(message);
+        } else {
+          throw new Error(data.error || 'Failed to create penalty record');
+        }
+      })
+      .then(signedMessage => {
         stopAndGoSocket.send(JSON.stringify(signedMessage));
         
         // Update button to "Served" state
@@ -916,16 +1011,18 @@ function handleStopGoButtonClick() {
         stopGoButton.disabled = false;
         
         addSystemMessage(`Stop & Go penalty sent to team ${offenderTeamNumber} for ${duration} seconds`, 'info');
-      }).catch(error => {
-        console.error('Failed to sign message:', error);
-        addSystemMessage('Failed to send Stop & Go penalty', 'danger');
+      })
+      .catch(error => {
+        console.error('Failed to create penalty or sign message:', error);
+        addSystemMessage('Failed to send Stop & Go penalty: ' + error.message, 'danger');
       });
     }
   } else if (stopAndGoState === 'active') {
     // Force complete penalty
-    if (stopAndGoSocket) {
+    if (stopAndGoSocket && currentRoundPenaltyId) {
       const message = {
         type: 'force_complete_penalty',
+        penalty_id: currentRoundPenaltyId,
         timestamp: new Date().toISOString()
       };
       
@@ -990,6 +1087,29 @@ function handleStopAndGoMessage(data) {
   
   switch (data.type) {
     case 'penalty_served':
+      // Update penalty served timestamp if we have a penalty ID
+      if (currentRoundPenaltyId) {
+        fetch('/api/update-penalty-served/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({ penalty_id: currentRoundPenaltyId })
+        })
+        .then(response => response.json())
+        .then(result => {
+          if (result.success) {
+            console.log('Penalty served timestamp updated');
+          } else {
+            console.error('Failed to update penalty served timestamp:', result.error);
+          }
+        })
+        .catch(error => {
+          console.error('Error updating penalty served timestamp:', error);
+        });
+      }
+      
       // Penalty has been served, reset form
       resetStopAndGoForm();
       addSystemMessage(`Penalty served by team ${data.team}`, 'success');
@@ -999,6 +1119,7 @@ function handleStopAndGoMessage(data) {
         const ackMessage = {
           type: 'penalty_acknowledged',
           team: data.team,
+          penalty_id: currentRoundPenaltyId,
           timestamp: new Date().toISOString()
         };
         
@@ -1009,6 +1130,9 @@ function handleStopAndGoMessage(data) {
           console.error('Failed to sign acknowledgment:', error);
         });
       }
+      
+      // Clear current penalty ID
+      currentRoundPenaltyId = null;
       break;
       
     case 'fence_status':
@@ -1029,26 +1153,31 @@ function handleStopAndGoMessage(data) {
  * Reset Stop & Go form to initial state
  */
 function resetStopAndGoForm() {
+  const penaltySelect = document.getElementById('penaltySelect');
   const offenderSelect = document.getElementById('offenderSelect');
   const victimSelect = document.getElementById('victimSelect');
-  const reasonSelect = document.getElementById('reasonSelect');
   const durationInput = document.getElementById('durationInput');
   const stopGoButton = document.getElementById('stopGoButton');
   
   // Reset dropdowns
+  penaltySelect.value = '';
   offenderSelect.value = '';
   victimSelect.value = '';
-  reasonSelect.value = '';
   
-  // Disable victim and reason
+  // Disable form elements
+  offenderSelect.disabled = true;
   victimSelect.disabled = true;
-  reasonSelect.disabled = true;
+  durationInput.disabled = true;
   
   // Clear victim options
   victimSelect.innerHTML = '<option value="">Select victim team...</option>';
   
   // Reset duration
   durationInput.value = '20';
+  
+  // Reset penalty selection
+  selectedPenalty = null;
+  currentRoundPenaltyId = null;
   
   // Reset button to idle state
   stopAndGoState = 'idle';

@@ -81,4 +81,11 @@ urlpatterns = [
         views.get_championship_penalties,
         name="get_championship_penalties",
     ),
+    path(
+        "api/round/<int:round_id>/stop-go-penalties/",
+        views.get_stop_and_go_penalties,
+        name="get_stop_and_go_penalties",
+    ),
+    path("api/create-round-penalty/", views.create_round_penalty, name="create_round_penalty"),
+    path("api/update-penalty-served/", views.update_penalty_served, name="update_penalty_served"),
 ]

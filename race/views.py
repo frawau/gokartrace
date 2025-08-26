@@ -28,6 +28,7 @@ from rest_framework import status
 from django.db import IntegrityError
 from django.db.models import Q
 from django.views.decorators.csrf import csrf_exempt
+import json
 from .models import (
     Championship,
     Team,
@@ -1531,6 +1532,112 @@ def get_available_penalties(request, championship_id):
 
 
 @login_required
+def get_stop_and_go_penalties(request, round_id):
+    """API endpoint to get Stop & Go penalties for a specific round's championship."""
+    try:
+        round_obj = get_object_or_404(Round, id=round_id)
+        championship = round_obj.championship
+
+        # Get only Stop & Go penalties for this championship
+        stop_go_penalties = (
+            ChampionshipPenalty.objects.filter(
+                championship=championship, sanction="S"  # Stop & Go
+            )
+            .select_related("penalty")
+            .order_by("penalty__name")
+        )
+
+        penalties_data = [
+            {
+                "id": cp.id,
+                "penalty_id": cp.penalty.id,
+                "penalty_name": cp.penalty.name,
+                "penalty_description": cp.penalty.description,
+                "value": cp.value,
+                "option": cp.option,
+                "option_display": cp.get_option_display(),
+            }
+            for cp in stop_go_penalties
+        ]
+
+        return JsonResponse({"penalties": penalties_data})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@login_required
+@csrf_exempt
+def create_round_penalty(request):
+    """API endpoint to create a RoundPenalty record."""
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+
+            round_id = data.get("round_id")
+            offender_id = data.get("offender_id")
+            victim_id = data.get("victim_id")
+            championship_penalty_id = data.get("championship_penalty_id")
+            value = data.get("value")
+
+            round_obj = get_object_or_404(Round, id=round_id)
+            offender = get_object_or_404(round_team, id=offender_id)
+            championship_penalty = get_object_or_404(
+                ChampionshipPenalty, id=championship_penalty_id
+            )
+
+            victim = None
+            if victim_id:
+                victim = get_object_or_404(round_team, id=victim_id)
+
+            # Create RoundPenalty record
+            round_penalty = RoundPenalty.objects.create(
+                round=round_obj,
+                offender=offender,
+                victim=victim,
+                penalty=championship_penalty,
+                value=value,
+                imposed=dt.datetime.now(),
+                served=None,  # Will be set when penalty is served
+            )
+
+            return JsonResponse(
+                {
+                    "success": True,
+                    "penalty_id": round_penalty.id,
+                    "message": "Penalty recorded successfully",
+                }
+            )
+
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)}, status=400)
+
+    return JsonResponse({"error": "Only POST method allowed"}, status=405)
+
+
+@login_required
+@csrf_exempt
+def update_penalty_served(request):
+    """API endpoint to update RoundPenalty served timestamp."""
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            penalty_id = data.get("penalty_id")
+
+            round_penalty = get_object_or_404(RoundPenalty, id=penalty_id)
+            round_penalty.served = dt.datetime.now()
+            round_penalty.save()
+
+            return JsonResponse(
+                {"success": True, "message": "Penalty served timestamp updated"}
+            )
+
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)}, status=400)
+
+    return JsonResponse({"error": "Only POST method allowed"}, status=405)
+
+
+@login_required
 @user_passes_test(is_admin_user)
 def get_championship_penalties(request, championship_id):
     """API endpoint to get penalties configured for a championship."""
@@ -1561,3 +1668,109 @@ def get_championship_penalties(request, championship_id):
         return JsonResponse({"penalties": penalties_data})
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
+
+
+@login_required
+def get_stop_and_go_penalties(request, round_id):
+    """API endpoint to get Stop & Go penalties for a specific round's championship."""
+    try:
+        round_obj = get_object_or_404(Round, id=round_id)
+        championship = round_obj.championship
+
+        # Get only Stop & Go penalties for this championship
+        stop_go_penalties = (
+            ChampionshipPenalty.objects.filter(
+                championship=championship, sanction="S"  # Stop & Go
+            )
+            .select_related("penalty")
+            .order_by("penalty__name")
+        )
+
+        penalties_data = [
+            {
+                "id": cp.id,
+                "penalty_id": cp.penalty.id,
+                "penalty_name": cp.penalty.name,
+                "penalty_description": cp.penalty.description,
+                "value": cp.value,
+                "option": cp.option,
+                "option_display": cp.get_option_display(),
+            }
+            for cp in stop_go_penalties
+        ]
+
+        return JsonResponse({"penalties": penalties_data})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@login_required
+@csrf_exempt
+def create_round_penalty(request):
+    """API endpoint to create a RoundPenalty record."""
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+
+            round_id = data.get("round_id")
+            offender_id = data.get("offender_id")
+            victim_id = data.get("victim_id")
+            championship_penalty_id = data.get("championship_penalty_id")
+            value = data.get("value")
+
+            round_obj = get_object_or_404(Round, id=round_id)
+            offender = get_object_or_404(round_team, id=offender_id)
+            championship_penalty = get_object_or_404(
+                ChampionshipPenalty, id=championship_penalty_id
+            )
+
+            victim = None
+            if victim_id:
+                victim = get_object_or_404(round_team, id=victim_id)
+
+            # Create RoundPenalty record
+            round_penalty = RoundPenalty.objects.create(
+                round=round_obj,
+                offender=offender,
+                victim=victim,
+                penalty=championship_penalty,
+                value=value,
+                imposed=dt.datetime.now(),
+                served=None,  # Will be set when penalty is served
+            )
+
+            return JsonResponse(
+                {
+                    "success": True,
+                    "penalty_id": round_penalty.id,
+                    "message": "Penalty recorded successfully",
+                }
+            )
+
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)}, status=400)
+
+    return JsonResponse({"error": "Only POST method allowed"}, status=405)
+
+
+@login_required
+@csrf_exempt
+def update_penalty_served(request):
+    """API endpoint to update RoundPenalty served timestamp."""
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            penalty_id = data.get("penalty_id")
+
+            round_penalty = get_object_or_404(RoundPenalty, id=penalty_id)
+            round_penalty.served = dt.datetime.now()
+            round_penalty.save()
+
+            return JsonResponse(
+                {"success": True, "message": "Penalty served timestamp updated"}
+            )
+
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)}, status=400)
+
+    return JsonResponse({"error": "Only POST method allowed"}, status=405)
