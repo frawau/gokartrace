@@ -137,6 +137,11 @@
                                             <div class="d-flex align-items-center justify-content-center flex-grow-1">
                                                 <button class="btn w-100" id="toggleFenceButton" style="background-color: #6c757d; color: black; min-height: 45px; font-size: 0.9rem;">Toggle Fence</button>
                                             </div>
+                                            
+                                            <!-- Lap Penalties Button - Bottom -->
+                                            <div class="mt-2">
+                                                <button class="btn w-100" id="lapPenaltiesButton" style="background-color: #fd7e14; color: white; font-weight: bold; min-height: 45px; font-size: 0.9rem;">Lap Penalties</button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -170,75 +175,80 @@
                                         <h5 class="mb-0">Pending Drivers</h5>
                                     </div>
                                     <div class="card-body overflow-auto">
-                                        <div class="table-responsive">
-                                            <table class="table table-sm" id="pending-sessions-table">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Team</th>
-                                                        <th>Driver</th>
-                                                        <th>Next</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {% for session in pending_sessions %}
-                                                        <tr id="pending-row-{{ session.driver.id }}"
-                                                            class="pending-row"
-                                                            data-driver-id="{{ session.driver.id }}"
-                                                            data-team-id="{{ session.driver.team.id }}"
-                                                            data-team-number="{{ session.driver.team.team.number }}">
-                                                            <td>{{ session.driver.team.team.number }}</td>
-                                                            <td>{{ session.driver.member.nickname }}</td>
-                                                            {% if round.started %}
-                                                                <td class="next-change-number">{{ session.team_completed_count|add:1 }}</td>
-                                                            {% else %}
-                                                                <td class="next-change-number">{{ session.team_completed_count }}</td>
-                                                            {% endif %}
+                                        <!-- Pending Drivers Table -->
+                                        <div id="pendingDriversContent">
+                                            <div class="table-responsive">
+                                                <table class="table table-sm" id="pending-sessions-table">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Team</th>
+                                                            <th>Driver</th>
+                                                            <th>Next</th>
                                                         </tr>
-                                                    {% empty %}
-                                                        <tr id="no-sessions-row">
-                                                            <td colspan="3">No pending sessions</td>
-                                                        </tr>
-                                                    {% endfor %}
-                                                </tbody>
-                                            </table>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for session in pending_sessions %}
+                                                            <tr id="pending-row-{{ session.driver.id }}"
+                                                                class="pending-row"
+                                                                data-driver-id="{{ session.driver.id }}"
+                                                                data-team-id="{{ session.driver.team.id }}"
+                                                                data-team-number="{{ session.driver.team.team.number }}">
+                                                                <td>{{ session.driver.team.team.number }}</td>
+                                                                <td>{{ session.driver.member.nickname }}</td>
+                                                                {% if round.started %}
+                                                                    <td class="next-change-number">{{ session.team_completed_count|add:1 }}</td>
+                                                                {% else %}
+                                                                    <td class="next-change-number">{{ session.team_completed_count }}</td>
+                                                                {% endif %}
+                                                            </tr>
+                                                        {% empty %}
+                                                            <tr id="no-sessions-row">
+                                                                <td colspan="3">No pending sessions</td>
+                                                            </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         </div>
                                         
-                                        <!-- Laps Penalty Form -->
-                                        <hr class="my-3">
-                                        <div class="penalty-form-section">
-                                            <h6 class="mb-3" style="color: #fd7e14; font-weight: bold;">Assign Laps Penalty</h6>
+                                        <!-- Laps Penalty Form (Hidden by default) -->
+                                        <div id="lapsPenaltyContent" class="d-none">
+                                            <div class="text-center mb-3">
+                                                <h6 style="color: #fd7e14; font-weight: bold;">Assign Laps Penalty</h6>
+                                            </div>
                                             <form id="lapsPenaltyForm">
                                                 {% csrf_token %}
-                                                <div class="mb-2">
-                                                    <label for="lapsPenaltySelect" class="form-label small">Penalty</label>
-                                                    <select class="form-select form-select-sm" id="lapsPenaltySelect" required>
+                                                <div class="mb-3">
+                                                    <label for="lapsPenaltySelect" class="form-label">Penalty</label>
+                                                    <select class="form-select" id="lapsPenaltySelect" required>
                                                         <option value="">Select penalty...</option>
                                                     </select>
                                                 </div>
-                                                <div class="row">
-                                                    <div class="col-8">
-                                                        <label for="lapsOffenderSelect" class="form-label small">Offending Team</label>
-                                                        <select class="form-select form-select-sm" id="lapsOffenderSelect" disabled required>
-                                                            <option value="">Select team...</option>
-                                                            {% if round %}
-                                                                {% for team in round.round_team_set.all %}
-                                                                    <option value="{{ team.id }}" data-team-number="{{ team.kart_num }}">{{ team.team.name }} ({{ team.kart_num }})</option>
-                                                                {% endfor %}
-                                                            {% endif %}
-                                                        </select>
-                                                    </div>
-                                                    <div class="col-4">
-                                                        <label for="lapsValueInput" class="form-label small">Laps</label>
-                                                        <input type="number" class="form-control form-control-sm" id="lapsValueInput" value="1" min="1" max="50" disabled>
-                                                    </div>
+                                                <div class="mb-3">
+                                                    <label for="lapsOffenderSelect" class="form-label">Offending Team</label>
+                                                    <select class="form-select" id="lapsOffenderSelect" disabled required>
+                                                        <option value="">Select team...</option>
+                                                        {% if round %}
+                                                            {% for team in round.round_team_set.all %}
+                                                                <option value="{{ team.id }}" data-team-number="{{ team.kart_num }}">{{ team.team.name }} ({{ team.kart_num }})</option>
+                                                            {% endfor %}
+                                                        {% endif %}
+                                                    </select>
                                                 </div>
-                                                <div class="mt-2">
-                                                    <button type="button" class="btn btn-warning btn-sm" id="submitLapsPenaltyBtn" disabled>
+                                                <div class="mb-3">
+                                                    <label for="lapsValueInput" class="form-label">Value (Laps)</label>
+                                                    <input type="number" class="form-control" id="lapsValueInput" value="1" min="1" max="50" disabled>
+                                                </div>
+                                                <div class="d-flex gap-2">
+                                                    <button type="button" class="btn btn-warning" id="submitLapsPenaltyBtn" disabled>
                                                         <i class="fas fa-flag"></i> Assign Penalty
+                                                    </button>
+                                                    <button type="button" class="btn btn-secondary" id="cancelLapsPenaltyBtn">
+                                                        Cancel
                                                     </button>
                                                 </div>
                                             </form>
-                                            <div id="lapsFormAlert" class="alert alert-sm mt-2 d-none"></div>
+                                            <div id="lapsFormAlert" class="alert mt-3 d-none"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -495,17 +505,51 @@ document.addEventListener('DOMContentLoaded', function() {
     {% endif %}
 
     // --- Laps Penalty Form Handling ---
+    const lapPenaltiesButton = document.getElementById('lapPenaltiesButton');
+    const pendingDriversContent = document.getElementById('pendingDriversContent');
+    const lapsPenaltyContent = document.getElementById('lapsPenaltyContent');
     const lapsPenaltySelect = document.getElementById('lapsPenaltySelect');
     const lapsOffenderSelect = document.getElementById('lapsOffenderSelect');
     const lapsValueInput = document.getElementById('lapsValueInput');
     const submitLapsPenaltyBtn = document.getElementById('submitLapsPenaltyBtn');
+    const cancelLapsPenaltyBtn = document.getElementById('cancelLapsPenaltyBtn');
     const lapsFormAlert = document.getElementById('lapsFormAlert');
     
     let selectedLapsPenalty = null;
 
-    // Load Laps penalties on page load
-    if (currentRoundId) {
+    // Handle Lap Penalties button click
+    if (lapPenaltiesButton) {
+        lapPenaltiesButton.addEventListener('click', function() {
+            if (currentRoundId) {
+                showLapsPenaltyForm();
+            }
+        });
+    }
+
+    // Handle Cancel button click
+    if (cancelLapsPenaltyBtn) {
+        cancelLapsPenaltyBtn.addEventListener('click', function() {
+            showPendingDrivers();
+        });
+    }
+
+    function showLapsPenaltyForm() {
+        // Hide pending drivers and show penalty form
+        if (pendingDriversContent) pendingDriversContent.classList.add('d-none');
+        if (lapsPenaltyContent) lapsPenaltyContent.classList.remove('d-none');
+        
+        // Load penalties and reset form
         loadLapsPenalties();
+        resetLapsForm();
+    }
+
+    function showPendingDrivers() {
+        // Hide penalty form and show pending drivers
+        if (lapsPenaltyContent) lapsPenaltyContent.classList.add('d-none');
+        if (pendingDriversContent) pendingDriversContent.classList.remove('d-none');
+        
+        // Reset form
+        resetLapsForm();
     }
 
     function loadLapsPenalties() {
@@ -617,9 +661,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(data => {
                     if (data.success) {
                         showLapsFormAlert('Penalty assigned successfully', 'success');
-                        resetLapsForm();
                         // Add system message
                         addSystemMessage(`Laps penalty assigned to team ${lapsOffenderSelect.selectedOptions[0]?.dataset.teamNumber}`, 'info');
+                        
+                        // Return to pending drivers view after 1.5 seconds
+                        setTimeout(() => {
+                            showPendingDrivers();
+                        }, 1500);
                     } else {
                         throw new Error(data.error || 'Failed to assign penalty');
                     }
@@ -653,7 +701,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function showLapsFormAlert(message, type) {
         if (lapsFormAlert) {
-            lapsFormAlert.className = `alert alert-${type} alert-sm mt-2`;
+            lapsFormAlert.className = `alert alert-${type} mt-3`;
             lapsFormAlert.textContent = message;
             lapsFormAlert.classList.remove('d-none');
         }
