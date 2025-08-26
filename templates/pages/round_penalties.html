@@ -62,8 +62,6 @@
                     <td>
                         {% if penalty.victim %}
                             <strong>{{ penalty.victim.team.number }}</strong> {{ penalty.victim.team.team.name }}
-                        {% else %}
-                            <span class="text-muted">N/A</span>
                         {% endif %}
                     </td>
                     <td>
@@ -81,8 +79,6 @@
                         {% else %}
                             {% if penalty.penalty.sanction == 'S' %}
                                 <span class="badge bg-warning text-dark">Pending</span>
-                            {% else %}
-                                <span class="text-muted">N/A</span>
                             {% endif %}
                         {% endif %}
                     </td>
