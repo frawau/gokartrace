@@ -230,7 +230,7 @@
                                                         <option value="">Select team...</option>
                                                         {% if round %}
                                                             {% for team in round.round_team_set.all %}
-                                                                <option value="{{ team.id }}" data-team-number="{{ team.kart_num }}">{{ team.team.name }} ({{ team.kart_num }})</option>
+                                                                <option value="{{ team.id }}" data-team-number="{{ team.team.number }}">{{ team.team.number }} {{ team.team.team.name }}</option>
                                                             {% endfor %}
                                                         {% endif %}
                                                     </select>
