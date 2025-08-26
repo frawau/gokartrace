@@ -857,6 +857,64 @@ def round_info(request):
     return render(request, "pages/round_info.html", context)
 
 
+def round_penalties(request):
+    """View to display penalties for a selected round with dropdown similar to round_info."""
+    # Get all rounds sorted by date
+    rounds = Round.objects.select_related("championship").all().order_by("start")
+
+    # Group rounds by championship name
+    rounds_by_championship = {}
+    for round_obj in rounds:
+        championship_name = round_obj.championship.name
+        if championship_name not in rounds_by_championship:
+            rounds_by_championship[championship_name] = []
+        rounds_by_championship[championship_name].append(round_obj)
+
+    # Find closest round to today
+    selected_round_id = request.GET.get("round_id")
+    if not selected_round_id:
+        today = dt.date.today()
+        closest_round = rounds.filter(start__date__gte=today).first()
+        if not closest_round:
+            closest_round = rounds.last()
+        selected_round_id = closest_round.id if closest_round else None
+
+    selected_round = None
+    round_penalties_list = []
+
+    if selected_round_id:
+        selected_round = Round.objects.get(id=selected_round_id)
+
+        # Get all penalties for this round with related data
+        round_penalties_list = (
+            RoundPenalty.objects.filter(round=selected_round)
+            .select_related(
+                "penalty__penalty",
+                "offender__team__team",
+                "victim__team__team",
+            )
+            .order_by("imposed")
+        )
+
+        # Add formatted penalty text for each penalty
+        for penalty in round_penalties_list:
+            if penalty.penalty.sanction == "S":  # Stop & Go
+                penalty.penalty_text = f"Stop & Go {penalty.value} seconds"
+            elif penalty.penalty.sanction == "L":  # Laps
+                penalty.penalty_text = f"{penalty.value} laps"
+            else:
+                penalty.penalty_text = f"{penalty.penalty.penalty.name} {penalty.value}"
+
+    context = {
+        "rounds": rounds,
+        "rounds_by_championship": rounds_by_championship,
+        "selected_round": selected_round,
+        "selected_round_id": int(selected_round_id) if selected_round_id else None,
+        "round_penalties": round_penalties_list,
+    }
+    return render(request, "pages/round_penalties.html", context)
+
+
 def all_drivers_view(request):
     # Get all championships with end date after today
     today = dt.date.today()

@@ -1,0 +1,191 @@
+{% extends "layout/content.html" %}
+{% load static %}
+
+{% block main_content %}
+<div class="container">
+    <h1>Round Penalties</h1>
+
+    <form method="get" id="round-form">
+        <div class="form-group">
+            <label for="round-select">Select Round:</label>
+            <select class="form-control" id="round-select" name="round_id" onchange="this.form.submit()">
+                {% for championship_name, championship_rounds in rounds_by_championship.items %}
+                    <optgroup label="{{ championship_name }}">
+                        {% for round in championship_rounds %}
+                            <option value="{{ round.id }}" {% if round.id == selected_round_id %}selected{% endif %}>
+                                {{ round.name }} ({{ round.start|date:"Y-m-d" }})
+                            </option>
+                        {% endfor %}
+                    </optgroup>
+                {% endfor %}
+            </select>
+        </div>
+    </form>
+
+    {% if round_penalties %}
+    <div class="round-penalties mt-4">
+        <table class="table table-hover penalties-table" id="penalties-table">
+            <thead>
+                <tr>
+                    <th style="width: 60px;">Illustration</th>
+                    <th>Description</th>
+                    <th class="sortable" data-sort="offender">
+                        Offending Team
+                        <i class="fas fa-sort ms-1"></i>
+                    </th>
+                    <th class="sortable" data-sort="victim">
+                        Victim Team
+                        <i class="fas fa-sort ms-1"></i>
+                    </th>
+                    <th>Penalty</th>
+                    <th>Imposed</th>
+                    <th>Served</th>
+                </tr>
+            </thead>
+            <tbody id="penalties-tbody">
+                {% for penalty in round_penalties %}
+                <tr data-offender="{{ penalty.offender.team.number }}" data-victim="{% if penalty.victim %}{{ penalty.victim.team.number }}{% else %}999{% endif %}">
+                    <td class="text-center">
+                        {% if penalty.penalty.penalty.illustration %}
+                            <img src="{% get_media_prefix %}{{ penalty.penalty.penalty.illustration }}" 
+                                 alt="{{ penalty.penalty.penalty.name }}" 
+                                 class="penalty-illustration" 
+                                 style="max-width: 50px; max-height: 50px; object-fit: contain;">
+                        {% else %}
+                            <i class="fas fa-flag text-muted"></i>
+                        {% endif %}
+                    </td>
+                    <td>{{ penalty.penalty.penalty.description|default:penalty.penalty.penalty.name }}</td>
+                    <td>
+                        <strong>{{ penalty.offender.team.number }}</strong> {{ penalty.offender.team.team.name }}
+                    </td>
+                    <td>
+                        {% if penalty.victim %}
+                            <strong>{{ penalty.victim.team.number }}</strong> {{ penalty.victim.team.team.name }}
+                        {% else %}
+                            <span class="text-muted">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge 
+                            {% if penalty.penalty.sanction == 'S' %}bg-warning{% elif penalty.penalty.sanction == 'L' %}bg-info{% else %}bg-secondary{% endif %}">
+                            {{ penalty.penalty_text }}
+                        </span>
+                    </td>
+                    <td>
+                        <small>{{ penalty.imposed|date:"M d, H:i" }}</small>
+                    </td>
+                    <td>
+                        {% if penalty.served %}
+                            <small class="text-success">{{ penalty.served|date:"M d, H:i" }}</small>
+                        {% else %}
+                            <span class="text-warning">Pending</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% elif selected_round %}
+    <div class="alert alert-info mt-4">
+        <i class="fas fa-info-circle me-2"></i>
+        No penalties recorded for this round.
+    </div>
+    {% endif %}
+</div>
+{% endblock main_content %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add sorting functionality
+    const table = document.getElementById('penalties-table');
+    const tbody = document.getElementById('penalties-tbody');
+    const sortableHeaders = table.querySelectorAll('th.sortable');
+    
+    let currentSort = { column: null, direction: 'asc' };
+    
+    sortableHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+            const sortBy = this.dataset.sort;
+            
+            // Update sort direction
+            if (currentSort.column === sortBy) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.direction = 'asc';
+            }
+            currentSort.column = sortBy;
+            
+            // Update header icons
+            sortableHeaders.forEach(h => {
+                const icon = h.querySelector('i');
+                if (h === this) {
+                    icon.className = currentSort.direction === 'asc' ? 'fas fa-sort-up ms-1' : 'fas fa-sort-down ms-1';
+                } else {
+                    icon.className = 'fas fa-sort ms-1';
+                }
+            });
+            
+            // Sort the table
+            sortTable(sortBy, currentSort.direction);
+        });
+        
+        // Add hover effect
+        header.style.cursor = 'pointer';
+        header.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = '#f8f9fa';
+        });
+        header.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '';
+        });
+    });
+    
+    function sortTable(column, direction) {
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        
+        rows.sort((a, b) => {
+            let aValue, bValue;
+            
+            if (column === 'offender') {
+                aValue = parseInt(a.dataset.offender);
+                bValue = parseInt(b.dataset.offender);
+            } else if (column === 'victim') {
+                aValue = parseInt(a.dataset.victim);
+                bValue = parseInt(b.dataset.victim);
+            }
+            
+            if (direction === 'asc') {
+                return aValue - bValue;
+            } else {
+                return bValue - aValue;
+            }
+        });
+        
+        // Clear tbody and re-append sorted rows
+        tbody.innerHTML = '';
+        rows.forEach(row => tbody.appendChild(row));
+    }
+});
+</script>
+
+<style>
+.penalties-table th.sortable:hover {
+    background-color: #f8f9fa;
+}
+
+.penalty-illustration {
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.penalties-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.badge {
+    font-size: 0.85em;
+}
+</style>
+{% endblock extra_js %}
