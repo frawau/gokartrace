@@ -73,12 +73,12 @@ def index(request):
         [
             {"label": "Team Carousel", "url": "/teamcarousel/"},
             {"label": "Driver's Queue", "url": "/pending_drivers/"},
-            {"label": "Drivers on Track", "url": "/driverontrack/"},
+            {"label": "Round Info", "url": "/round_info/"},
         ],
         [
             {"label": "Monitor One Team", "url": "/singleteam/"},
-            {"label": "Monitor One Driver", "url": "/onedriver/"},
             {"label": "All Pit Lanes", "url": "/all_pitlanes/"},
+            {"label": "Round Penalties", "url": "/round_penalties/"},
         ],
     ]
     cround = current_round()
