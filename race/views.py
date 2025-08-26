@@ -1774,3 +1774,37 @@ def update_penalty_served(request):
             return JsonResponse({"success": False, "error": str(e)}, status=400)
 
     return JsonResponse({"error": "Only POST method allowed"}, status=405)
+
+
+@login_required
+def get_laps_penalties(request, round_id):
+    """API endpoint to get Laps penalties for a specific round's championship."""
+    try:
+        round_obj = get_object_or_404(Round, id=round_id)
+        championship = round_obj.championship
+
+        # Get only Laps penalties for this championship
+        laps_penalties = (
+            ChampionshipPenalty.objects.filter(
+                championship=championship, sanction="L"  # Laps
+            )
+            .select_related("penalty")
+            .order_by("penalty__name")
+        )
+
+        penalties_data = [
+            {
+                "id": cp.id,
+                "penalty_id": cp.penalty.id,
+                "penalty_name": cp.penalty.name,
+                "penalty_description": cp.penalty.description,
+                "value": cp.value,
+                "option": cp.option,
+                "option_display": cp.get_option_display(),
+            }
+            for cp in laps_penalties
+        ]
+
+        return JsonResponse({"penalties": penalties_data})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)

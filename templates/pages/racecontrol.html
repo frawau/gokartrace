@@ -133,8 +133,8 @@
                                                 <button class="btn w-100" id="stopGoButton" disabled style="background-color: #dc3545; color: yellow; font-weight: bold; min-height: 45px; font-size: 0.9rem;">Stop & Go</button>
                                             </div>
                                             
-                                            <!-- Toggle Fence Button - Bottom -->
-                                            <div class="mt-auto">
+                                            <!-- Toggle Fence Button - Center -->
+                                            <div class="d-flex align-items-center justify-content-center flex-grow-1">
                                                 <button class="btn w-100" id="toggleFenceButton" style="background-color: #6c757d; color: black; min-height: 45px; font-size: 0.9rem;">Toggle Fence</button>
                                             </div>
                                         </div>
@@ -201,6 +201,44 @@
                                                     {% endfor %}
                                                 </tbody>
                                             </table>
+                                        </div>
+                                        
+                                        <!-- Laps Penalty Form -->
+                                        <hr class="my-3">
+                                        <div class="penalty-form-section">
+                                            <h6 class="mb-3" style="color: #fd7e14; font-weight: bold;">Assign Laps Penalty</h6>
+                                            <form id="lapsPenaltyForm">
+                                                {% csrf_token %}
+                                                <div class="mb-2">
+                                                    <label for="lapsPenaltySelect" class="form-label small">Penalty</label>
+                                                    <select class="form-select form-select-sm" id="lapsPenaltySelect" required>
+                                                        <option value="">Select penalty...</option>
+                                                    </select>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-8">
+                                                        <label for="lapsOffenderSelect" class="form-label small">Offending Team</label>
+                                                        <select class="form-select form-select-sm" id="lapsOffenderSelect" disabled required>
+                                                            <option value="">Select team...</option>
+                                                            {% if round %}
+                                                                {% for team in round.round_team_set.all %}
+                                                                    <option value="{{ team.id }}" data-team-number="{{ team.kart_num }}">{{ team.team.name }} ({{ team.kart_num }})</option>
+                                                                {% endfor %}
+                                                            {% endif %}
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-4">
+                                                        <label for="lapsValueInput" class="form-label small">Laps</label>
+                                                        <input type="number" class="form-control form-control-sm" id="lapsValueInput" value="1" min="1" max="50" disabled>
+                                                    </div>
+                                                </div>
+                                                <div class="mt-2">
+                                                    <button type="button" class="btn btn-warning btn-sm" id="submitLapsPenaltyBtn" disabled>
+                                                        <i class="fas fa-flag"></i> Assign Penalty
+                                                    </button>
+                                                </div>
+                                            </form>
+                                            <div id="lapsFormAlert" class="alert alert-sm mt-2 d-none"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -455,6 +493,178 @@ document.addEventListener('DOMContentLoaded', function() {
             );
         }
     {% endif %}
+
+    // --- Laps Penalty Form Handling ---
+    const lapsPenaltySelect = document.getElementById('lapsPenaltySelect');
+    const lapsOffenderSelect = document.getElementById('lapsOffenderSelect');
+    const lapsValueInput = document.getElementById('lapsValueInput');
+    const submitLapsPenaltyBtn = document.getElementById('submitLapsPenaltyBtn');
+    const lapsFormAlert = document.getElementById('lapsFormAlert');
+    
+    let selectedLapsPenalty = null;
+
+    // Load Laps penalties on page load
+    if (currentRoundId) {
+        loadLapsPenalties();
+    }
+
+    function loadLapsPenalties() {
+        if (!currentRoundId) return;
+        
+        fetch(`/api/round/${currentRoundId}/laps-penalties/`)
+            .then(response => response.json())
+            .then(data => {
+                if (lapsPenaltySelect && data.penalties) {
+                    lapsPenaltySelect.innerHTML = '<option value="">Select penalty...</option>';
+                    data.penalties.forEach(penalty => {
+                        const option = document.createElement('option');
+                        option.value = penalty.id;
+                        option.textContent = `${penalty.penalty_name} (${penalty.value} laps)`;
+                        option.dataset.penaltyValue = penalty.value;
+                        option.dataset.penaltyOption = penalty.option;
+                        lapsPenaltySelect.appendChild(option);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error loading Laps penalties:', error);
+                showLapsFormAlert('Failed to load penalties', 'danger');
+            });
+    }
+
+    // Handle penalty selection
+    if (lapsPenaltySelect) {
+        lapsPenaltySelect.addEventListener('change', function() {
+            const selectedPenaltyId = this.value;
+            const selectedOption = this.selectedOptions[0];
+            
+            if (selectedPenaltyId) {
+                selectedLapsPenalty = {
+                    id: selectedPenaltyId,
+                    value: parseInt(selectedOption.dataset.penaltyValue),
+                    option: selectedOption.dataset.penaltyOption
+                };
+                
+                // Enable offender dropdown
+                lapsOffenderSelect.disabled = false;
+                
+                // Set default value
+                lapsValueInput.value = selectedLapsPenalty.value;
+                
+                // Enable/disable value input based on penalty option
+                if (selectedLapsPenalty.option === 'variable') {
+                    lapsValueInput.disabled = false;
+                } else {
+                    lapsValueInput.disabled = true;
+                }
+                
+            } else {
+                selectedLapsPenalty = null;
+                lapsOffenderSelect.disabled = true;
+                lapsOffenderSelect.value = '';
+                lapsValueInput.disabled = true;
+                lapsValueInput.value = '1';
+            }
+            
+            checkLapsFormCompletion();
+        });
+    }
+
+    // Handle offender selection
+    if (lapsOffenderSelect) {
+        lapsOffenderSelect.addEventListener('change', checkLapsFormCompletion);
+    }
+
+    function checkLapsFormCompletion() {
+        const penaltySelected = selectedLapsPenalty !== null;
+        const offenderSelected = lapsOffenderSelect.value !== '';
+        
+        if (penaltySelected && offenderSelected) {
+            submitLapsPenaltyBtn.disabled = false;
+        } else {
+            submitLapsPenaltyBtn.disabled = true;
+        }
+    }
+
+    // Handle form submission
+    if (submitLapsPenaltyBtn) {
+        submitLapsPenaltyBtn.addEventListener('click', function() {
+            const offenderId = lapsOffenderSelect.value;
+            const value = parseInt(lapsValueInput.value) || 1;
+            
+            if (selectedLapsPenalty && offenderId && currentRoundId) {
+                const penaltyData = {
+                    round_id: currentRoundId,
+                    offender_id: offenderId,
+                    victim_id: null, // Laps penalties don't have victims
+                    championship_penalty_id: selectedLapsPenalty.id,
+                    value: value
+                };
+                
+                // Disable submit button during request
+                submitLapsPenaltyBtn.disabled = true;
+                submitLapsPenaltyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+                
+                fetch('/api/create-round-penalty/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify(penaltyData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showLapsFormAlert('Penalty assigned successfully', 'success');
+                        resetLapsForm();
+                        // Add system message
+                        addSystemMessage(`Laps penalty assigned to team ${lapsOffenderSelect.selectedOptions[0]?.dataset.teamNumber}`, 'info');
+                    } else {
+                        throw new Error(data.error || 'Failed to assign penalty');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error assigning penalty:', error);
+                    showLapsFormAlert('Failed to assign penalty: ' + error.message, 'danger');
+                })
+                .finally(() => {
+                    submitLapsPenaltyBtn.disabled = false;
+                    submitLapsPenaltyBtn.innerHTML = '<i class="fas fa-flag"></i> Assign Penalty';
+                });
+            }
+        });
+    }
+
+    function resetLapsForm() {
+        if (lapsPenaltySelect) lapsPenaltySelect.value = '';
+        if (lapsOffenderSelect) {
+            lapsOffenderSelect.value = '';
+            lapsOffenderSelect.disabled = true;
+        }
+        if (lapsValueInput) {
+            lapsValueInput.value = '1';
+            lapsValueInput.disabled = true;
+        }
+        if (submitLapsPenaltyBtn) submitLapsPenaltyBtn.disabled = true;
+        selectedLapsPenalty = null;
+        hideLapsFormAlert();
+    }
+
+    function showLapsFormAlert(message, type) {
+        if (lapsFormAlert) {
+            lapsFormAlert.className = `alert alert-${type} alert-sm mt-2`;
+            lapsFormAlert.textContent = message;
+            lapsFormAlert.classList.remove('d-none');
+        }
+    }
+
+    function hideLapsFormAlert() {
+        if (lapsFormAlert) {
+            lapsFormAlert.classList.add('d-none');
+        }
+    }
+
 });
 </script>
 {% endblock extra_js %}

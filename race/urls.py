@@ -88,4 +88,9 @@ urlpatterns = [
     ),
     path("api/create-round-penalty/", views.create_round_penalty, name="create_round_penalty"),
     path("api/update-penalty-served/", views.update_penalty_served, name="update_penalty_served"),
+    path(
+        "api/round/<int:round_id>/laps-penalties/",
+        views.get_laps_penalties,
+        name="get_laps_penalties",
+    ),
 ]
