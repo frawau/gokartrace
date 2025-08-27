@@ -38,12 +38,26 @@ form select:focus {
 }
 
 /* Ensure labels are properly styled - only in forms */
+/* Exclude navigation from label styling to prevent menu header wrapping */
 form label,
 .card label {
     display: block;
     margin-bottom: 0.5rem;
     font-weight: 500;
     color: #344767;
+}
+
+/* Explicitly prevent navigation elements from inheriting form label styles */
+.navbar label,
+.navbar h6,
+.dropdown-menu label,
+.dropdown-menu h6 {
+    display: inherit !important;
+    margin-bottom: inherit !important;
+    font-weight: inherit !important;
+    color: inherit !important;
+    line-height: inherit !important;
+    white-space: nowrap !important;
 }
 
 /* Add some margin to form controls that don't have form-group wrapper */
