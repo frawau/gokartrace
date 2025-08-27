@@ -60,6 +60,24 @@ form label,
     white-space: nowrap !important;
 }
 
+/* Force navigation link text to stay on single lines */
+.navbar .nav-link,
+.navbar .nav-link * {
+    white-space: nowrap !important;
+    flex-wrap: nowrap !important;
+}
+
+/* Specifically target the flexbox navigation links */
+.navbar .nav-link.d-flex {
+    flex-wrap: nowrap !important;
+    white-space: nowrap !important;
+}
+
+/* Prevent text nodes within navigation links from wrapping */
+.navbar .nav-link.font-weight-semibold {
+    white-space: nowrap !important;
+}
+
 /* Add some margin to form controls that don't have form-group wrapper */
 .card .form-control:not(.form-group .form-control),
 .card .form-select:not(.form-group .form-select),
