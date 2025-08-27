@@ -1,11 +1,17 @@
 /* Form styling consistency fix */
 /* This ensures all form controls get the same nice bordered appearance */
 
-.form-control, 
-.form-select, 
-select.form-control,
-select.form-select,
-select {
+/* Only target form controls, not navigation elements */
+.card .form-control, 
+.card .form-select, 
+.card select.form-control,
+.card select.form-select,
+.card select,
+form .form-control, 
+form .form-select, 
+form select.form-control,
+form select.form-select,
+form select {
     background-color: #fff !important;
     border: 1px solid #d2d6da !important;
     border-radius: 0.375rem !important;
@@ -16,18 +22,24 @@ select {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
 }
 
-.form-control:focus,
-.form-select:focus,
-select.form-control:focus,
-select.form-select:focus,
-select:focus {
+.card .form-control:focus,
+.card .form-select:focus,
+.card select.form-control:focus,
+.card select.form-select:focus,
+.card select:focus,
+form .form-control:focus,
+form .form-select:focus,
+form select.form-control:focus,
+form select.form-select:focus,
+form select:focus {
     border-color: #e91e63 !important;
     outline: 0 !important;
     box-shadow: 0 0 0 0.2rem rgba(233, 30, 99, 0.25) !important;
 }
 
-/* Ensure labels are properly styled */
-label {
+/* Ensure labels are properly styled - only in forms */
+form label,
+.card label {
     display: block;
     margin-bottom: 0.5rem;
     font-weight: 500;
@@ -35,13 +47,20 @@ label {
 }
 
 /* Add some margin to form controls that don't have form-group wrapper */
-.form-control:not(.form-group .form-control),
-.form-select:not(.form-group .form-select) {
+.card .form-control:not(.form-group .form-control),
+.card .form-select:not(.form-group .form-select),
+form .form-control:not(.form-group .form-control),
+form .form-select:not(.form-group .form-select) {
     margin-bottom: 1rem;
 }
 
 /* Style for select dropdowns to match other form controls */
-select {
+/* Hide default browser arrow first, then add custom one */
+.card select,
+form select {
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
     background-position: right 0.5rem center !important;
     background-repeat: no-repeat !important;
