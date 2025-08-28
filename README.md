@@ -86,14 +86,7 @@ python manage.py initialisedb
 python manage.py runserver
 ```
 
-### Docker Deployment
-
-```bash
-# Build and run with Docker Compose
-docker-compose up --build
-```
-
-The application will be available at `http://localhost:5085`
+The application will be available at `http://127.0.0.1:8000`
 
 ## 🏆 Championship Setup
 
