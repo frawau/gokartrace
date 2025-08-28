@@ -154,7 +154,7 @@ python manage.py clearcache
 The main race control dashboard provides:
 - Pre-race checks and validation
 - Race start/pause/resume controls
-- Live penalty assignment (Stop & Go, Self Stop & Go, Laps)
+- Live penalty assignment (Stop & Go, Laps)
 - Real-time driver queue monitoring
 - Pit lane status monitoring
 - System message logging
