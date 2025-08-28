@@ -12,7 +12,7 @@ A comprehensive Django-based management system for endurance go-kart races and c
 - **Championship Management**: Create and manage multi-round championships with customizable settings
 - **Round Configuration**: Flexible race setup with duration, pit lane timing, weight penalties, and driver change requirements
 - **Team & Driver Management**: Comprehensive driver registration, team formation, and participant management
-- **Real-time Race Control**: Live race monitoring with start/pause/resume controls and false start detection
+- **Real-time Race Control**: Live race monitoring with start/pause/resume controls and false start control.
 
 ### Penalty System
 - **Multiple Penalty Types**:
@@ -104,15 +104,15 @@ For the Stop & Go penalty station:
 ```bash
 # On Raspberry Pi
 cd stations/
-python stopandgo-station.py --button-pin 18 --sensor-pin 24 --websocket-url wss://your-domain.com/ws/stopandgo/
+python stopandgo-station.py --button 18 --fence 36 --server your-domain.com -port 443
 ```
 
 ### Hardware Requirements
-- Raspberry Pi with GPIO access
+- Raspberry Pi with GPIO access (Tested on RPi Zero 2 W)
 - Physical button (normally open)
-- Proximity sensor for completion detection
-- I2C relay board for fence control
-- Display (optional, for local status)
+- Fence sensor (optional, can be disabled) for area breach detections (e.g. early start)
+- I2C relay board (optional) for, for example, flashing lights control
+- Display (Required for status and countdown)
 
 ## 🔧 Configuration
 
