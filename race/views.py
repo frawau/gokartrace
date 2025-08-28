@@ -289,8 +289,8 @@ def falserestart(request):
 @user_passes_test(is_race_director)
 def endofrace(request):
     cround = current_round()
-    errs = cround.end_race()
-    return JsonResponse({"result": True})
+    penalty_count = cround.end_race()
+    return JsonResponse({"result": True, "penalty_count": penalty_count})
 
 
 @csrf_exempt

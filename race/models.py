@@ -386,11 +386,130 @@ class Round(models.Model):
 
     def post_race_check(self):
         """
-        Checks that each team has exactly one driver with a registered but unstarted session,
-        and that all drivers have a non-zero weight.
+        Create post-race penalties based on transgressions.
+        Checks for required_changes, time_limit, and time_limit_min transgressions
+        and creates RoundPenalty records for Post Race Laps penalties.
         """
-        errors = []
-        # TODO Check the driving time, that all drivers did dive,...
+        # Single timestamp for all penalties created in this check
+        penalty_timestamp = dt.datetime.now()
+        penalties_created = 0
+
+        # Get championship and all relevant penalties at once
+        championship = self.championship
+        penalties = {}
+
+        # Try to get all three penalties
+        try:
+            penalties["required_changes"] = ChampionshipPenalty.objects.get(
+                championship=championship,
+                penalty__name="required changes",
+                sanction="P",  # Post Race Laps
+            )
+        except ChampionshipPenalty.DoesNotExist:
+            penalties["required_changes"] = None
+
+        try:
+            penalties["time_limit"] = ChampionshipPenalty.objects.get(
+                championship=championship,
+                penalty__name="time limit",
+                sanction="P",  # Post Race Laps
+            )
+        except ChampionshipPenalty.DoesNotExist:
+            penalties["time_limit"] = None
+
+        try:
+            penalties["time_limit_min"] = ChampionshipPenalty.objects.get(
+                championship=championship,
+                penalty__name="time limit min",
+                sanction="P",  # Post Race Laps
+            )
+        except ChampionshipPenalty.DoesNotExist:
+            penalties["time_limit_min"] = None
+
+        # If no penalties are configured, return early
+        if not any(penalties.values()):
+            return penalties_created
+
+        # Calculate duration in hours once for per_hour penalties (as integer)
+        duration_hours = self.duration.total_seconds() // 3600
+
+        # Loop through all participating teams
+        for team in self.round_team_set.all():
+            # 1. Check team-level required_changes transgression
+            if penalties["required_changes"]:
+                transgression_count = team.required_changes_transgression
+                if transgression_count > 0:
+                    # Calculate penalty laps (ensure integer)
+                    penalty_laps = (
+                        penalties["required_changes"].value * transgression_count
+                    )
+
+                    # If penalty is per hour, multiply by race duration in hours
+                    if penalties["required_changes"].option == "per_hour":
+                        penalty_laps = penalty_laps * duration_hours
+
+                    # Create RoundPenalty
+                    round_penalty = RoundPenalty.objects.create(
+                        round=self,
+                        offender=team,
+                        victim=None,  # Team penalties have no victim
+                        penalty=penalties["required_changes"],
+                        value=penalty_laps,
+                        imposed=penalty_timestamp,
+                    )
+                    penalties_created += 1
+
+            # 2. Loop through all drivers in this team
+            for driver in team.team_member_set.filter(driver=True):
+                # Check driver-level time_limit transgression
+                if penalties["time_limit"]:
+                    transgression_count = driver.limit_time_transgression
+                    if transgression_count > 0:
+                        # Calculate penalty laps (ensure integer)
+                        penalty_laps = (
+                            penalties["time_limit"].value * transgression_count
+                        )
+
+                        # If penalty is per hour, multiply by race duration in hours
+                        if penalties["time_limit"].option == "per_hour":
+                            penalty_laps = penalty_laps * duration_hours
+
+                        # Create RoundPenalty for the driver's team
+                        round_penalty = RoundPenalty.objects.create(
+                            round=self,
+                            offender=team,
+                            victim=None,  # Driver penalties are assigned to their team
+                            penalty=penalties["time_limit"],
+                            value=penalty_laps,
+                            imposed=penalty_timestamp,
+                        )
+                        penalties_created += 1
+
+                # Check driver-level time_limit_min transgression
+                if penalties["time_limit_min"]:
+                    transgression_count = driver.limit_time_min_transgression
+                    if transgression_count > 0:
+                        # Calculate penalty laps (ensure integer)
+                        penalty_laps = (
+                            penalties["time_limit_min"].value * transgression_count
+                        )
+
+                        # If penalty is per hour, multiply by race duration in hours
+                        if penalties["time_limit_min"].option == "per_hour":
+                            penalty_laps = penalty_laps * duration_hours
+
+                        # Create RoundPenalty for the driver's team
+                        round_penalty = RoundPenalty.objects.create(
+                            round=self,
+                            offender=team,
+                            victim=None,  # Driver penalties are assigned to their team
+                            penalty=penalties["time_limit_min"],
+                            value=penalty_laps,
+                            imposed=penalty_timestamp,
+                        )
+                        penalties_created += 1
+
+        return penalties_created
 
     def change_queue(self):
         sessions = self.session_set.filter(

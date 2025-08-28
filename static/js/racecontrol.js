@@ -509,10 +509,13 @@ async function handleRaceAction(event) {
       } else {
         // --- Handle Logical Success ---
         console.log(`Action '${action}' successful logically.`);
-        addSystemMessage(
-          data.message || `Action '${action}' successful.`,
-          "success",
-        );
+        // Don't show default success message for 'end' action - handled in switch statement
+        if (action !== "end") {
+          addSystemMessage(
+            data.message || `Action '${action}' successful.`,
+            "success",
+          );
+        }
 
         // --- Determine NEXT state and update button visibility ---
         let nextState = "unknown";
@@ -535,6 +538,15 @@ async function handleRaceAction(event) {
             break; // Resume goes back to running
           case "end":
             nextState = "ended";
+            // Add penalty count message if penalties were created
+            if (data.penalty_count > 0) {
+              addSystemMessage(
+                `Race ended. ${data.penalty_count} post-race penalties applied.`,
+                "info"
+              );
+            } else {
+              addSystemMessage("Race ended successfully.", "success");
+            }
             break;
           case "false_start":
             nextState = "ready";
