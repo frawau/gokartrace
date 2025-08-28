@@ -7,7 +7,8 @@
 
 <script>
     const laneNumber = {{ change_lane.lane }};
-    const socket = new WebSocket(`ws://${window.location.host}/ws/pitlanes/${laneNumber}/`);
+    const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const socket = new WebSocket(`${wsScheme}://${window.location.host}/ws/pitlanes/${laneNumber}/`);
 
     socket.onmessage = function (event) {
         const data = JSON.parse(event.data);

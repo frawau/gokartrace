@@ -5,7 +5,8 @@
 {% include 'layout/changedriver_detail.html' with change_lanes=change_lanes %}
 
 <script>
-    const socket = new WebSocket(`ws://${window.location.host}/ws/changedriver/`);
+    const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const socket = new WebSocket(`${wsScheme}://${window.location.host}/ws/changedriver/`);
 
     socket.onmessage = function (event) {
         const data = JSON.parse(event.data);
