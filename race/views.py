@@ -1378,6 +1378,8 @@ def edit_championship_view(request):
 
     context = {
         "championships": championships,
+        "sanction_choices": ChampionshipPenalty.PTYPE,
+        "option_choices": ChampionshipPenalty.OPTION_CHOICES,
     }
     return render(request, "pages/edit_championship.html", context)
 

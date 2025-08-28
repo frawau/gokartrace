@@ -112,9 +112,9 @@
                                         <div class="col-md-2">
                                             <select id="sanction-select" class="form-control">
                                                 <option value="">Select sanction...</option>
-                                                <option value="S">Stop & Go</option>
-                                                <option value="L">Laps</option>
-                                                <option value="P">Post Race Laps</option>
+                                                {% for value, label in sanction_choices %}
+                                                <option value="{{ value }}">{{ label }}</option>
+                                                {% endfor %}
                                             </select>
                                         </div>
                                         <div class="col-md-2">
@@ -122,9 +122,9 @@
                                         </div>
                                         <div class="col-md-2">
                                             <select id="option-select" class="form-control">
-                                                <option value="fixed">Fixed</option>
-                                                <option value="variable">Variable</option>
-                                                <option value="per_hour">Per Hour</option>
+                                                {% for value, label in option_choices %}
+                                                <option value="{{ value }}"{% if value == 'fixed' %} selected{% endif %}>{{ label }}</option>
+                                                {% endfor %}
                                             </select>
                                         </div>
                                         <div class="col-md-3">
