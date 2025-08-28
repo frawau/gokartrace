@@ -697,11 +697,17 @@ class round_team(models.Model):
         return f"{self.team} in {self.round}"
 
     @property
-    def has_transgression(self):
+    def required_changes_transgression(self):
         sess_count = Session.objects.filter(
             driver__team=self, end__isnull=False
         ).count()
-        if sess_count < self.round.required_changes:
+        if sess_count <= self.round.required_changes:
+            return True
+        return False
+
+    @property
+    def has_transgression(self):
+        if self.required_changes_transgression:
             return True
         all_drivers = team_member.objects.filter(team=self, driver=True)
         for driver in all_drivers:
@@ -851,25 +857,36 @@ class team_member(models.Model):
                 return v
 
     @property
-    def has_transgression(self):
+    def limit_time_transgression(self):
         cround = self.team.round
-        did_transgress = False
+        did_transgress = 0
         ltype, lval = cround.driver_time_limit(self.team)
         time_spent = self.time_spent
         if ltype == "session":
             all_sessions = Session.objects.filter(driver=self)
             for session in all_sessions:
-                if sess.duration > lval:
-                    did_transgress = True
-                    break
-            pass
+                if session.duration > lval:
+                    did_transgress += 1
         elif ltype == "race":
-            did_transgress = lval < time_spent
-
-        if not did_transgress:
-            if time_spent < cround.limit_time_min:
-                did_transgress = True
+            did_transgress = 1 if lval < time_spent else 0
         return did_transgress
+
+    @property
+    def limit_time_min_transgression(self):
+        cround = self.team.round
+        time_spent = self.time_spent
+        if time_spent < cround.limit_time_min:
+            return 1
+        return 0
+
+    @property
+    def has_transgression(self):
+        if self.limit_time_transgression:
+            return True
+
+        if self.limit_time_min_transgression:
+            return True
+        return False
 
 
 class Session(models.Model):
