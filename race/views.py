@@ -933,7 +933,7 @@ def round_penalties(request):
 
         # Add formatted penalty text for each penalty
         for penalty in round_penalties_list:
-            if penalty.penalty.sanction == "S":  # Stop & Go
+            if penalty.penalty.sanction in ["S", "D"]:  # Stop & Go and Self Stop & Go
                 penalty.penalty_text = f"Stop & Go {penalty.value} seconds"
             elif penalty.penalty.sanction == "L":  # Laps
                 penalty.penalty_text = f"{penalty.value} laps"

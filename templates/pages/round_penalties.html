@@ -66,7 +66,7 @@
                     </td>
                     <td>
                         <span class="badge 
-                            {% if penalty.penalty.sanction == 'S' %}bg-warning{% elif penalty.penalty.sanction == 'L' %}bg-info{% else %}bg-secondary{% endif %}">
+                            {% if penalty.penalty.sanction == 'S' or penalty.penalty.sanction == 'D' %}bg-warning{% elif penalty.penalty.sanction == 'L' %}bg-info{% else %}bg-secondary{% endif %}">
                             {{ penalty.penalty_text }}
                         </span>
                     </td>
@@ -77,7 +77,7 @@
                         {% if penalty.served %}
                             <small class="text-success">{{ penalty.served|date:"M d, H:i" }}</small>
                         {% else %}
-                            {% if penalty.penalty.sanction == 'S' %}
+                            {% if penalty.penalty.sanction == 'S' or penalty.penalty.sanction == 'D' %}
                                 <span class="badge bg-warning text-dark">Pending</span>
                             {% endif %}
                         {% endif %}
