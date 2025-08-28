@@ -1596,10 +1596,10 @@ def get_stop_and_go_penalties(request, round_id):
         round_obj = get_object_or_404(Round, id=round_id)
         championship = round_obj.championship
 
-        # Get only Stop & Go penalties for this championship
+        # Get Stop & Go and Self Stop & Go penalties for this championship
         stop_go_penalties = (
             ChampionshipPenalty.objects.filter(
-                championship=championship, sanction="S"  # Stop & Go
+                championship=championship, sanction__in=["S", "D"]  # Stop & Go and Self Stop & Go
             )
             .select_related("penalty")
             .order_by("penalty__name")
@@ -1611,6 +1611,7 @@ def get_stop_and_go_penalties(request, round_id):
                 "penalty_id": cp.penalty.id,
                 "penalty_name": cp.penalty.name,
                 "penalty_description": cp.penalty.description,
+                "sanction": cp.sanction,
                 "value": cp.value,
                 "option": cp.option,
                 "option_display": cp.get_option_display(),
@@ -1735,10 +1736,10 @@ def get_stop_and_go_penalties(request, round_id):
         round_obj = get_object_or_404(Round, id=round_id)
         championship = round_obj.championship
 
-        # Get only Stop & Go penalties for this championship
+        # Get Stop & Go and Self Stop & Go penalties for this championship
         stop_go_penalties = (
             ChampionshipPenalty.objects.filter(
-                championship=championship, sanction="S"  # Stop & Go
+                championship=championship, sanction__in=["S", "D"]  # Stop & Go and Self Stop & Go
             )
             .select_related("penalty")
             .order_by("penalty__name")
@@ -1750,6 +1751,7 @@ def get_stop_and_go_penalties(request, round_id):
                 "penalty_id": cp.penalty.id,
                 "penalty_name": cp.penalty.name,
                 "penalty_description": cp.penalty.description,
+                "sanction": cp.sanction,
                 "value": cp.value,
                 "option": cp.option,
                 "option_display": cp.get_option_display(),

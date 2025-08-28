@@ -968,6 +968,7 @@ class Penalty(models.Model):
 class ChampionshipPenalty(models.Model):
     PTYPE = (
         ("S", "Stop & Go"),
+        ("D", "Self Stop & Go"),
         ("L", "Laps"),
         ("P", "Post Race Laps"),
     )

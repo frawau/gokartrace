@@ -815,6 +815,7 @@ function loadStopAndGoPenalties() {
           option.textContent = `${penalty.penalty_name} (${penalty.value}s)`;
           option.dataset.penaltyValue = penalty.value;
           option.dataset.penaltyOption = penalty.option;
+          option.dataset.penaltySanction = penalty.sanction;
           penaltySelect.appendChild(option);
         });
       }
@@ -857,7 +858,8 @@ function initializeDropdownLogic() {
       selectedPenalty = {
         id: selectedPenaltyId,
         value: parseInt(selectedOption.dataset.penaltyValue),
-        option: selectedOption.dataset.penaltyOption
+        option: selectedOption.dataset.penaltyOption,
+        sanction: selectedOption.dataset.penaltySanction
       };
       
       // Enable offender dropdown
@@ -871,6 +873,13 @@ function initializeDropdownLogic() {
         durationInput.disabled = false;
       } else {
         durationInput.disabled = true;
+      }
+      
+      // For Self Stop & Go penalties, update victim dropdown label
+      if (selectedPenalty.sanction === 'D') {
+        victimSelect.innerHTML = '<option value="">No victim needed</option>';
+      } else {
+        victimSelect.innerHTML = '<option value="">Select victim team...</option>';
       }
       
     } else {
@@ -894,11 +903,19 @@ function initializeDropdownLogic() {
     const selectedOffenderId = this.value;
     
     if (selectedOffenderId) {
-      // Enable victim dropdown
-      victimSelect.disabled = false;
-      
-      // Populate victim dropdown (all teams except the offender)
-      populateVictimDropdown(selectedOffenderId);
+      // For Self Stop & Go penalties (D), don't enable victim dropdown
+      if (selectedPenalty && selectedPenalty.sanction === 'D') {
+        // Disable victim dropdown for Self Stop & Go
+        victimSelect.disabled = true;
+        victimSelect.value = '';
+        victimSelect.innerHTML = '<option value="">No victim needed</option>';
+      } else {
+        // Enable victim dropdown for regular Stop & Go
+        victimSelect.disabled = false;
+        
+        // Populate victim dropdown (all teams except the offender)
+        populateVictimDropdown(selectedOffenderId);
+      }
     } else {
       // Disable victim dropdown
       victimSelect.disabled = true;
@@ -929,7 +946,14 @@ function initializeDropdownLogic() {
   function checkFormCompletion() {
     const penaltySelected = selectedPenalty !== null;
     const offenderSelected = offenderSelect.value !== '';
-    const victimSelected = victimSelect.value !== '';
+    
+    // For Self Stop & Go (D), victim is not required
+    let victimRequired = true;
+    if (selectedPenalty && selectedPenalty.sanction === 'D') {
+      victimRequired = false;
+    }
+    
+    const victimSelected = victimRequired ? victimSelect.value !== '' : true;
     
     if (penaltySelected && offenderSelected && victimSelected && stopAndGoState === 'idle') {
       stopGoButton.disabled = false;
