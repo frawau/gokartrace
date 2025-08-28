@@ -21,8 +21,8 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        {% for change_lane in change_lanes %}
         const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        {% for change_lane in change_lanes %}
         const socket{{ change_lane.lane }} = new WebSocket(wsScheme + "://" + window.location.host + "/ws/pitlanes/{{ change_lane.lane }}/");
         
         socket{{ change_lane.lane }}.onmessage = function(event) {
