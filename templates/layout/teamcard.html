@@ -3,11 +3,11 @@
 
 <div class="card" style="background-color: transparent;">
     <div class="card-body">
-        <h5 class="card-title" style="font-size: 4rem;">
-            {{ round_team.team.number }} -- {{ round_team.team.team.name }}
+        <h5 class="card-title" style="font-size: 4rem; display: flex; justify-content: space-between; align-items: center;">
+            <span>{{ round_team.team.number }} -- {{ round_team.team.team.name }}</span>
             {% load duration_filters %}
             {% if round_team.time_limit_seconds %}
-                <span style="font-size: 2rem; color: #666; margin-left: 20px;">
+                <span style="font-size: 4rem; color: #666;">
                     Max: {{ round_team.time_limit_seconds|duration_format }}
                 </span>
             {% endif %}

@@ -91,6 +91,7 @@ def team_carousel(request):
     cround = current_round()
 
     # Pre-calculate time limits for all teams to avoid template recalculation
+    teams_with_limits = []
     if cround:
         for round_team in cround.round_team_set.all():
             limit_type, limit_value = cround.driver_time_limit(round_team)
@@ -104,8 +105,13 @@ def team_carousel(request):
                 round_team.time_limit_seconds = seconds
             else:
                 round_team.time_limit_seconds = None
+            teams_with_limits.append(round_team)
 
-    return render(request, "pages/teamcarousel.html", {"round": cround})
+    return render(
+        request,
+        "pages/teamcarousel.html",
+        {"round": cround, "teams_with_limits": teams_with_limits},
+    )
 
 
 def get_team_card(request):
