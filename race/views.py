@@ -90,6 +90,21 @@ def index(request):
 def team_carousel(request):
     cround = current_round()
 
+    # Pre-calculate time limits for all teams to avoid template recalculation
+    if cround:
+        for round_team in cround.round_team_set.all():
+            limit_type, limit_value = cround.driver_time_limit(round_team)
+            if limit_type and limit_type != "none" and limit_value:
+                # Convert timedelta to seconds if needed
+                if hasattr(limit_value, "total_seconds"):
+                    seconds = limit_value.total_seconds()
+                else:
+                    seconds = limit_value
+                # Attach the time limit to the round_team object for template access
+                round_team.time_limit_seconds = seconds
+            else:
+                round_team.time_limit_seconds = None
+
     return render(request, "pages/teamcarousel.html", {"round": cround})
 
 
@@ -656,6 +671,20 @@ def singleteam_view(request):
         # For initial page load, optionally default to first team
         elif teams.exists():
             selected_team = teams.first()
+
+        # Pre-calculate time limit for selected team to avoid template recalculation
+        if selected_team:
+            limit_type, limit_value = cround.driver_time_limit(selected_team)
+            if limit_type and limit_type != "none" and limit_value:
+                # Convert timedelta to seconds if needed
+                if hasattr(limit_value, "total_seconds"):
+                    seconds = limit_value.total_seconds()
+                else:
+                    seconds = limit_value
+                # Attach the time limit to the round_team object for template access
+                selected_team.time_limit_seconds = seconds
+            else:
+                selected_team.time_limit_seconds = None
 
         context = {
             "round": cround,
@@ -1601,7 +1630,8 @@ def get_stop_and_go_penalties(request, round_id):
         # Get Stop & Go and Self Stop & Go penalties for this championship
         stop_go_penalties = (
             ChampionshipPenalty.objects.filter(
-                championship=championship, sanction__in=["S", "D"]  # Stop & Go and Self Stop & Go
+                championship=championship,
+                sanction__in=["S", "D"],  # Stop & Go and Self Stop & Go
             )
             .select_related("penalty")
             .order_by("penalty__name")
@@ -1741,7 +1771,8 @@ def get_stop_and_go_penalties(request, round_id):
         # Get Stop & Go and Self Stop & Go penalties for this championship
         stop_go_penalties = (
             ChampionshipPenalty.objects.filter(
-                championship=championship, sanction__in=["S", "D"]  # Stop & Go and Self Stop & Go
+                championship=championship,
+                sanction__in=["S", "D"],  # Stop & Go and Self Stop & Go
             )
             .select_related("penalty")
             .order_by("penalty__name")

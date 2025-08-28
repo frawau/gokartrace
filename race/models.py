@@ -702,8 +702,8 @@ class round_team(models.Model):
             driver__team=self, end__isnull=False
         ).count()
         if sess_count <= self.round.required_changes:
-            return True
-        return False
+            return 1 + self.round.required_changes - self.round.required_changes
+        return 0
 
     @property
     def has_transgression(self):
