@@ -259,7 +259,7 @@ class Command(BaseCommand):
                 "drivers": drivers,
                 "target_changes": target_changes,
                 "completed_changes": 0,
-                "next_queue_time": self.calculate_next_queue_time(0),
+                "next_queue_time": 0,  # Will be calculated after team_stats is complete
                 "has_queued_driver": False,
                 "change_ready_time": 0,
                 "top_queue_reached_time": 0,  # When team reached top queue positions
@@ -284,21 +284,53 @@ class Command(BaseCommand):
 
             violation_note = " (may violate limits)" if will_violate_limits else ""
 
+            # Now calculate initial queue time with complete team stats
+            team_stats[team.id]["next_queue_time"] = self.calculate_next_queue_time(
+                0, team_stats[team.id]
+            )
+
             self.log(
                 f"Team {team.number} ({team.team.team.name}): targeting {target_changes} changes, {limit_info}{violation_note}"
             )
 
         return team_stats
 
-    def calculate_next_queue_time(self, current_time):
-        """Calculate realistic next driver queue time"""
-        # Vary stint length: 15-45 minutes with some randomness
-        base_stint = random.uniform(15 * 60, 45 * 60)  # 15-45 minutes in seconds
+    def calculate_next_queue_time(self, current_time, team_stats=None):
+        """Calculate realistic next driver queue time based on race duration and required changes"""
+        if team_stats and team_stats.get("target_changes", 0) > 0:
+            # Calculate optimal stint duration based on race duration and required changes
+            race_duration_seconds = (
+                self.round.duration * 60
+            )  # Convert minutes to seconds
+            remaining_changes = (
+                team_stats["target_changes"] - team_stats["completed_changes"]
+            )
 
-        # Add lap time variation (complete current lap)
-        lap_variation = random.uniform(0.8, 1.2) * self.average_lap_time
+            if remaining_changes <= 0:
+                return float("inf")  # No more changes needed
 
-        return current_time + base_stint + lap_variation
+            # Calculate remaining race time (leave 10 minutes buffer for pit closure)
+            remaining_time = race_duration_seconds - current_time - (10 * 60)
+
+            if remaining_time <= 0:
+                return float("inf")  # Too late for more changes
+
+            # Distribute remaining time across remaining changes
+            optimal_stint_duration = remaining_time / remaining_changes
+
+            # Add some realistic variation (±15%) but stay close to optimal
+            variation_factor = random.uniform(0.85, 1.15)
+            stint_duration = optimal_stint_duration * variation_factor
+
+            # Ensure minimum stint of 5 minutes and don't exceed remaining time
+            stint_duration = max(300, min(stint_duration, remaining_time - 300))
+
+            return current_time + stint_duration
+        else:
+            # Fallback to old logic if no target changes
+            base_stint = random.uniform(15 * 60, 45 * 60)
+            lap_variation = random.uniform(0.8, 1.2) * self.average_lap_time
+            return current_time + base_stint + lap_variation
 
     def calculate_penalty_serve_time(self):
         """Calculate realistic time for team to serve Stop & Go penalty"""
@@ -346,6 +378,11 @@ class Command(BaseCommand):
                     stats["change_ready_time"] = elapsed_time + (
                         2 * self.average_lap_time
                     )
+
+                    # Schedule next queue time based on adaptive algorithm
+                    stats["next_queue_time"] = self.calculate_next_queue_time(
+                        stats["change_ready_time"], stats
+                    )
                     change_reason = "time limit" if should_change else "normal stint"
                     self.log(
                         f"Team {team.number}: driver queued ({change_reason}), change ready in {2 * self.average_lap_time:.0f}s"
@@ -360,17 +397,43 @@ class Command(BaseCommand):
                 if stats[
                     "top_queue_reached_time"
                 ] == 0 and self.team_in_top_queue_positions(team):
-                    stats["top_queue_reached_time"] = elapsed_time
-                    self.log(
-                        f"Team {team.number}: reached top {self.round.change_lanes} queue positions"
-                    )
+                    # Check if pit lanes are still open when reaching top positions
+                    race_duration_seconds = self.round.duration * 60
+                    pit_lanes_close_time = race_duration_seconds - (
+                        10 * 60
+                    )  # Close 10 mins before end
+
+                    if elapsed_time <= pit_lanes_close_time:
+                        stats["top_queue_reached_time"] = elapsed_time
+                        self.log(
+                            f"Team {team.number}: reached top {self.round.change_lanes} queue positions"
+                        )
+                    else:
+                        # Too late - pit lanes are closed or about to close
+                        stats["has_queued_driver"] = False
+                        self.log(
+                            f"Team {team.number}: reached top queue too late - pit lanes closed/closing"
+                        )
 
                 # Check if driver change is ready and team is in position
                 if elapsed_time >= stats.get(
                     "change_ready_time", 0
                 ) and self.team_ready_for_change(team):
 
-                    success = self.perform_driver_change(team, elapsed_time)
+                    # Double-check pit lanes are still open
+                    race_duration_seconds = self.round.duration * 60
+                    pit_lanes_close_time = race_duration_seconds - (10 * 60)
+
+                    if elapsed_time <= pit_lanes_close_time:
+                        success = self.perform_driver_change(team, elapsed_time)
+                    else:
+                        # Pit lanes closed before change could complete
+                        stats["has_queued_driver"] = False
+                        stats["top_queue_reached_time"] = 0
+                        self.log(
+                            f"Team {team.number}: driver change cancelled - pit lanes closed"
+                        )
+                        success = False
                     if success:
                         # Calculate how long they took from reaching top positions
                         if stats["top_queue_reached_time"] > 0:
@@ -392,9 +455,12 @@ class Command(BaseCommand):
                         stats["completed_changes"] += 1
                         stats["has_queued_driver"] = False
                         stats["top_queue_reached_time"] = 0
-                        stats["next_queue_time"] = self.calculate_next_queue_time(
-                            elapsed_time
-                        )
+
+                        # Schedule next queue time with adaptive algorithm
+                        if stats["completed_changes"] < stats["target_changes"]:
+                            stats["next_queue_time"] = self.calculate_next_queue_time(
+                                elapsed_time, stats
+                            )
 
                         self.log(
                             f"Team {team.number}: driver change completed #{stats['completed_changes']}"

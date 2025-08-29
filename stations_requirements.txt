@@ -1,0 +1,9 @@
+# Station-specific dependencies for Raspberry Pi and hardware control
+# These are only needed on station/hardware devices, not on the main server
+
+# GPIO and I2C control for Raspberry Pi
+RPi.GPIO
+smbus2-asyncio
+
+# Async HTTP client for station communication  
+aiohttp

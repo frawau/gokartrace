@@ -288,7 +288,7 @@ class Round(models.Model):
         )
         for session in sessions:
             session.delete()
-        ChangeLane.object.all().delete()
+        ChangeLane.objects.all().delete()
         return self.post_race_check()
 
     def pause_race(self):

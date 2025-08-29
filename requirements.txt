@@ -8,8 +8,17 @@ fontawesomefree>=6.6.0
 pycountry
 cryptography>=44.0.2
 reportlab>=4.3.1
+reportlab-qrcode
 django-apscheduler
 redis
 django-cors-headers
 django-admin-material-dashboard
 django_countries
+channels
+channels-redis
+asgiref
+pillow
+faker
+langdetect
+requests
+djangorestframework
