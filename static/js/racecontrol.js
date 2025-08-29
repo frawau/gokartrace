@@ -1054,20 +1054,49 @@ function handleStopGoButtonClick() {
       });
     }
   } else if (stopAndGoState === 'active') {
-    // Force complete penalty
-    if (stopAndGoSocket && currentRoundPenaltyId) {
-      const message = {
-        type: 'force_complete_penalty',
-        penalty_id: currentRoundPenaltyId,
-        timestamp: new Date().toISOString()
-      };
-      
-      signMessage(message).then(signedMessage => {
-        stopAndGoSocket.send(JSON.stringify(signedMessage));
-        addSystemMessage('Force completing penalty...', 'info');
-      }).catch(error => {
-        console.error('Failed to sign message:', error);
-        addSystemMessage('Failed to force complete penalty', 'danger');
+    // Immediately mark penalty as served and reset form
+    if (currentRoundPenaltyId) {
+      // Update penalty served timestamp
+      fetch('/api/update-penalty-served/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ penalty_id: currentRoundPenaltyId })
+      })
+      .then(response => response.json())
+      .then(result => {
+        if (result.success) {
+          console.log('Penalty marked as served immediately');
+          addSystemMessage('Penalty marked as served', 'success');
+          
+          // Reset form immediately
+          resetStopAndGoForm();
+          
+          // Optional: Still send force complete to station but don't wait for response
+          if (stopAndGoSocket) {
+            const message = {
+              type: 'force_complete_penalty',
+              penalty_id: currentRoundPenaltyId,
+              timestamp: new Date().toISOString()
+            };
+            
+            signMessage(message).then(signedMessage => {
+              stopAndGoSocket.send(JSON.stringify(signedMessage));
+              console.log('Sent force complete to station (fire and forget)');
+            }).catch(error => {
+              console.error('Failed to send force complete to station:', error);
+            });
+          }
+        } else {
+          console.error('Failed to update penalty served timestamp:', result.error);
+          addSystemMessage('Failed to mark penalty as served: ' + result.error, 'danger');
+        }
+      })
+      .catch(error => {
+        console.error('Error updating penalty served timestamp:', error);
+        addSystemMessage('Error marking penalty as served: ' + error.message, 'danger');
       });
     }
   }
@@ -1123,8 +1152,9 @@ function handleStopAndGoMessage(data) {
   
   switch (data.type) {
     case 'penalty_served':
-      // Update penalty served timestamp if we have a penalty ID
+      // Only process if we have an active penalty (currentRoundPenaltyId is set)
       if (currentRoundPenaltyId) {
+        // Update penalty served timestamp
         fetch('/api/update-penalty-served/', {
           method: 'POST',
           headers: {
@@ -1137,6 +1167,10 @@ function handleStopAndGoMessage(data) {
         .then(result => {
           if (result.success) {
             console.log('Penalty served timestamp updated');
+            addSystemMessage(`Penalty served by team ${data.team}`, 'success');
+            
+            // Reset form after successful update
+            resetStopAndGoForm();
           } else {
             console.error('Failed to update penalty served timestamp:', result.error);
           }
@@ -1144,31 +1178,44 @@ function handleStopAndGoMessage(data) {
         .catch(error => {
           console.error('Error updating penalty served timestamp:', error);
         });
-      }
-      
-      // Penalty has been served, reset form
-      resetStopAndGoForm();
-      addSystemMessage(`Penalty served by team ${data.team}`, 'success');
-      
-      // Send acknowledgment back to station
-      if (stopAndGoSocket) {
-        const ackMessage = {
-          type: 'penalty_acknowledged',
-          team: data.team,
-          penalty_id: currentRoundPenaltyId,
-          timestamp: new Date().toISOString()
-        };
         
-        signMessage(ackMessage).then(signedMessage => {
-          stopAndGoSocket.send(JSON.stringify(signedMessage));
-          console.log('Sent penalty acknowledgment for team', data.team);
-        }).catch(error => {
-          console.error('Failed to sign acknowledgment:', error);
-        });
+        // Send acknowledgment back to station
+        if (stopAndGoSocket) {
+          const ackMessage = {
+            type: 'penalty_acknowledged',
+            team: data.team,
+            penalty_id: currentRoundPenaltyId,
+            timestamp: new Date().toISOString()
+          };
+          
+          signMessage(ackMessage).then(signedMessage => {
+            stopAndGoSocket.send(JSON.stringify(signedMessage));
+            console.log('Sent penalty acknowledgment for team', data.team);
+          }).catch(error => {
+            console.error('Failed to sign acknowledgment:', error);
+          });
+        }
+      } else {
+        // No active penalty - ignore message (penalty was already handled manually)
+        console.log(`Ignoring penalty_served message from team ${data.team} - no active penalty (already handled manually)`);
+        
+        // Still send acknowledgment to keep station happy
+        if (stopAndGoSocket) {
+          const ackMessage = {
+            type: 'penalty_acknowledged',
+            team: data.team,
+            penalty_id: data.penalty_id || null,
+            timestamp: new Date().toISOString()
+          };
+          
+          signMessage(ackMessage).then(signedMessage => {
+            stopAndGoSocket.send(JSON.stringify(signedMessage));
+            console.log('Sent penalty acknowledgment for team', data.team);
+          }).catch(error => {
+            console.error('Failed to sign acknowledgment:', error);
+          });
+        }
       }
-      
-      // Clear current penalty ID
-      currentRoundPenaltyId = null;
       break;
       
     case 'fence_status':
