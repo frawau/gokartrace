@@ -821,7 +821,7 @@ class round_team(models.Model):
             driver__team=self, end__isnull=False
         ).count()
         if sess_count <= self.round.required_changes:
-            return 1 + self.round.required_changes - self.round.required_changes
+            return 1 + self.round.required_changes - sess_count
         return 0
 
     @property
