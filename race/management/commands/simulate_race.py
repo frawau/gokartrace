@@ -4,6 +4,7 @@ import random
 import threading
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models import Q
+from django.db import models
 from race.models import (
     Session,
     Round,
@@ -26,8 +27,8 @@ class Command(BaseCommand):
         parser.add_argument(
             "--real-time-speed",
             type=float,
-            default=60.0,
-            help="Simulation speed multiplier - how many seconds of race time per real second (default: 60)",
+            default=1.0,
+            help="Simulation speed multiplier - how many seconds of race time per real second (default: 1.0 for real-time)",
         )
         parser.add_argument(
             "--penalty-probability",
@@ -148,8 +149,8 @@ class Command(BaseCommand):
 
         # Event loop
         while elapsed_time < race_duration_seconds:
-            # Sleep for simulation speed
-            time.sleep(1.0 / self.real_time_speed)
+            # Sleep for real-time simulation (1 second)
+            time.sleep(1.0)
             elapsed_time += 1
 
             # Check if pit lane is open
@@ -196,7 +197,7 @@ class Command(BaseCommand):
                             penalty_serve_time = 0
                             penalty_timeout_time = 0
                     elif elapsed_time >= penalty_timeout_time:
-                        # Team ignored penalty - issue "ignoring stop & go" penalty
+                        # Team ignored penalty - issue "ignoring stop & go" penalty but keep original active
                         ignore_penalty = self.issue_ignoring_penalty(
                             active_stop_go_penalty.offender
                         )
@@ -204,15 +205,21 @@ class Command(BaseCommand):
                             self.log(
                                 f"⚠️ Team {active_stop_go_penalty.offender.number} ignored Stop & Go - issued '{ignore_penalty.penalty.penalty.name}' penalty"
                             )
+                            self.log(
+                                f"⚠️ Original Stop & Go penalty still active and must be served"
+                            )
                         else:
                             self.log(
                                 f"⚠️ Team {active_stop_go_penalty.offender.number} ignored Stop & Go - no 'ignoring s&g' penalty configured"
                             )
 
-                        # Clear the ignored Stop & Go penalty
-                        active_stop_go_penalty = None
-                        penalty_serve_time = 0
-                        penalty_timeout_time = 0
+                        # Reset timeout to allow more time for serving the original penalty
+                        penalty_timeout_time = elapsed_time + (
+                            2 * self.average_lap_time
+                        )  # Give 2 more laps
+                        self.log(
+                            f"⚠️ Team {active_stop_go_penalty.offender.number} has {2 * self.average_lap_time:.0f}s more to serve original Stop & Go"
+                        )
 
             # Log progress every 10 minutes of race time
             if elapsed_time % 600 == 0:  # Every 10 minutes
@@ -241,6 +248,12 @@ class Command(BaseCommand):
             else:
                 target_changes = max(1, required_changes - random.randint(1, 2))
 
+            # Calculate time limits for this team
+            limit_type, limit_value = self.round.driver_time_limit(team)
+
+            # Determine if this team will violate time limits (5% chance)
+            will_violate_limits = random.random() < 0.05
+
             team_stats[team.id] = {
                 "team": team,
                 "drivers": drivers,
@@ -250,10 +263,29 @@ class Command(BaseCommand):
                 "has_queued_driver": False,
                 "change_ready_time": 0,
                 "top_queue_reached_time": 0,  # When team reached top queue positions
+                "limit_type": limit_type,
+                "limit_value": limit_value,
+                "will_violate_limits": will_violate_limits,
+                "driver_times": {
+                    driver.id: 0 for driver in drivers
+                },  # Track each driver's time
             }
 
+            # Log team setup
+            limit_info = "No time limit"
+            if limit_type and limit_value:
+                if isinstance(limit_value, dt.timedelta):
+                    limit_minutes = limit_value.total_seconds() / 60
+                    limit_info = (
+                        f"{limit_type} limit: {limit_minutes:.1f} min per driver"
+                    )
+                else:
+                    limit_info = f"{limit_type} limit: {limit_value} min per driver"
+
+            violation_note = " (may violate limits)" if will_violate_limits else ""
+
             self.log(
-                f"Team {team.number} ({team.team.team.name}): targeting {target_changes} changes"
+                f"Team {team.number} ({team.team.team.name}): targeting {target_changes} changes, {limit_info}{violation_note}"
             )
 
         return team_stats
@@ -302,6 +334,10 @@ class Command(BaseCommand):
                 and stats["completed_changes"] < stats["target_changes"]
                 and not stats.get("has_queued_driver", False)
             ):
+                # Check if current driver needs to be changed due to time limits
+                should_change = self.should_change_driver_for_time_limit(
+                    team, stats, elapsed_time
+                )
 
                 success = self.perform_driver_queue(team, elapsed_time)
                 if success:
@@ -310,8 +346,9 @@ class Command(BaseCommand):
                     stats["change_ready_time"] = elapsed_time + (
                         2 * self.average_lap_time
                     )
+                    change_reason = "time limit" if should_change else "normal stint"
                     self.log(
-                        f"Team {team.number}: driver queued, change ready in {2 * self.average_lap_time:.0f}s"
+                        f"Team {team.number}: driver queued ({change_reason}), change ready in {2 * self.average_lap_time:.0f}s"
                     )
 
         # Phase 2: Check for teams in top queue positions and track timing
@@ -384,8 +421,52 @@ class Command(BaseCommand):
             if not available_drivers:
                 return False
 
-            # Pick a random available driver
-            next_driver = random.choice(available_drivers)
+            # Prioritize drivers who haven't driven yet, then those with least drive time
+            drivers_with_sessions = []
+            drivers_without_sessions = []
+
+            for driver in available_drivers:
+                # Check if driver has any completed sessions
+                has_sessions = Session.objects.filter(
+                    round=self.round, driver=driver, end__isnull=False
+                ).exists()
+
+                if has_sessions:
+                    # Calculate total drive time for drivers who have driven
+                    total_time = Session.objects.filter(
+                        round=self.round, driver=driver, end__isnull=False
+                    ).aggregate(
+                        total_seconds=models.Sum(
+                            models.F("end") - models.F("start"),
+                            output_field=models.DurationField(),
+                        )
+                    )[
+                        "total_seconds"
+                    ]
+
+                    if total_time:
+                        total_seconds = total_time.total_seconds()
+                        drivers_with_sessions.append((driver, total_seconds))
+                else:
+                    drivers_without_sessions.append(driver)
+
+            # Pick driver: prioritize those who haven't driven, then least experienced
+            if drivers_without_sessions:
+                next_driver = random.choice(drivers_without_sessions)
+                self.log(
+                    f"  Selected {next_driver.member.nickname} (first time driving)"
+                )
+            else:
+                # Sort by drive time and pick one with least time (with some randomness)
+                drivers_with_sessions.sort(key=lambda x: x[1])
+                # Pick from bottom 50% to add some randomness but still favor less experienced
+                bottom_half = drivers_with_sessions[
+                    : max(1, len(drivers_with_sessions) // 2)
+                ]
+                next_driver, drive_time = random.choice(bottom_half)
+                self.log(
+                    f"  Selected {next_driver.member.nickname} (has driven {drive_time/60:.1f} minutes)"
+                )
 
             # Register them for the queue (equivalent to scanning driver_queue)
             result = self.round.driver_register(next_driver)
@@ -449,7 +530,7 @@ class Command(BaseCommand):
                 return False
 
             # Simulate pit lane delay (30-60 seconds)
-            pit_delay = random.uniform(30, 60) / self.real_time_speed
+            pit_delay = random.uniform(30, 60)
             time.sleep(pit_delay)
 
             # End current driver's session (this should start the queued driver)
@@ -465,12 +546,62 @@ class Command(BaseCommand):
 
         return False
 
+    def should_change_driver_for_time_limit(self, team, stats, elapsed_time):
+        """Check if current driver should be changed due to time limits"""
+        if not stats["limit_type"] or not stats["limit_value"]:
+            return False  # No time limits configured
+
+        # Get current active driver
+        current_session = Session.objects.filter(
+            round=self.round,
+            driver__team=team,
+            register__isnull=False,
+            start__isnull=False,
+            end__isnull=True,
+        ).first()
+
+        if not current_session:
+            return False
+
+        # Calculate current session time
+        session_start_time = current_session.start.timestamp()
+        race_start_time = (
+            self.round.started.timestamp() if self.round.started else session_start_time
+        )
+        current_time = race_start_time + elapsed_time
+        session_duration = current_time - session_start_time
+
+        # Get time limit for this team
+        limit_value = stats["limit_value"]
+        if isinstance(limit_value, dt.timedelta):
+            max_seconds = limit_value.total_seconds()
+        else:
+            max_seconds = limit_value * 60  # Convert minutes to seconds
+
+        # For teams that will violate limits, allow them to go over occasionally
+        if stats["will_violate_limits"]:
+            # Allow them to exceed by 10-30% sometimes
+            violation_factor = random.uniform(1.1, 1.3)
+            max_seconds *= violation_factor
+        else:
+            # Normal teams stay within 95% of limit to be safe
+            max_seconds *= 0.95
+
+        return session_duration >= max_seconds
+
+    def is_normal_stint_change_time(self, team, stats, elapsed_time):
+        """Check if it's time for a normal stint change (not time-limit related)"""
+        # This is the original logic - just check if it's time for next queue
+        return elapsed_time >= stats["next_queue_time"]
+
     def simulate_penalties(self, elapsed_time):
-        """Randomly issue penalties (only championship-registered ones)"""
-        # Get all available penalties for this championship
+        """Randomly issue penalties (only championship-registered ones, excluding Post Race Laps)"""
+        # Get penalties that can be issued during race (exclude Post Race Laps)
         all_penalties = ChampionshipPenalty.objects.filter(
             championship=self.round.championship
-        )
+        ).exclude(
+            sanction="P"
+        )  # Post Race Laps are handled automatically at race end
 
         if not all_penalties:
             return None
@@ -496,10 +627,9 @@ class Command(BaseCommand):
 
                 # Create penalty with appropriate served timestamp
                 served_time = None
-                if penalty.sanction in [
-                    "L",
-                    "P",
-                ]:  # Laps and Post Race Laps are auto-served
+                if (
+                    penalty.sanction == "L"
+                ):  # Laps are auto-served (Post Race excluded from race)
                     served_time = dt.datetime.now()
 
                 round_penalty = RoundPenalty.objects.create(
@@ -519,8 +649,6 @@ class Command(BaseCommand):
                     penalty_type = "Self Stop & Go"
                 elif penalty.sanction == "L":
                     penalty_type = "Laps"
-                elif penalty.sanction == "P":
-                    penalty_type = "Post Race Laps"
                 else:
                     penalty_type = penalty.penalty.name
 
@@ -570,9 +698,24 @@ class Command(BaseCommand):
             ).filter(penalty__name__icontains="stop")
 
             if not ignore_penalties:
-                # Also try looking for generic "ignore" penalties or lap penalties
+                # Try looking for "ignoring" and "go" separately
                 ignore_penalties = ChampionshipPenalty.objects.filter(
                     championship=self.round.championship,
+                    penalty__name__icontains="ignoring",
+                ).filter(penalty__name__icontains="go")
+
+            if not ignore_penalties:
+                # Try just "ignoring" penalties (broader search)
+                ignore_penalties = ChampionshipPenalty.objects.filter(
+                    championship=self.round.championship,
+                    penalty__name__icontains="ignoring",
+                )
+
+            if not ignore_penalties:
+                # Finally, try any lap penalty that might be for ignoring
+                ignore_penalties = ChampionshipPenalty.objects.filter(
+                    championship=self.round.championship,
+                    sanction="L",  # Look for Lap penalties
                     penalty__name__icontains="ignore",
                 )
 
@@ -591,7 +734,7 @@ class Command(BaseCommand):
                 value=ignore_penalty.value,
                 imposed=dt.datetime.now(),
                 served=dt.datetime.now()
-                if ignore_penalty.sanction in ["L", "P"]
+                if ignore_penalty.sanction == "L"
                 else None,  # Lap penalties are served immediately
             )
 
@@ -632,7 +775,7 @@ class Command(BaseCommand):
                 value=slow_penalty.value,
                 imposed=dt.datetime.now(),
                 served=dt.datetime.now()
-                if slow_penalty.sanction in ["L", "P"]
+                if slow_penalty.sanction == "L"
                 else None,  # Auto-serve if it's laps
             )
 
@@ -653,10 +796,25 @@ class Command(BaseCommand):
                 round=self.round, driver__team=team, end__isnull=False
             ).count()
 
-            self.log(f"Team {team.number} ({team.team.team.name}):")
+            # Check for time limit violations
+            violations = self.check_team_time_violations(team, stats)
+            violation_str = (
+                f" (⚠️ {violations} time violations)" if violations > 0 else ""
+            )
+
+            self.log(f"Team {team.number} ({team.team.team.name}):{violation_str}")
             self.log(f"  Target changes: {stats['target_changes']}")
             self.log(f"  Completed sessions: {actual_sessions}")
             self.log(f"  Required changes: {self.round.required_changes}")
+
+            if stats["limit_type"] and stats["limit_value"]:
+                if isinstance(stats["limit_value"], dt.timedelta):
+                    limit_str = f"{stats['limit_value'].total_seconds()/60:.1f} min"
+                else:
+                    limit_str = f"{stats['limit_value']} min"
+                self.log(
+                    f"  Time limit: {stats['limit_type']} - {limit_str} per driver"
+                )
 
         # Log penalties
         penalties = RoundPenalty.objects.filter(round=self.round)
@@ -673,3 +831,91 @@ class Command(BaseCommand):
             self.log(
                 f"  {penalty_type} - Team {penalty.offender.number}{victim_info} - {served_status}"
             )
+
+        # Log driver participation statistics
+        self.log(f"\n=== DRIVER PARTICIPATION ===")
+        total_drivers = 0
+        drivers_who_drove = 0
+
+        for team_id, stats in team_stats.items():
+            team = stats["team"]
+            team_drivers = team.team_member_set.filter(driver=True)
+            team_drivers_count = team_drivers.count()
+
+            # Count how many drivers from this team actually drove
+            team_drivers_who_drove = (
+                Session.objects.filter(
+                    round=self.round, driver__in=team_drivers, end__isnull=False
+                )
+                .values("driver")
+                .distinct()
+                .count()
+            )
+
+            total_drivers += team_drivers_count
+            drivers_who_drove += team_drivers_who_drove
+
+            self.log(
+                f"Team {team.number}: {team_drivers_who_drove}/{team_drivers_count} drivers drove"
+            )
+
+            # List drivers who didn't get to drive
+            drivers_who_didnt_drive = team_drivers.exclude(
+                id__in=Session.objects.filter(
+                    round=self.round, end__isnull=False
+                ).values("driver")
+            )
+
+            if drivers_who_didnt_drive.exists():
+                missing_drivers = ", ".join(
+                    [d.member.nickname for d in drivers_who_didnt_drive]
+                )
+                self.log(f"  Drivers who didn't drive: {missing_drivers}")
+
+        participation_rate = (
+            (drivers_who_drove / total_drivers) * 100 if total_drivers > 0 else 0
+        )
+        self.log(
+            f"\nOverall participation: {drivers_who_drove}/{total_drivers} drivers ({participation_rate:.1f}%)"
+        )
+
+    def check_team_time_violations(self, team, stats):
+        """Check how many drivers in a team exceeded their time limits"""
+        violations = 0
+
+        # Get the time limit for this team
+        driver_time_limit = self.round.driver_time_limit(team)
+        if not driver_time_limit:
+            return 0  # No time limit set
+
+        # Get all completed sessions for this team
+        sessions = Session.objects.filter(
+            round=self.round, driver__team=team, end__isnull=False
+        ).select_related("driver__member")
+
+        # Group sessions by driver and check their total time
+        driver_times = {}
+        for session in sessions:
+            driver_id = session.driver.id
+            if driver_id not in driver_times:
+                driver_times[driver_id] = {
+                    "total_time": dt.timedelta(0),
+                    "driver_name": session.driver.member.nickname,
+                }
+
+            session_duration = session.end - session.start
+            driver_times[driver_id]["total_time"] += session_duration
+
+        # Check each driver against the time limit
+        for driver_id, driver_data in driver_times.items():
+            total_minutes = driver_data["total_time"].total_seconds() / 60
+            limit_minutes = driver_time_limit.total_seconds() / 60
+
+            if total_minutes > limit_minutes:
+                violations += 1
+                self.log(
+                    f"    ⚠️ Driver {driver_data['driver_name']} exceeded limit: "
+                    f"{total_minutes:.1f}min > {limit_minutes:.1f}min"
+                )
+
+        return violations
