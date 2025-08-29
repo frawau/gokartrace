@@ -317,8 +317,10 @@ class Command(BaseCommand):
         if team_stats and team_stats.get("target_changes", 0) > 0:
             # Calculate optimal stint duration based on race duration and required changes
             race_duration_seconds = (
-                self.round.duration * 60
-            )  # Convert minutes to seconds
+                self.round.duration.total_seconds()
+                if hasattr(self.round.duration, "total_seconds")
+                else self.round.duration * 60
+            )
             remaining_changes = (
                 team_stats["target_changes"] - team_stats["completed_changes"]
             )
