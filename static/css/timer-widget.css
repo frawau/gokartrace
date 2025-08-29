@@ -2,6 +2,11 @@
 .timer {
     font-family: monospace;
     font-weight: bold;
+    color: #f59e0b; /* Orange color for inactive drivers (default) */
+    }
+
+.timer.timer-active {
+    color: #000000; /* Black color for active drivers */
     }
 
 .timer.timer-paused {

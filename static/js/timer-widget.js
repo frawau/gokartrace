@@ -117,6 +117,7 @@ class TimerWidget {
         if (this.targetId) {
             this.isactive = true;
             this.paused = false;
+            this.render(); // Re-render to update colors
         }
     }
 
@@ -124,6 +125,7 @@ class TimerWidget {
         if (this.targetId) {
             this.isactive = false;
             this.paused = true;
+            this.render(); // Re-render to update colors
         }
     }
 
@@ -163,7 +165,12 @@ class TimerWidget {
             this.element.textContent = this.formatTime(this.currentValue);
 
             // Reset all classes first
-            this.element.classList.remove('timer-ended', 'timer-paused', 'timer-frozen', 'timer-over');
+            this.element.classList.remove('timer-ended', 'timer-paused', 'timer-frozen', 'timer-over', 'timer-active');
+
+            // Add active class for active drivers (black color)
+            if (this.isactive && !this.paused) {
+                this.element.classList.add('timer-active');
+            }
 
             // Add classes for styling
             if (this.currentValue <= 0 && this.countDirection === 'down') {
