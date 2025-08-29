@@ -944,7 +944,7 @@ def round_penalties(request):
         for penalty in round_penalties_list:
             if penalty.penalty.sanction in ["S", "D"]:  # Stop & Go and Self Stop & Go
                 penalty.penalty_text = f"Stop & Go {penalty.value} seconds"
-            elif penalty.penalty.sanction == "L":  # Laps
+            elif penalty.penalty.sanction in ["L", "P"]:  # Laps and Post Race Laps
                 penalty.penalty_text = f"{penalty.value} laps"
             else:
                 penalty.penalty_text = f"{penalty.penalty.penalty.name} {penalty.value}"

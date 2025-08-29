@@ -147,11 +147,17 @@ class Command(BaseCommand):
         penalty_serve_time = 0
         penalty_timeout_time = 0
 
-        # Event loop
+        # Event loop - use real wall clock time multiplied by speed factor
+        simulation_start_time = time.time()
+        race_start_time = simulation_start_time
+        
         while elapsed_time < race_duration_seconds:
-            # Sleep for real-time simulation (1 second)
-            time.sleep(1.0)
-            elapsed_time += 1
+            # Sleep for a short interval to avoid busy waiting
+            time.sleep(0.1)
+            
+            # Calculate elapsed time based on real wall clock time and speed multiplier
+            wall_clock_elapsed = time.time() - race_start_time
+            elapsed_time = wall_clock_elapsed * self.real_time_speed
 
             # Check if race has ended (manual end or duration reached)
             self.round.refresh_from_db()
@@ -228,9 +234,10 @@ class Command(BaseCommand):
                         )
 
             # Log progress every 10 minutes of race time
-            if elapsed_time % 600 == 0:  # Every 10 minutes
+            if int(elapsed_time) % 600 == 0 and int(elapsed_time) != 0:  # Every 10 minutes
+                actual_wall_clock_elapsed = time.time() - race_start_time
                 self.log(
-                    f"Race progress: {elapsed_time/60:.1f}/{race_duration_seconds/60:.1f} minutes"
+                    f"Race progress: {elapsed_time/60:.1f}/{race_duration_seconds/60:.1f} minutes (wall clock: {actual_wall_clock_elapsed/60:.1f} min, speed: {self.real_time_speed}x)"
                 )
 
         # End the race if it hasn't been ended already
@@ -622,9 +629,11 @@ class Command(BaseCommand):
             if not current_session:
                 return False
 
-            # Simulate pit lane delay (30-60 seconds)
-            pit_delay = random.uniform(30, 60)
-            time.sleep(pit_delay)
+            # Simulate pit lane delay (30-60 seconds in race time)
+            pit_delay_race_time = random.uniform(30, 60)
+            # Convert to wall clock time based on speed multiplier
+            pit_delay_wall_time = pit_delay_race_time / self.real_time_speed
+            time.sleep(pit_delay_wall_time)
 
             # End current driver's session (this should start the queued driver)
             result = self.round.driver_endsession(current_session.driver)
