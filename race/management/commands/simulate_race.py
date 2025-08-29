@@ -170,7 +170,7 @@ class Command(BaseCommand):
 
             if pit_lane_open:
                 # Simulate driver changes
-                self.simulate_driver_changes(elapsed_time, team_stats, pitlane_close_at)
+                self.simulate_driver_changes(elapsed_time, team_stats, pitlane_close_at, pit_lane_open)
 
                 # Check for penalties every 5 minutes of race time (only if no active Stop & Go)
                 if (
@@ -377,7 +377,7 @@ class Command(BaseCommand):
         else:  # 2% - serve after 4+ laps (way too late)
             return random.uniform(4.0, 5.0) * self.average_lap_time
 
-    def simulate_driver_changes(self, elapsed_time, team_stats, pitlane_close_at):
+    def simulate_driver_changes(self, elapsed_time, team_stats, pitlane_close_at, pit_lane_open):
         """Simulate realistic driver changes using proper driver_queue -> driver_change flow"""
 
         # Phase 1: Handle driver_queue registrations (drivers coming to pit lane)
