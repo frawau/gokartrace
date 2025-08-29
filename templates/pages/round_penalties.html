@@ -66,7 +66,7 @@
                     </td>
                     <td>
                         <span class="badge 
-                            {% if penalty.penalty.sanction == 'S' or penalty.penalty.sanction == 'D' %}bg-warning{% elif penalty.penalty.sanction == 'L' %}bg-info{% else %}bg-secondary{% endif %}">
+                            {% if penalty.penalty.sanction == 'S' or penalty.penalty.sanction == 'D' %}bg-warning{% elif penalty.penalty.sanction == 'L' or penalty.penalty.sanction == 'P' %}bg-info{% else %}bg-secondary{% endif %}">
                             {{ penalty.penalty_text }}
                         </span>
                     </td>
