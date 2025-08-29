@@ -170,7 +170,7 @@ class Command(BaseCommand):
 
             if pit_lane_open:
                 # Simulate driver changes
-                self.simulate_driver_changes(elapsed_time, team_stats)
+                self.simulate_driver_changes(elapsed_time, team_stats, pitlane_close_at)
 
                 # Check for penalties every 5 minutes of race time (only if no active Stop & Go)
                 if (
@@ -298,13 +298,9 @@ class Command(BaseCommand):
             # Log team setup
             limit_info = "No time limit"
             if limit_type and limit_value:
-                if isinstance(limit_value, dt.timedelta):
-                    limit_minutes = limit_value.total_seconds() / 60
-                    limit_info = (
-                        f"{limit_type} limit: {limit_minutes:.1f} min per driver"
-                    )
-                else:
-                    limit_info = f"{limit_type} limit: {limit_value} min per driver"
+                # limit_value is now always a timedelta
+                limit_minutes = limit_value.total_seconds() / 60
+                limit_info = f"{limit_type} limit: {limit_minutes:.1f} min per driver"
 
             violation_note = " (may violate limits)" if will_violate_limits else ""
 
@@ -379,7 +375,7 @@ class Command(BaseCommand):
         else:  # 2% - serve after 4+ laps (way too late)
             return random.uniform(4.0, 5.0) * self.average_lap_time
 
-    def simulate_driver_changes(self, elapsed_time, team_stats):
+    def simulate_driver_changes(self, elapsed_time, team_stats, pitlane_close_at):
         """Simulate realistic driver changes using proper driver_queue -> driver_change flow"""
 
         # Phase 1: Handle driver_queue registrations (drivers coming to pit lane)
@@ -391,6 +387,7 @@ class Command(BaseCommand):
                 elapsed_time >= stats["next_queue_time"]
                 and stats["completed_changes"] < stats["target_changes"]
                 and not stats.get("has_queued_driver", False)
+                and pit_lane_open  # Don't queue drivers when pit lanes are closed
             ):
                 # Check if current driver needs to be changed due to time limits
                 should_change = self.should_change_driver_for_time_limit(
@@ -424,16 +421,7 @@ class Command(BaseCommand):
                     "top_queue_reached_time"
                 ] == 0 and self.team_in_top_queue_positions(team):
                     # Check if pit lanes are still open when reaching top positions
-                    race_duration_seconds = (
-                        self.round.duration.total_seconds()
-                        if hasattr(self.round.duration, "total_seconds")
-                        else self.round.duration * 60
-                    )
-                    pit_lanes_close_time = race_duration_seconds - (
-                        10 * 60
-                    )  # Close 10 mins before end
-
-                    if elapsed_time <= pit_lanes_close_time:
+                    if elapsed_time <= pitlane_close_at:
                         stats["top_queue_reached_time"] = elapsed_time
                         self.log(
                             f"Team {team.number}: reached top {self.round.change_lanes} queue positions"
@@ -451,14 +439,7 @@ class Command(BaseCommand):
                 ) and self.team_ready_for_change(team):
 
                     # Double-check pit lanes are still open
-                    race_duration_seconds = (
-                        self.round.duration.total_seconds()
-                        if hasattr(self.round.duration, "total_seconds")
-                        else self.round.duration * 60
-                    )
-                    pit_lanes_close_time = race_duration_seconds - (10 * 60)
-
-                    if elapsed_time <= pit_lanes_close_time:
+                    if elapsed_time <= pitlane_close_at:
                         success = self.perform_driver_change(team, elapsed_time)
                     else:
                         # Pit lanes closed before change could complete
@@ -673,23 +654,20 @@ class Command(BaseCommand):
         current_time = race_start_time + elapsed_time
         session_duration = current_time - session_start_time
 
-        # Get time limit for this team
+        # Get time limit for this team (now always a timedelta)
         limit_value = stats["limit_value"]
-        if isinstance(limit_value, dt.timedelta):
-            max_seconds = limit_value.total_seconds()
-        else:
-            max_seconds = limit_value * 60  # Convert minutes to seconds
+        max_duration = limit_value
 
         # For teams that will violate limits, allow them to go over occasionally
         if stats["will_violate_limits"]:
             # Allow them to exceed by 10-30% sometimes
             violation_factor = random.uniform(1.1, 1.3)
-            max_seconds *= violation_factor
+            max_duration = dt.timedelta(seconds=max_duration.total_seconds() * violation_factor)
         else:
             # Normal teams stay within 95% of limit to be safe
-            max_seconds *= 0.95
+            max_duration = dt.timedelta(seconds=max_duration.total_seconds() * 0.95)
 
-        return session_duration >= max_seconds
+        return dt.timedelta(seconds=session_duration) >= max_duration
 
     def is_normal_stint_change_time(self, team, stats, elapsed_time):
         """Check if it's time for a normal stint change (not time-limit related)"""
@@ -910,10 +888,8 @@ class Command(BaseCommand):
             self.log(f"  Required changes: {self.round.required_changes}")
 
             if stats["limit_type"] and stats["limit_value"]:
-                if isinstance(stats["limit_value"], dt.timedelta):
-                    limit_str = f"{stats['limit_value'].total_seconds()/60:.1f} min"
-                else:
-                    limit_str = f"{stats['limit_value']} min"
+                # limit_value is now always a timedelta
+                limit_str = f"{stats['limit_value'].total_seconds()/60:.1f} min"
                 self.log(
                     f"  Time limit: {stats['limit_type']} - {limit_str} per driver"
                 )
@@ -986,8 +962,8 @@ class Command(BaseCommand):
         violations = 0
 
         # Get the time limit for this team
-        driver_time_limit = self.round.driver_time_limit(team)
-        if not driver_time_limit:
+        limit_type, limit_value = self.round.driver_time_limit(team)
+        if not limit_type or not limit_value:
             return 0  # No time limit set
 
         # Get all completed sessions for this team
@@ -1010,14 +986,14 @@ class Command(BaseCommand):
 
         # Check each driver against the time limit
         for driver_id, driver_data in driver_times.items():
-            total_minutes = driver_data["total_time"].total_seconds() / 60
-            limit_minutes = driver_time_limit.total_seconds() / 60
-
-            if total_minutes > limit_minutes:
+            total_time = driver_data["total_time"]
+            
+            # Now limit_value is always a timedelta, so we can compare directly
+            if total_time > limit_value:
                 violations += 1
                 self.log(
                     f"    ⚠️ Driver {driver_data['driver_name']} exceeded limit: "
-                    f"{total_minutes:.1f}min > {limit_minutes:.1f}min"
+                    f"{total_time.total_seconds()/60:.1f}min > {limit_value.total_seconds()/60:.1f}min"
                 )
 
         return violations

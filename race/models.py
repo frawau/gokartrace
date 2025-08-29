@@ -681,18 +681,20 @@ class Round(models.Model):
 
     def driver_time_limit(self, rteam):
         """
-        For a team member, calculate the max time driving
+        For a team member, calculate the max time driving.
+        Returns (limit_type, limit_timedelta) where limit_timedelta is always a timedelta.
         """
         if self.limit_time == "none":
             return None, None
         if self.limit_method == "none":
             return None, None
         if self.limit_method == "time":
-            return self.limit_time, self.limit_value
+            # Convert minutes to timedelta
+            return self.limit_time, dt.timedelta(minutes=self.limit_value)
         elif self.limit_method == "percent":
             driver_count = team_member.objects.filter(team=rteam, driver=True).count()
             maxt = (self.duration / driver_count) * (1 + self.limit_value / 100)
-            return self.limit_time, maxt
+            return self.limit_time, maxt  # maxt is already a timedelta
         return None, None
 
     def clean(self):
