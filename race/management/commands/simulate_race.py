@@ -415,7 +415,11 @@ class Command(BaseCommand):
                     "top_queue_reached_time"
                 ] == 0 and self.team_in_top_queue_positions(team):
                     # Check if pit lanes are still open when reaching top positions
-                    race_duration_seconds = self.round.duration * 60
+                    race_duration_seconds = (
+                        self.round.duration.total_seconds()
+                        if hasattr(self.round.duration, "total_seconds")
+                        else self.round.duration * 60
+                    )
                     pit_lanes_close_time = race_duration_seconds - (
                         10 * 60
                     )  # Close 10 mins before end
@@ -438,7 +442,11 @@ class Command(BaseCommand):
                 ) and self.team_ready_for_change(team):
 
                     # Double-check pit lanes are still open
-                    race_duration_seconds = self.round.duration * 60
+                    race_duration_seconds = (
+                        self.round.duration.total_seconds()
+                        if hasattr(self.round.duration, "total_seconds")
+                        else self.round.duration * 60
+                    )
                     pit_lanes_close_time = race_duration_seconds - (10 * 60)
 
                     if elapsed_time <= pit_lanes_close_time:
