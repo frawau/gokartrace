@@ -22,6 +22,11 @@ urlpatterns = [
         views.changelane_detail,
         name="Change Lane Info",
     ),
+    path(
+        "pitlanevdetail/<int:lane_number>/",
+        views.changelane_vdetail,
+        name="Change Lane Large Info",
+    ),
     path("changedriver/", views.changedriver_info, name="Call for Driver Change"),
     path("preracecheck/", views.preracecheck, name="preracecheck"),
     path("race/start/", views.race_start, name="race_start"),
@@ -87,8 +92,16 @@ urlpatterns = [
         views.get_stop_and_go_penalties,
         name="get_stop_and_go_penalties",
     ),
-    path("api/create-round-penalty/", views.create_round_penalty, name="create_round_penalty"),
-    path("api/update-penalty-served/", views.update_penalty_served, name="update_penalty_served"),
+    path(
+        "api/create-round-penalty/",
+        views.create_round_penalty,
+        name="create_round_penalty",
+    ),
+    path(
+        "api/update-penalty-served/",
+        views.update_penalty_served,
+        name="update_penalty_served",
+    ),
     path(
         "api/round/<int:round_id>/laps-penalties/",
         views.get_laps_penalties,

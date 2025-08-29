@@ -152,6 +152,15 @@ def changelane_detail(request, lane_number):
     )
 
 
+def changelane_vdetail(request, lane_number):
+    """Large detail view for all_pitlanes"""
+    cround = current_round()
+    change_lane = get_object_or_404(ChangeLane, round=cround, lane=lane_number)
+    return render(
+        request, "layout/changelane_vdetail.html", {"change_lane": change_lane}
+    )
+
+
 def update_change_lane(request, lane_number):
     cround = current_round()
     change_lane = get_object_or_404(ChangeLane, round=cround, lane=lane_number)

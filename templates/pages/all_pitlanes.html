@@ -28,14 +28,20 @@
         socket{{ change_lane.lane }}.onmessage = function(event) {
             const data = JSON.parse(event.data);
             if (data.type === 'lane.update') {
-                const laneContainer = document.getElementById("lane-container-{{ change_lane.id }}");
-                // Update only the lane content but maintain the column structure
-                const newContent = document.createElement('div');
-                newContent.innerHTML = data.lane_html;
-                
-                // Extract the inner content while preserving the column structure
-                const laneElement = document.getElementById("lane-{{ change_lane.id }}");
-                laneElement.innerHTML = newContent.querySelector("#lane-{{ change_lane.id }}").innerHTML;
+                // Fetch the updated content using the large detail view
+                fetch('/pitlanevdetail/{{ change_lane.lane }}/')
+                    .then(response => {
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        return response.text();
+                    })
+                    .then(htmlData => {
+                        updateLaneContent({{ change_lane.id }}, htmlData);
+                    })
+                    .catch(error => {
+                        console.error('Failed to update lane {{ change_lane.lane }}:', error);
+                        // Fallback to page reload if fetch fails
+                        setTimeout(() => window.location.reload(), 1000);
+                    });
             }
         };
         
@@ -46,7 +52,76 @@
                 }, 3000);
             }
         };
+        
+        socket{{ change_lane.lane }}.onerror = function(error) {
+            console.error('WebSocket error on lane {{ change_lane.lane }}:', error);
+        };
         {% endfor %}
+    });
+    
+    function updateLaneContent(laneId, newHtml) {
+        try {
+            const laneElement = document.getElementById("lane-" + laneId);
+            if (!laneElement) {
+                console.error('Lane element not found:', 'lane-' + laneId);
+                return;
+            }
+            
+            // Create temporary container to parse new content
+            const tempContainer = document.createElement('div');
+            tempContainer.innerHTML = newHtml;
+            
+            // Find the new lane content
+            const newLaneContent = tempContainer.querySelector("#lane-" + laneId);
+            if (!newLaneContent) {
+                console.error('New lane content not found in HTML update');
+                return;
+            }
+            
+            // Add fade effect for smooth transitions
+            laneElement.style.opacity = '0.5';
+            
+            // Small delay to make the transition visible
+            setTimeout(() => {
+                // Replace the entire innerHTML
+                laneElement.innerHTML = newLaneContent.innerHTML;
+                
+                // Restore full opacity
+                laneElement.style.opacity = '1';
+                
+                // Force browser to recalculate responsive styles
+                laneElement.offsetHeight;
+                
+                // Trigger any font size adjustments if needed
+                adjustFontSizes(laneElement);
+            }, 150);
+            
+        } catch (error) {
+            console.error('Error updating lane content:', error);
+            // Fallback to page reload if update fails
+            setTimeout(() => window.location.reload(), 1000);
+        }
+    }
+    
+    function adjustFontSizes(laneElement) {
+        // Force recalculation of clamp() values by triggering a reflow
+        const elements = laneElement.querySelectorAll('.team-name-text, .team-number-text, .driver-name-text, .penalty-text, .open-text, .closed-text');
+        elements.forEach(el => {
+            const currentDisplay = el.style.display;
+            el.style.display = 'none';
+            el.offsetHeight; // Trigger reflow
+            el.style.display = currentDisplay;
+        });
+    }
+    
+    // Handle window resize to adjust font sizes
+    let resizeTimeout;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            const laneElements = document.querySelectorAll('.lane-content');
+            laneElements.forEach(adjustFontSizes);
+        }, 250);
     });
 </script>
 {% endblock %} 

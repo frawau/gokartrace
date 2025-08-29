@@ -1,30 +1,111 @@
 {% load driver_tags %}
-<div id="lane-{{ change_lane.id }}" class="d-flex flex-column h-100" style="min-height: 100vh;">
+<div id="lane-{{ change_lane.id }}" class="d-flex flex-column h-100 lane-content" style="min-height: 100vh; transition: all 0.3s ease-in-out;">
     {% if change_lane.open %}
         {% if change_lane.driver %}
-            <div class="d-flex flex-column h-100" style="background-color: #f0fff0; min-height: 100vh;">
-                <div class="text-center py-4">
-                    <h1 class="text-primary display-1">{{ change_lane.driver.team.team.team.name }}</h1>
+            <div class="d-flex flex-column h-100 lane-info-state" style="background-color: #f0fff0; min-height: 100vh;">
+                <div class="text-center py-2 team-name-section" style="flex: 0 0 auto; min-height: 15vh;">
+                    <h1 class="text-primary team-name-text">{{ change_lane.driver.team.team.team.name }}</h1>
                 </div>
-                <div class="d-flex justify-content-center align-items-center px-4 flex-grow-1">
-                    <span class="display-1 fw-bold me-5" style="font-size: 25rem;">{{ change_lane.driver.team.team.number }}</span>
+                <div class="d-flex justify-content-center align-items-center px-2 team-number-section" style="flex: 1 1 50vh; min-height: 50vh;">
+                    <span class="team-number-text fw-bold me-3">{{ change_lane.driver.team.team.number }}</span>
                     <img src="{{ change_lane.driver.member.mugshot.url }}" alt="Driver Snapshot"
-                        class="rounded-circle" style="width: 400px; height: 400px; object-fit: contain;">
+                        class="rounded-circle driver-photo" style="object-fit: cover;">
                 </div>
-                <div class="d-flex flex-column align-items-center justify-content-center py-5">
-                    <h1 class="text-dark display-1 mb-4" style="font-size: 12rem;">{{ change_lane.driver.member.nickname }}</h1>
+                <div class="d-flex flex-column align-items-center justify-content-center py-2 driver-info-section" style="flex: 0 0 auto; min-height: 25vh;">
+                    <h1 class="text-dark driver-name-text mb-2">{{ change_lane.driver.member.nickname }}</h1>
                     {% get_weight_penalty change_lane.driver as weight_penalty %}
-                    <h2 class="display-1" style="color: #DC0000; font-size: 10rem;">Penalty: {{ weight_penalty }} Kg</h2>
+                    <h2 class="penalty-text" style="color: #DC0000;">Penalty: {{ weight_penalty }} Kg</h2>
                 </div>
             </div>
         {% else %}
-            <div class="d-flex align-items-center justify-content-center h-100" style="background-color: #f0fff0; min-height: 100vh;">
-                <h1 class="text-dark fw-bold">Open</h1>
+            <div class="d-flex align-items-center justify-content-center h-100 lane-open-state" style="background-color: #f0fff0; min-height: 100vh; transition: all 0.3s ease-in-out;">
+                <h1 class="text-dark fw-bold open-text">Open</h1>
             </div>
         {% endif %}
     {% else %}
-        <div class="d-flex align-items-center justify-content-center h-100" style="background-color: red; min-height: 100vh;">
-            <h1 class="text-warning fw-bold">Closed</h1>
+        <div class="d-flex align-items-center justify-content-center h-100 lane-closed-state" style="background-color: red; min-height: 100vh; transition: all 0.3s ease-in-out;">
+            <h1 class="text-warning fw-bold closed-text">Closed</h1>
         </div>
     {% endif %}
-</div> 
+</div>
+
+<style>
+/* Responsive font sizing based on container */
+.team-name-text {
+    font-size: clamp(2rem, 8vw, 6rem);
+    font-weight: bold;
+    line-height: 1.1;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.team-number-text {
+    font-size: clamp(8rem, 20vw, 25rem);
+    line-height: 1;
+    color: #000;
+}
+
+.driver-name-text {
+    font-size: clamp(3rem, 10vw, 12rem);
+    line-height: 1.1;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.penalty-text {
+    font-size: clamp(2rem, 8vw, 10rem);
+    line-height: 1.1;
+}
+
+.open-text, .closed-text {
+    font-size: clamp(4rem, 12vw, 8rem);
+    line-height: 1;
+}
+
+.driver-photo {
+    width: clamp(200px, 25vw, 400px);
+    height: clamp(200px, 25vw, 400px);
+    max-width: 40vh;
+    max-height: 40vh;
+}
+
+/* Smooth state transitions */
+.lane-content {
+    position: relative;
+}
+
+.lane-info-state, .lane-open-state, .lane-closed-state {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Media queries for very small screens */
+@media (max-width: 576px) {
+    .team-number-text {
+        font-size: 8rem;
+    }
+    
+    .driver-name-text {
+        font-size: 3rem;
+    }
+    
+    .penalty-text {
+        font-size: 2rem;
+    }
+}
+
+/* Media queries for very large screens */
+@media (min-width: 1920px) {
+    .team-number-text {
+        font-size: 30rem;
+    }
+    
+    .driver-name-text {
+        font-size: 15rem;
+    }
+    
+    .penalty-text {
+        font-size: 12rem;
+    }
+}
+</style> 
