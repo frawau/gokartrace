@@ -153,6 +153,12 @@ class Command(BaseCommand):
             time.sleep(1.0)
             elapsed_time += 1
 
+            # Check if race has ended (manual end or duration reached)
+            self.round.refresh_from_db()
+            if self.round.ended:
+                self.log(f"Race ended manually at {elapsed_time/60:.1f} minutes")
+                break
+
             # Check if pit lane is open
             pit_lane_open = pitlane_open_at <= elapsed_time <= pitlane_close_at
 
@@ -226,6 +232,17 @@ class Command(BaseCommand):
                 self.log(
                     f"Race progress: {elapsed_time/60:.1f}/{race_duration_seconds/60:.1f} minutes"
                 )
+
+        # End the race if it hasn't been ended already
+        if not self.round.ended:
+            self.log(
+                f"Race duration reached, ending race at {elapsed_time/60:.1f} minutes"
+            )
+            try:
+                self.round.end_race()
+                self.log("Race officially ended")
+            except Exception as e:
+                self.log(f"Failed to end race: {e}")
 
         self.log_final_stats(team_stats)
 
