@@ -150,11 +150,11 @@ class Command(BaseCommand):
         # Event loop - use real wall clock time multiplied by speed factor
         simulation_start_time = time.time()
         race_start_time = simulation_start_time
-        
+
         while elapsed_time < race_duration_seconds:
             # Sleep for a short interval to avoid busy waiting
             time.sleep(0.1)
-            
+
             # Calculate elapsed time based on real wall clock time and speed multiplier
             wall_clock_elapsed = time.time() - race_start_time
             elapsed_time = wall_clock_elapsed * self.real_time_speed
@@ -234,7 +234,9 @@ class Command(BaseCommand):
                         )
 
             # Log progress every 10 minutes of race time
-            if int(elapsed_time) % 600 == 0 and int(elapsed_time) != 0:  # Every 10 minutes
+            if (
+                int(elapsed_time) % 600 == 0 and int(elapsed_time) != 0
+            ):  # Every 10 minutes
                 actual_wall_clock_elapsed = time.time() - race_start_time
                 self.log(
                     f"Race progress: {elapsed_time/60:.1f}/{race_duration_seconds/60:.1f} minutes (wall clock: {actual_wall_clock_elapsed/60:.1f} min, speed: {self.real_time_speed}x)"
@@ -662,7 +664,9 @@ class Command(BaseCommand):
         if stats["will_violate_limits"]:
             # Allow them to exceed by 10-30% sometimes
             violation_factor = random.uniform(1.1, 1.3)
-            max_duration = dt.timedelta(seconds=max_duration.total_seconds() * violation_factor)
+            max_duration = dt.timedelta(
+                seconds=max_duration.total_seconds() * violation_factor
+            )
         else:
             # Normal teams stay within 95% of limit to be safe
             max_duration = dt.timedelta(seconds=max_duration.total_seconds() * 0.95)
@@ -987,7 +991,7 @@ class Command(BaseCommand):
         # Check each driver against the time limit
         for driver_id, driver_data in driver_times.items():
             total_time = driver_data["total_time"]
-            
+
             # Now limit_value is always a timedelta, so we can compare directly
             if total_time > limit_value:
                 violations += 1
