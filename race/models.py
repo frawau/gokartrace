@@ -12,6 +12,7 @@ from django.utils.translation import gettext_lazy as _
 from cryptography.fernet import Fernet
 from asgiref.sync import sync_to_async
 
+import asyncio
 import datetime as dt
 import logging
 
@@ -130,6 +131,12 @@ class Championship(models.Model):
 
 
 class Round(models.Model):
+    # Instance-level lock for end_race operations
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not hasattr(self, "_end_race_lock"):
+            self._end_race_lock = asyncio.Semaphore(1)
+
     LIMIT = (
         ("none", "No Time Limit"),
         ("race", "Race Time Limit "),

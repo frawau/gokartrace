@@ -1,10 +1,14 @@
 from django.db.models.signals import post_save, post_delete, pre_delete
-from django.dispatch import receiver
+from django.dispatch import receiver, Signal
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from .models import ChangeLane, round_pause, team_member, round_team, Round, Session
 from django.template.loader import render_to_string
 from django.db.models import Count
+
+# Custom signal for race end requests
+# Arguments: round_id (int)
+race_end_requested = Signal()
 
 # Function to update all connected clients
 def update_empty_teams(round_id):

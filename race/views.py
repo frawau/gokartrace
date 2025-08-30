@@ -43,6 +43,7 @@ from .models import (
     ChampionshipPenalty,
     RoundPenalty,
 )
+from .signals import race_end_requested
 from .serializers import ChangeLaneSerializer
 from .utils import datadecode, is_admin_user
 from .forms import DriverForm, TeamForm, JoinChampionshipForm
@@ -298,8 +299,8 @@ def falserestart(request):
 @user_passes_test(is_race_director)
 def endofrace(request):
     cround = current_round()
-    penalty_count = cround.end_race()
-    return JsonResponse({"result": True, "penalty_count": penalty_count})
+    race_end_requested.send(sender=endofrace, round_id=cround.id)
+    return JsonResponse({"result": True})
 
 
 @csrf_exempt

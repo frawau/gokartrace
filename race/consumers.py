@@ -481,3 +481,34 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
         await self.send(
             text_data=json.dumps({"type": "penalty_completed", "team": event["team"]})
         )
+
+
+# Signal handler for race end requests - placed outside classes
+from django.dispatch import receiver
+from asgiref.sync import sync_to_async
+from .signals import race_end_requested
+
+
+@receiver(race_end_requested)
+async def handle_race_end_request(sender, round_id, **kwargs):
+    """
+    Handle race end requests with proper async locking.
+    This ensures only one end_race operation can run at a time per round.
+    """
+    print(f"🏁 Race end requested for Round {round_id}")
+
+    try:
+        # Get the round instance
+        round_instance = await Round.objects.aget(id=round_id)
+
+        # Use the round's instance-level lock for thread safety
+        async with round_instance._end_race_lock:
+            if not round_instance.ended:
+                print(f"🔒 Ending race {round_id} with lock protection")
+                await sync_to_async(round_instance.end_race)()
+                print(f"✅ Race {round_id} ended successfully")
+            else:
+                print(f"⚠️ Race {round_id} already ended - skipping")
+
+    except Exception as e:
+        print(f"❌ Error ending race {round_id}: {e}")

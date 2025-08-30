@@ -4,12 +4,12 @@ import asyncio as aio
 import datetime as dt
 from django.db.models import Q
 from asgiref.sync import sync_to_async
+from .signals import race_end_requested
 
 
 class RaceTasks:
 
     _lock = aio.Semaphore(1)
-    _end_race_lock = aio.Semaphore(1)  # Specific lock for end_race operations
 
     @classmethod
     async def race_events(cls):
@@ -64,9 +64,8 @@ class RaceTasks:
                         await aio.sleep(dowait)
                         elapsed = await cround.async_time_elapsed()
                         dowait = (cround.duration - elapsed).total_seconds()
-                        async with cls._end_race_lock:
-                            if not cround.ended:
-                                await sync_to_async(cround.end_race)()
+                        if not cround.ended:
+                            race_end_requested.send(sender=cls, round_id=cround.id)
                 elif (
                     cround.duration - elapsed - cround.pitlane_close_before
                     < dt.timedelta(seconds=65)
