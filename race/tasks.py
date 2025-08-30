@@ -9,6 +9,7 @@ from asgiref.sync import sync_to_async
 class RaceTasks:
 
     _lock = aio.Semaphore(1)
+    _end_race_lock = aio.Semaphore(1)  # Specific lock for end_race operations
 
     @classmethod
     async def race_events(cls):
@@ -63,7 +64,9 @@ class RaceTasks:
                         await aio.sleep(dowait)
                         elapsed = await cround.async_time_elapsed()
                         dowait = (cround.duration - elapsed).total_seconds()
-                        await sync_to_async(cround.end_race)()
+                        async with cls._end_race_lock:
+                            if not cround.ended:
+                                await sync_to_async(cround.end_race)()
                 elif (
                     cround.duration - elapsed - cround.pitlane_close_before
                     < dt.timedelta(seconds=65)
