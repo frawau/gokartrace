@@ -100,10 +100,13 @@ class Command(BaseCommand):
         self.log("Phase 4: Simulating race...")
         self.simulate_race_events()
 
-        # Phase 5: End race
-        self.log("Phase 5: Ending race...")
-        penalty_count = self.round.end_race()
-        self.log(f"Race ended ✓ ({penalty_count} post-race penalties applied)")
+        # Phase 5: End race (if not already ended)
+        if not self.round.ended:
+            self.log("Phase 5: Ending race...")
+            penalty_count = self.round.end_race()
+            self.log(f"Race ended ✓ ({penalty_count} post-race penalties applied)")
+        else:
+            self.log("Phase 5: Race already ended")
 
     def register_first_drivers(self):
         """Register one driver per team (like firstregister command)"""
@@ -267,14 +270,20 @@ class Command(BaseCommand):
             # Calculate realistic driver change pattern
             required_changes = self.round.required_changes
 
-            # Add variation: 70% meet requirement, 20% do more, 10% do less
+            # Add variation with higher targets to account for simulation constraints
+            # Many teams fail to achieve their target due to pit lane timing, etc.
+            # So we need higher targets to ensure most teams meet the minimum requirement
             variation = random.random()
-            if variation < 0.7:
-                target_changes = required_changes
-            elif variation < 0.9:
-                target_changes = required_changes + random.randint(1, 3)
+            if variation < 0.6:
+                target_changes = (
+                    required_changes + 1
+                )  # Aim higher to reliably meet requirement
+            elif variation < 0.8:
+                target_changes = required_changes + random.randint(
+                    2, 4
+                )  # Do significantly more
             else:
-                target_changes = max(1, required_changes - random.randint(1, 2))
+                target_changes = required_changes  # Some teams aim for exact minimum (might fall short)
 
             # Calculate time limits for this team
             limit_type, limit_value = self.round.driver_time_limit(team)
