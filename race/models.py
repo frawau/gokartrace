@@ -180,6 +180,7 @@ class Round(models.Model):
     ready = models.BooleanField(default=False)
     started = models.DateTimeField(null=True, blank=True)
     ended = models.DateTimeField(null=True, blank=True)
+    post_race_check_completed = models.BooleanField(default=False)
     qr_fernet = models.BinaryField(
         max_length=64, default=Fernet.generate_key(), editable=False
     )
@@ -391,6 +392,14 @@ class Round(models.Model):
         and creates RoundPenalty records for Post Race Laps penalties.
         """
         print(f"\n=== POST RACE CHECK STARTING for {self.name} ===")
+
+        # Safety mechanism 1: Check if post-race check already completed
+        if self.post_race_check_completed:
+            print(
+                f"⚠️ POST RACE CHECK ALREADY COMPLETED - SKIPPING to prevent duplicates"
+            )
+            return 0
+
         # Single timestamp for all penalties created in this check
         penalty_timestamp = dt.datetime.now()
         penalties_created = 0
@@ -532,6 +541,10 @@ class Round(models.Model):
                             imposed=penalty_timestamp,
                         )
                         penalties_created += 1
+
+        # Mark post-race check as completed to prevent duplicates
+        self.post_race_check_completed = True
+        self.save()
 
         print(
             f"\n=== POST RACE CHECK COMPLETE - {penalties_created} penalties created ===\n"
