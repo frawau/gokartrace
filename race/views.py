@@ -327,7 +327,17 @@ def agent_login(request):
             or request.is_secure()
         )
         schema = "https" if is_secure else "http"
-        servurl = f"{schema}://{settings.APP_DOMAIN}"
+
+        # Check if APP_DOMAIN already includes port, otherwise get port from request
+        if ":" in settings.APP_DOMAIN:
+            servurl = f"{schema}://{settings.APP_DOMAIN}"
+        else:
+            port = request.META.get("SERVER_PORT")
+            # Only include non-standard ports
+            if port and port not in ("80", "443"):
+                servurl = f"{schema}://{settings.APP_DOMAIN}:{port}"
+            else:
+                servurl = f"{schema}://{settings.APP_DOMAIN}"
     else:
         # Fallback to original logic if APP_DOMAIN is not configured
         schema = request.scheme
