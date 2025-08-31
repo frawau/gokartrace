@@ -65,7 +65,9 @@ class RaceTasks:
                         elapsed = await cround.async_time_elapsed()
                         dowait = (cround.duration - elapsed).total_seconds()
                         if not cround.ended:
-                            race_end_requested.send(sender=cls, round_id=cround.id)
+                            await race_end_requested.asend(
+                                sender=cls, round_id=cround.id
+                            )
                 elif (
                     cround.duration - elapsed - cround.pitlane_close_before
                     < dt.timedelta(seconds=65)
