@@ -417,6 +417,17 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
                     await self.channel_layer.group_send(
                         self.stopandgo_group_name, {"type": "force_complete_penalty"}
                     )
+                elif message_type == "reset_penalty":
+                    # Reset penalty (cancel/delay from race control)
+                    queue_id = data.get("queue_id")
+                    team = data.get("team")
+                    await self.channel_layer.group_send(
+                        self.stopandgo_group_name, {
+                            "type": "reset_penalty", 
+                            "queue_id": queue_id,
+                            "team": team
+                        }
+                    )
 
         except json.JSONDecodeError:
             print("Invalid JSON received from stop and go connection")
@@ -459,6 +470,18 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
         message = {
             "type": "command",
             "command": "force_complete",
+            "timestamp": dt.datetime.now().isoformat(),
+        }
+        signed_message = self.sign_message(message)
+        await self.send(text_data=json.dumps(signed_message))
+
+    async def reset_penalty(self, event):
+        # Send signed reset penalty command to station
+        message = {
+            "type": "command",
+            "command": "reset_penalty",
+            "queue_id": event.get("queue_id"),
+            "team": event.get("team"),
             "timestamp": dt.datetime.now().isoformat(),
         }
         signed_message = self.sign_message(message)

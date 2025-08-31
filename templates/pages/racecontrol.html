@@ -133,9 +133,26 @@
                                                 <button class="btn w-100" id="stopGoButton" disabled style="background-color: #dc3545; color: yellow; font-weight: bold; min-height: 45px; font-size: 0.9rem;">Stop & Go</button>
                                             </div>
                                             
+                                            <!-- Cancel and Delay buttons - Middle row (only visible when penalty is active) -->
+                                            <div class="mb-2 d-none" id="penaltyControlButtons">
+                                                <div class="row g-1">
+                                                    <div class="col-6">
+                                                        <button class="btn w-100 btn-warning" id="cancelPenaltyButton" style="min-height: 35px; font-size: 0.8rem; font-weight: bold;">Cancel</button>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <button class="btn w-100 btn-info" id="delayPenaltyButton" style="min-height: 35px; font-size: 0.8rem; font-weight: bold;">Delay</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
                                             <!-- Toggle Fence Button - Center -->
                                             <div class="d-flex align-items-center justify-content-center flex-grow-1">
                                                 <button class="btn w-100" id="toggleFenceButton" style="background-color: #6c757d; color: black; min-height: 45px; font-size: 0.9rem;">Toggle Fence</button>
+                                            </div>
+                                            
+                                            <!-- Queue Status Display -->
+                                            <div class="mb-2 text-center" id="queueStatus" style="font-size: 0.8rem; font-weight: bold; color: #495057;">
+                                                <div id="queueStatusText">Queue: 0 pending</div>
                                             </div>
                                             
                                             <!-- Lap Penalties Button - Bottom -->

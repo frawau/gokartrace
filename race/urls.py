@@ -6,6 +6,7 @@ Copyright (c) 2019 - present AppSeed.us
 from django.urls import path
 from . import consumers
 from . import views
+from . import stop_go_queue_api
 from .pdfcardview import GenerateCardPDF
 from .teammgt import TeamMembersView
 
@@ -106,5 +107,26 @@ urlpatterns = [
         "api/round/<int:round_id>/laps-penalties/",
         views.get_laps_penalties,
         name="get_laps_penalties",
+    ),
+    # Stop & Go Queue Management API
+    path(
+        "api/round/<int:round_id>/stop-go-queue/",
+        stop_go_queue_api.get_stop_go_queue_status,
+        name="get_stop_go_queue_status",
+    ),
+    path(
+        "api/stop-go-penalty/cancel/",
+        stop_go_queue_api.cancel_stop_go_penalty,
+        name="cancel_stop_go_penalty",
+    ),
+    path(
+        "api/stop-go-penalty/delay/",
+        stop_go_queue_api.delay_stop_go_penalty,
+        name="delay_stop_go_penalty",
+    ),
+    path(
+        "api/stop-go-penalty/complete/",
+        stop_go_queue_api.complete_stop_go_penalty,
+        name="complete_stop_go_penalty",
     ),
 ]

@@ -343,6 +343,10 @@ class StopAndGoStation:
                 # Send penalty served message (will set last_team)
                 self.penalty_ok_task = asyncio.create_task(self.send_penalty_ok())
 
+        # Handle reset penalty command (cancel/delay from race control)
+        elif command == "reset_penalty":
+            await self.handle_reset_penalty(data)
+
     async def send_response(self, response_type, data):
         """Send a response message via websocket with HMAC signature"""
         if self.websocket:
@@ -383,6 +387,49 @@ class StopAndGoStation:
             logging.info(
                 f"Penalty required for team {self.current_team}, duration {self.current_duration}s"
             )
+
+    async def handle_reset_penalty(self, data):
+        """Handle reset penalty command from race control (cancel/delay)"""
+        queue_id = data.get("queue_id")
+        team = data.get("team", self.current_team)
+        
+        logging.info(f"Reset penalty command received for queue_id {queue_id}, team {team}")
+        
+        # Only reset if we have an active penalty
+        if self.current_team is not None:
+            logging.info(f"Resetting active penalty for team {self.current_team}")
+            
+            # Cancel any running tasks
+            if self.countdown_task and not self.countdown_task.done():
+                self.countdown_task.cancel()
+                self.countdown_task = None
+            
+            if self.penalty_ok_task and not self.penalty_ok_task.done():
+                self.penalty_ok_task.cancel() 
+                self.penalty_ok_task = None
+            
+            if self.green_screen_task and not self.green_screen_task.done():
+                self.green_screen_task.cancel()
+                self.green_screen_task = None
+            
+            # Send reset confirmation response
+            await self.send_response("penalty_reset", {
+                "queue_id": queue_id,
+                "team": self.current_team,
+                "status": "reset_complete"
+            })
+            
+            # Reset to idle state
+            await self.reset_to_idle()
+            
+        else:
+            logging.info("No active penalty to reset")
+            # Still send confirmation even if no penalty was active
+            await self.send_response("penalty_reset", {
+                "queue_id": queue_id,
+                "team": team,
+                "status": "no_penalty_active"
+            })
 
     async def button_monitor(self):
         last_button_state = False
