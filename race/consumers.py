@@ -428,6 +428,11 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
                             "team": team
                         }
                     )
+                elif message_type == "query_queue_status":
+                    # Station requesting current queue status 
+                    await self.channel_layer.group_send(
+                        self.stopandgo_group_name, {"type": "query_queue_status"}
+                    )
 
         except json.JSONDecodeError:
             print("Invalid JSON received from stop and go connection")
@@ -486,6 +491,69 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
         }
         signed_message = self.sign_message(message)
         await self.send(text_data=json.dumps(signed_message))
+
+    async def query_queue_status(self, event):
+        """Handle queue status query from station and send response"""
+        try:
+            from .models import StopAndGoQueue
+            
+            # Get current round - simplified version for consumer context
+            current_round = await self.get_current_round()
+            if not current_round:
+                # No current round, send empty response
+                message = {
+                    "type": "command",
+                    "command": "queue_status_response",
+                    "active_penalty": None,
+                    "queue_count": 0,
+                    "timestamp": dt.datetime.now().isoformat(),
+                }
+                signed_message = self.sign_message(message)
+                await self.send(text_data=json.dumps(signed_message))
+                return
+            
+            # Get active penalty
+            active_penalty = await database_sync_to_async(
+                StopAndGoQueue.get_active_penalty
+            )(current_round.id)
+            
+            # Get queue count  
+            queue_count = await database_sync_to_async(
+                StopAndGoQueue.get_queue_count
+            )(current_round.id)
+            
+            # Prepare active penalty data
+            active_data = None
+            if active_penalty:
+                active_data = {
+                    "penalty_id": active_penalty.round_penalty.id,
+                    "team_number": active_penalty.round_penalty.offender.team.number,
+                    "value": active_penalty.round_penalty.value,
+                    "queue_id": active_penalty.id
+                }
+            
+            # Send response to station
+            message = {
+                "type": "command", 
+                "command": "queue_status_response",
+                "active_penalty": active_data,
+                "queue_count": queue_count,
+                "timestamp": dt.datetime.now().isoformat(),
+            }
+            signed_message = self.sign_message(message)
+            await self.send(text_data=json.dumps(signed_message))
+            
+        except Exception as e:
+            print(f"Error in query_queue_status: {e}")
+
+    @database_sync_to_async
+    def get_current_round(self):
+        """Get current round using same logic as other consumers"""
+        end_date = dt.date.today()
+        start_date = end_date - dt.timedelta(days=1)
+        return Round.objects.filter(
+            Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
+        ).first()
 
     async def penalty_served(self, event):
         # Broadcast penalty served notification to race control interfaces

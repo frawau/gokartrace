@@ -233,6 +233,9 @@ class StopAndGoStation:
                         # Show race mode screen when connected
                         if self.state == "idle":
                             self.display.display_status_text("Race Mode")
+                        
+                        # Query current queue status to sync with server state
+                        await self.query_queue_status()
 
                         async for msg in ws:
                             if msg.type == aiohttp.WSMsgType.TEXT:
@@ -347,6 +350,10 @@ class StopAndGoStation:
         elif command == "reset_penalty":
             await self.handle_reset_penalty(data)
 
+        # Handle queue status response
+        elif command == "queue_status_response":
+            await self.handle_queue_status_response(data)
+
     async def send_response(self, response_type, data):
         """Send a response message via websocket with HMAC signature"""
         if self.websocket:
@@ -430,6 +437,59 @@ class StopAndGoStation:
                 "team": team,
                 "status": "no_penalty_active"
             })
+
+    async def query_queue_status(self):
+        """Query current queue status from server on startup"""
+        if self.websocket:
+            try:
+                message = {
+                    "type": "command",
+                    "command": "query_queue_status", 
+                    "timestamp": datetime.now().isoformat(),
+                }
+                signed_message = self.sign_message(message)
+                await self.websocket.send_str(json.dumps(signed_message))
+                logging.info("Queried server for current queue status")
+            except Exception as e:
+                logging.error(f"Failed to query queue status: {e}")
+
+    async def handle_queue_status_response(self, data):
+        """Handle queue status response from server"""
+        try:
+            active_penalty = data.get("active_penalty")
+            queue_count = data.get("queue_count", 0)
+            
+            logging.info(f"Queue status: {queue_count} queued, active: {active_penalty is not None}")
+            
+            if active_penalty and self.state == "idle":
+                # There's an active penalty but station is idle - sync up
+                team = active_penalty.get("team_number")
+                duration = active_penalty.get("value")
+                penalty_id = active_penalty.get("penalty_id")
+                
+                if team and duration:
+                    logging.info(f"Syncing with active penalty: Team {team}, {duration}s")
+                    
+                    # Set up the penalty state
+                    self.current_team = team
+                    self.current_duration = duration
+                    self.state = "wait_countdown"
+                    self.penalty_ack_received = False
+                    
+                    # Turn on relay and show team number
+                    await self.relay.turn_on()
+                    self.display.display_text(
+                        str(self.current_team), (255, 165, 0), (0, 0, 0), self.display.team_font
+                    )
+                    
+                    logging.info(f"Station synced: penalty for team {team} is now active")
+            
+            elif not active_penalty and queue_count > 0:
+                # No active penalty but queue has entries - show queue info
+                logging.info(f"No active penalty, {queue_count} penalties queued")
+                
+        except Exception as e:
+            logging.error(f"Error handling queue status response: {e}")
 
     async def button_monitor(self):
         last_button_state = False
