@@ -39,9 +39,11 @@ def send_next_penalty_to_station(next_penalty, delay_seconds=10):
         except Exception as e:
             print(f"Error sending next penalty to station: {e}")
 
-    # Start background thread with async_to_sync
+    # Start background thread with new event loop
     def run_delayed_send():
-        async_to_sync(send_penalty_after_delay)()
+        import asyncio
+
+        asyncio.run(send_penalty_after_delay())
 
     thread = threading.Thread(target=run_delayed_send, daemon=True)
     thread.start()
