@@ -43,7 +43,15 @@ def send_next_penalty_to_station(next_penalty, delay_seconds=10):
     def run_delayed_send():
         import asyncio
 
-        asyncio.run(send_penalty_after_delay())
+        try:
+            # Create new event loop for this thread
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(send_penalty_after_delay())
+        except Exception as e:
+            print(f"Error in delayed send thread: {e}")
+        finally:
+            loop.close()
 
     thread = threading.Thread(target=run_delayed_send, daemon=True)
     thread.start()
