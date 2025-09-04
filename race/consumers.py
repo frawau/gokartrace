@@ -347,6 +347,9 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
                         signed_message = self.sign_message(message)
                         await self.send(text_data=json.dumps(signed_message))
 
+                        # Handle queue management - remove served penalty and send next
+                        await self.handle_penalty_served(team_number)
+
                         # Broadcast penalty served to race control
                         await self.channel_layer.group_send(
                             self.stopandgo_group_name,
@@ -497,6 +500,81 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
 
         signed_message = self.sign_message(message)
         await self.send(text_data=json.dumps(signed_message))
+
+    async def handle_penalty_served(self, team_number):
+        """Handle penalty served by station - remove from queue and send next penalty"""
+        try:
+            from .models import StopAndGoQueue
+            import threading
+            import time
+
+            # Get current round
+            current_round = await self.get_current_round()
+            if not current_round:
+                return
+
+            # Find and remove the served penalty from queue
+            served_penalty = await database_sync_to_async(
+                lambda: StopAndGoQueue.objects.filter(
+                    round=current_round,
+                    round_penalty__offender__team__number=team_number,
+                ).first()
+            )()
+
+            if served_penalty:
+                # Mark the round penalty as served
+                await database_sync_to_async(
+                    lambda: served_penalty.round_penalty.__class__.objects.filter(
+                        id=served_penalty.round_penalty.id
+                    ).update(served=dt.datetime.now())
+                )()
+
+                # Remove from queue
+                await database_sync_to_async(served_penalty.delete)()
+                print(f"Removed served penalty for team {team_number} from queue")
+
+                # Get next penalty in queue
+                next_penalty = await database_sync_to_async(
+                    StopAndGoQueue.get_next_penalty
+                )(current_round.id)
+
+                if next_penalty:
+                    # Send next penalty after 10 second delay using background thread
+                    def send_next_penalty():
+                        time.sleep(10)  # 10 second delay
+                        try:
+                            from channels.layers import get_channel_layer
+                            from asgiref.sync import async_to_sync
+
+                            # Create the penalty message
+                            message = {
+                                "type": "penalty_required",
+                                "team": next_penalty.round_penalty.offender.team.number,
+                                "duration": next_penalty.round_penalty.value,
+                                "penalty_id": next_penalty.round_penalty.id,
+                                "queue_id": next_penalty.id,
+                                "timestamp": dt.datetime.now().isoformat(),
+                            }
+
+                            # Send through channel layer
+                            channel_layer = get_channel_layer()
+                            async_to_sync(channel_layer.group_send)(
+                                "stopandgo",
+                                {"type": "penalty_notification", "message": message},
+                            )
+
+                        except Exception as e:
+                            print(f"Error sending next penalty to station: {e}")
+
+                    # Start background thread
+                    thread = threading.Thread(target=send_next_penalty, daemon=True)
+                    thread.start()
+                    print(
+                        f"Next penalty for team {next_penalty.round_penalty.offender.team.number} will be sent after 10 seconds"
+                    )
+
+        except Exception as e:
+            print(f"Error handling penalty served: {e}")
 
     async def query_queue_status(self, event):
         """Handle queue status query from station and send response"""
