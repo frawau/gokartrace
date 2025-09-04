@@ -992,18 +992,16 @@ function initializeDropdownLogic() {
     
     const victimSelected = victimRequired ? victimSelect.value !== '' : true;
     
-    if (penaltySelected && offenderSelected && victimSelected && stopAndGoState === 'idle') {
+    if (penaltySelected && offenderSelected && victimSelected) {
       stopGoButton.disabled = false;
       stopGoButton.style.backgroundColor = '#dc3545';
       stopGoButton.style.color = 'yellow';
       stopGoButton.textContent = 'Stop & Go';
     } else {
       stopGoButton.disabled = true;
-      if (stopAndGoState === 'idle') {
-        stopGoButton.style.backgroundColor = '#6c757d';
-        stopGoButton.style.color = '#fff';
-        stopGoButton.textContent = 'Stop & Go';
-      }
+      stopGoButton.style.backgroundColor = '#6c757d';
+      stopGoButton.style.color = '#fff';
+      stopGoButton.textContent = 'Stop & Go';
     }
   }
 }
@@ -1251,8 +1249,7 @@ function resetStopAndGoForm() {
   selectedPenalty = null;
   currentRoundPenaltyId = null;
   
-  // Reset button to idle state
-  stopAndGoState = 'idle';
+  // Reset button state
   stopGoButton.disabled = true;
   stopGoButton.style.backgroundColor = '#6c757d';
   stopGoButton.style.color = '#fff';
