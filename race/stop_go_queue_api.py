@@ -12,6 +12,41 @@ import threading
 from .models import Round, RoundPenalty, StopAndGoQueue, ChampionshipPenalty
 
 
+def send_next_penalty_to_station(next_penalty, delay_seconds=10):
+    """Send next penalty to station after specified delay"""
+
+    async def send_penalty_after_delay():
+        import asyncio
+
+        await asyncio.sleep(delay_seconds)
+        try:
+            channel_layer = get_channel_layer()
+            message = {
+                "type": "penalty_required",
+                "team": next_penalty.round_penalty.offender.team.number,
+                "duration": next_penalty.round_penalty.value,
+                "penalty_id": next_penalty.round_penalty.id,
+                "queue_id": next_penalty.id,
+                "timestamp": dt.datetime.now().isoformat(),
+            }
+            await channel_layer.group_send(
+                "stopandgo",
+                {"type": "penalty_notification", "message": message},
+            )
+            print(
+                f"Sent next penalty for team {next_penalty.round_penalty.offender.team.number} to station"
+            )
+        except Exception as e:
+            print(f"Error sending next penalty to station: {e}")
+
+    # Start background thread with async_to_sync
+    def run_delayed_send():
+        async_to_sync(send_penalty_after_delay)()
+
+    thread = threading.Thread(target=run_delayed_send, daemon=True)
+    thread.start()
+
+
 @login_required
 @csrf_exempt
 def get_stop_go_queue_status(request, round_id):
@@ -69,37 +104,7 @@ def cancel_stop_go_penalty(request):
 
             # Send next penalty to station after 10 second delay
             if next_penalty:
-
-                async def send_next_penalty_after_delay():
-                    import asyncio
-
-                    await asyncio.sleep(10)  # 10 second delay
-                    try:
-                        channel_layer = get_channel_layer()
-                        message = {
-                            "type": "penalty_required",
-                            "team": next_penalty.round_penalty.offender.team.number,
-                            "duration": next_penalty.round_penalty.value,
-                            "penalty_id": next_penalty.round_penalty.id,
-                            "queue_id": next_penalty.id,
-                            "timestamp": dt.datetime.now().isoformat(),
-                        }
-                        await channel_layer.group_send(
-                            "stopandgo",
-                            {"type": "penalty_notification", "message": message},
-                        )
-                        print(
-                            f"Sent next penalty for team {next_penalty.round_penalty.offender.team.number} to station"
-                        )
-                    except Exception as e:
-                        print(f"Error sending next penalty to station: {e}")
-
-                # Start background thread with async_to_sync
-                def run_delayed_send():
-                    async_to_sync(send_next_penalty_after_delay)()
-
-                thread = threading.Thread(target=run_delayed_send, daemon=True)
-                thread.start()
+                send_next_penalty_to_station(next_penalty)
 
             return JsonResponse(
                 {
@@ -165,37 +170,7 @@ def delay_stop_go_penalty(request):
 
             # Send next penalty to station after 10 second delay
             if next_penalty:
-
-                async def send_next_penalty_after_delay():
-                    import asyncio
-
-                    await asyncio.sleep(10)  # 10 second delay
-                    try:
-                        channel_layer = get_channel_layer()
-                        message = {
-                            "type": "penalty_required",
-                            "team": next_penalty.round_penalty.offender.team.number,
-                            "duration": next_penalty.round_penalty.value,
-                            "penalty_id": next_penalty.round_penalty.id,
-                            "queue_id": next_penalty.id,
-                            "timestamp": dt.datetime.now().isoformat(),
-                        }
-                        await channel_layer.group_send(
-                            "stopandgo",
-                            {"type": "penalty_notification", "message": message},
-                        )
-                        print(
-                            f"Sent next penalty for team {next_penalty.round_penalty.offender.team.number} to station"
-                        )
-                    except Exception as e:
-                        print(f"Error sending next penalty to station: {e}")
-
-                # Start background thread with async_to_sync
-                def run_delayed_send():
-                    async_to_sync(send_next_penalty_after_delay)()
-
-                thread = threading.Thread(target=run_delayed_send, daemon=True)
-                thread.start()
+                send_next_penalty_to_station(next_penalty)
 
             return JsonResponse(
                 {
@@ -238,39 +213,7 @@ def complete_stop_go_penalty(request):
 
             # Send next penalty to station after 10 second delay (for manual completion)
             if next_penalty:
-
-                async def send_next_penalty_after_delay():
-                    import asyncio
-
-                    await asyncio.sleep(10)  # 10 second delay
-                    try:
-                        channel_layer = get_channel_layer()
-                        message = {
-                            "type": "penalty_required",
-                            "team": next_penalty.round_penalty.offender.team.number,
-                            "duration": next_penalty.round_penalty.value,
-                            "penalty_id": next_penalty.round_penalty.id,
-                            "queue_id": next_penalty.id,
-                            "timestamp": dt.datetime.now().isoformat(),
-                        }
-                        await channel_layer.group_send(
-                            "stopandgo",
-                            {"type": "penalty_notification", "message": message},
-                        )
-                        print(
-                            f"Sent next penalty for team {next_penalty.round_penalty.offender.team.number} to station"
-                        )
-                    except Exception as e:
-                        print(f"Error sending next penalty to station: {e}")
-
-                # Run the async function with async_to_sync in background
-                import threading
-
-                def run_delayed_send():
-                    async_to_sync(send_next_penalty_after_delay)()
-
-                thread = threading.Thread(target=run_delayed_send, daemon=True)
-                thread.start()
+                send_next_penalty_to_station(next_penalty)
 
             return JsonResponse(
                 {
