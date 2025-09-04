@@ -14,10 +14,9 @@ from .models import Round, RoundPenalty, StopAndGoQueue, ChampionshipPenalty
 
 def send_next_penalty_to_station(next_penalty, delay_seconds=10):
     """Send next penalty to station after specified delay"""
+    import asyncio
 
     async def send_penalty_after_delay():
-        import asyncio
-
         await asyncio.sleep(delay_seconds)
         try:
             channel_layer = get_channel_layer()
@@ -39,22 +38,16 @@ def send_next_penalty_to_station(next_penalty, delay_seconds=10):
         except Exception as e:
             print(f"Error sending next penalty to station: {e}")
 
-    # Start background thread with new event loop
-    def run_delayed_send():
-        import asyncio
+    # Create async task to run in background
+    try:
+        asyncio.create_task(send_penalty_after_delay())
+    except RuntimeError:
+        # If no event loop is running, run it in a new thread with asyncio.run
+        def run_in_thread():
+            asyncio.run(send_penalty_after_delay())
 
-        try:
-            # Create new event loop for this thread
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(send_penalty_after_delay())
-        except Exception as e:
-            print(f"Error in delayed send thread: {e}")
-        finally:
-            loop.close()
-
-    thread = threading.Thread(target=run_delayed_send, daemon=True)
-    thread.start()
+        thread = threading.Thread(target=run_in_thread, daemon=True)
+        thread.start()
 
 
 @login_required
