@@ -1,9 +1,8 @@
-# Stop & Go Queue Management API Endpoints
+# Simplified Stop & Go Queue Management API
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
-from django.db import models
 import json
 import datetime as dt
 
@@ -11,51 +10,38 @@ from .models import Round, RoundPenalty, StopAndGoQueue, ChampionshipPenalty
 
 
 @login_required
-@csrf_exempt  
+@csrf_exempt
 def get_stop_go_queue_status(request, round_id):
-    """API endpoint to get current Stop & Go queue status."""
+    """Get current queue status - next penalty + queue count."""
     try:
         round_obj = get_object_or_404(Round, id=round_id)
-        
-        # Get active penalty
-        active_penalty = StopAndGoQueue.get_active_penalty(round_id)
-        active_data = None
-        if active_penalty:
-            active_data = {
-                "queue_id": active_penalty.id,
-                "penalty_id": active_penalty.round_penalty.id,
-                "team_number": active_penalty.round_penalty.offender.team.number,
-                "team_name": active_penalty.round_penalty.offender.team.team.name,
-                "penalty_name": active_penalty.round_penalty.penalty.penalty.name,
-                "value": active_penalty.round_penalty.value,
-                "activated_at": active_penalty.activated_at.isoformat() if active_penalty.activated_at else None
+
+        # Get next penalty (oldest timestamp)
+        next_penalty = StopAndGoQueue.get_next_penalty(round_id)
+        next_penalty_data = None
+
+        if next_penalty:
+            next_penalty_data = {
+                "queue_id": next_penalty.id,
+                "penalty_id": next_penalty.round_penalty.id,
+                "team_number": next_penalty.round_penalty.offender.team.number,
+                "team_name": next_penalty.round_penalty.offender.team.team.name,
+                "penalty_name": next_penalty.round_penalty.penalty.penalty.name,
+                "value": next_penalty.round_penalty.value,
+                "timestamp": next_penalty.timestamp.isoformat(),
             }
-        
-        # Get queued penalties
-        queued_penalties = StopAndGoQueue.objects.filter(
-            round_id=round_id,
-            status='queued'
-        ).order_by('queue_position', 'created_at')
-        
-        queue_data = []
-        for penalty in queued_penalties:
-            queue_data.append({
-                "queue_id": penalty.id,
-                "penalty_id": penalty.round_penalty.id,
-                "team_number": penalty.round_penalty.offender.team.number,
-                "team_name": penalty.round_penalty.offender.team.team.name,
-                "penalty_name": penalty.round_penalty.penalty.penalty.name,
-                "value": penalty.round_penalty.value,
-                "queue_position": penalty.queue_position
-            })
-        
-        return JsonResponse({
-            "success": True,
-            "active_penalty": active_data,
-            "queue": queue_data,
-            "queue_count": len(queue_data)
-        })
-        
+
+        # Get queue count
+        queue_count = StopAndGoQueue.get_queue_count(round_id)
+
+        return JsonResponse(
+            {
+                "success": True,
+                "next_penalty": next_penalty_data,
+                "queue_count": queue_count,
+            }
+        )
+
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=400)
 
@@ -68,34 +54,27 @@ def cancel_stop_go_penalty(request):
         try:
             data = json.loads(request.body)
             queue_id = data.get("queue_id")
-            
+
             queue_entry = get_object_or_404(StopAndGoQueue, id=queue_id)
-            
-            # Can only cancel active penalties
-            if queue_entry.status != 'active':
-                return JsonResponse({
-                    "success": False, 
-                    "error": "Can only cancel active penalties"
-                }, status=400)
-            
-            # Cancel the penalty
-            queue_entry.cancel()
-            
-            # Activate next penalty in queue after a delay
-            next_penalty = StopAndGoQueue.get_next_in_queue(queue_entry.round.id)
-            if next_penalty:
-                # TODO: Add 10-second delay mechanism here
-                next_penalty.activate()
-            
-            return JsonResponse({
-                "success": True,
-                "message": "Penalty cancelled successfully",
-                "next_penalty_activated": next_penalty.id if next_penalty else None
-            })
-            
+
+            # Delete the queue entry (cancelling it)
+            round_id = queue_entry.round.id
+            queue_entry.delete()
+
+            # Get the next penalty in queue
+            next_penalty = StopAndGoQueue.get_next_penalty(round_id)
+
+            return JsonResponse(
+                {
+                    "success": True,
+                    "message": "Penalty cancelled successfully",
+                    "next_penalty_id": next_penalty.id if next_penalty else None,
+                }
+            )
+
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)}, status=400)
-    
+
     return JsonResponse({"error": "Only POST method allowed"}, status=405)
 
 
@@ -107,36 +86,29 @@ def delay_stop_go_penalty(request):
         try:
             data = json.loads(request.body)
             queue_id = data.get("queue_id")
-            
+
             queue_entry = get_object_or_404(StopAndGoQueue, id=queue_id)
-            
-            # Can only delay active penalties
-            if queue_entry.status != 'active':
-                return JsonResponse({
-                    "success": False, 
-                    "error": "Can only delay active penalties"
-                }, status=400)
-            
+
             # Check if we should create an "ignoring s&g" penalty
             create_ignoring_penalty = False
             ignoring_penalty = None
-            
+
             try:
                 # Look for "ignoring s&g" penalty in the championship
                 championship = queue_entry.round.championship
                 ignoring_penalty = ChampionshipPenalty.objects.filter(
-                    championship=championship,
-                    penalty__name__icontains="ignoring"
+                    championship=championship, penalty__name__icontains="ignoring"
                 ).first()
-                
+
                 if ignoring_penalty:
                     create_ignoring_penalty = True
             except:
                 pass  # If no ignoring penalty exists, just delay without creating one
-            
-            # Delay the current penalty (moves to end of queue)
-            queue_entry.delay()
-            
+
+            # Delay the current penalty (update timestamp to move to end of queue)
+            queue_entry.timestamp = dt.datetime.now()
+            queue_entry.save()
+
             # Create "ignoring s&g" penalty if found
             ignoring_penalty_id = None
             if create_ignoring_penalty and ignoring_penalty:
@@ -147,28 +119,27 @@ def delay_stop_go_penalty(request):
                     penalty=ignoring_penalty,
                     value=ignoring_penalty.value,
                     imposed=dt.datetime.now(),
-                    served=None
+                    served=None,
                 )
                 ignoring_penalty_id = ignoring_round_penalty.id
-            
-            # Activate next penalty in queue after a delay
-            next_penalty = StopAndGoQueue.get_next_in_queue(queue_entry.round.id)
-            if next_penalty:
-                # TODO: Add 10-second delay mechanism here
-                next_penalty.activate()
-            
-            return JsonResponse({
-                "success": True,
-                "message": "Penalty delayed and moved to end of queue",
-                "delayed_penalty_id": queue_entry.id,
-                "next_penalty_activated": next_penalty.id if next_penalty else None,
-                "ignoring_penalty_created": ignoring_penalty_id is not None,
-                "ignoring_penalty_id": ignoring_penalty_id
-            })
-            
+
+            # Get the next penalty in queue
+            next_penalty = StopAndGoQueue.get_next_penalty(queue_entry.round.id)
+
+            return JsonResponse(
+                {
+                    "success": True,
+                    "message": "Penalty delayed and moved to end of queue",
+                    "delayed_penalty_id": queue_entry.id,
+                    "next_penalty_id": next_penalty.id if next_penalty else None,
+                    "ignoring_penalty_created": ignoring_penalty_id is not None,
+                    "ignoring_penalty_id": ignoring_penalty_id,
+                }
+            )
+
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)}, status=400)
-    
+
     return JsonResponse({"error": "Only POST method allowed"}, status=405)
 
 
@@ -180,32 +151,29 @@ def complete_stop_go_penalty(request):
         try:
             data = json.loads(request.body)
             queue_id = data.get("queue_id")
-            
+
             queue_entry = get_object_or_404(StopAndGoQueue, id=queue_id)
-            
-            # Can only complete active penalties
-            if queue_entry.status != 'active':
-                return JsonResponse({
-                    "success": False, 
-                    "error": "Can only complete active penalties"
-                }, status=400)
-            
-            # Complete the penalty
-            queue_entry.complete()
-            
-            # Activate next penalty in queue after a delay
-            next_penalty = StopAndGoQueue.get_next_in_queue(queue_entry.round.id)
-            if next_penalty:
-                # TODO: Add 10-second delay mechanism here
-                next_penalty.activate()
-            
-            return JsonResponse({
-                "success": True,
-                "message": "Penalty completed successfully",
-                "next_penalty_activated": next_penalty.id if next_penalty else None
-            })
-            
+
+            # Mark the associated round penalty as served
+            queue_entry.round_penalty.served = dt.datetime.now()
+            queue_entry.round_penalty.save()
+
+            # Delete the queue entry (completing it)
+            round_id = queue_entry.round.id
+            queue_entry.delete()
+
+            # Get the next penalty in queue
+            next_penalty = StopAndGoQueue.get_next_penalty(round_id)
+
+            return JsonResponse(
+                {
+                    "success": True,
+                    "message": "Penalty completed successfully",
+                    "next_penalty_id": next_penalty.id if next_penalty else None,
+                }
+            )
+
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)}, status=400)
-    
+
     return JsonResponse({"error": "Only POST method allowed"}, status=405)

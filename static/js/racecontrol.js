@@ -7,7 +7,7 @@ let emptyTeamsSocketInstance = null;
 
 // Stop & Go state variables
 let stopAndGoSocket = null;
-let stopAndGoState = 'idle'; // 'idle', 'active', 'served'
+// Remove stopAndGoState - no longer needed with separate buttons
 let fenceEnabled = null;
 let hmacSecret = null;
 let currentRoundId = null;
@@ -15,8 +15,8 @@ let selectedPenalty = null;
 let currentRoundPenaltyId = null;
 
 // Enhanced penalty queue system
-let activePenalty = null; // Currently active penalty from server
-let penaltyQueue = []; // Queue of pending penalties from server
+let nextPenalty = null; // Next penalty in queue from server
+let queueCount = 0; // Total number of penalties in queue
 let currentQueueId = null; // Currently active queue entry ID
 
 /**
@@ -1015,129 +1015,75 @@ function handleStopGoButtonClick() {
   const offenderSelect = document.getElementById('offenderSelect');
   const victimSelect = document.getElementById('victimSelect');
   const durationInput = document.getElementById('durationInput');
-  const stopGoButton = document.getElementById('stopGoButton');
   
-  if (stopAndGoState === 'idle') {
-    // First create RoundPenalty record
-    const offenderId = offenderSelect.value;
-    const victimId = victimSelect.value || null;
-    const offenderTeamNumber = offenderSelect.selectedOptions[0]?.dataset.teamNumber;
-    const duration = parseInt(durationInput.value) || 20;
+  // Always create new penalty - Stop & Go button never changes
+  const offenderId = offenderSelect.value;
+  const victimId = victimSelect.value || null;
+  const offenderTeamNumber = offenderSelect.selectedOptions[0]?.dataset.teamNumber;
+  const duration = parseInt(durationInput.value) || 20;
+  
+  if (selectedPenalty && offenderId && offenderTeamNumber) {
+    // Create RoundPenalty record
+    const penaltyData = {
+      round_id: currentRoundId,
+      offender_id: offenderId,
+      victim_id: victimId,
+      championship_penalty_id: parseInt(selectedPenalty.id),
+      value: duration
+    };
     
-    if (selectedPenalty && offenderId && offenderTeamNumber && stopAndGoSocket) {
-      // Create RoundPenalty record first
-      const penaltyData = {
-        round_id: currentRoundId,
-        offender_id: offenderId,
-        victim_id: victimId,
-        championship_penalty_id: parseInt(selectedPenalty.id),
-        value: duration
-      };
-      
-      fetch('/api/create-round-penalty/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify(penaltyData)
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          currentRoundPenaltyId = data.penalty_id;
-          
-          // Reset form first
-          resetStopAndGoForm();
-          
-          // Reload queue status to update UI
-          loadQueueStatus();
-          
-          addSystemMessage(`Stop & Go penalty created for team ${offenderTeamNumber} (${duration}s)`, 'info');
-          
-          // If this penalty was activated immediately (first in queue), send to station
-          if (data.is_stop_and_go) {
-            setTimeout(() => {
-              // Check if this penalty is now active and send to station
-              if (activePenalty && activePenalty.penalty_id === data.penalty_id) {
-                const message = {
-                  type: 'penalty_required',
-                  team: parseInt(offenderTeamNumber),
-                  duration: duration,
-                  penalty_id: data.penalty_id,
-                  queue_id: data.queue_id,
-                  timestamp: new Date().toISOString()
-                };
-                
-                signMessage(message).then(signedMessage => {
-                  if (stopAndGoSocket) {
-                    stopAndGoSocket.send(JSON.stringify(signedMessage));
-                    addSystemMessage(`Penalty sent to Stop & Go station for team ${offenderTeamNumber}`, 'info');
-                  }
-                }).catch(error => {
-                  console.error('Failed to sign penalty message:', error);
-                });
-              }
-            }, 1000); // Small delay to allow queue to update
-          }
-        } else {
-          throw new Error(data.error || 'Failed to create penalty record');
-        }
-      })
-      .catch(error => {
-        console.error('Failed to create penalty or sign message:', error);
-        addSystemMessage('Failed to send Stop & Go penalty: ' + error.message, 'danger');
-      });
-    }
-  } else if (stopAndGoState === 'active') {
-    // Mark the active penalty as served using the new queue API
-    if (currentQueueId) {
-      fetch('/api/stop-go-penalty/complete/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify({ queue_id: currentQueueId })
-      })
-      .then(response => response.json())
-      .then(result => {
-        if (result.success) {
-          console.log('Penalty marked as served through queue system');
-          addSystemMessage('Penalty marked as served', 'success');
-          
-          // Send force complete to station
-          if (stopAndGoSocket) {
-            const message = {
-              type: 'force_complete_penalty',
-              penalty_id: currentRoundPenaltyId,
-              queue_id: currentQueueId,
-              timestamp: new Date().toISOString()
-            };
-            
-            signMessage(message).then(signedMessage => {
-              stopAndGoSocket.send(JSON.stringify(signedMessage));
-              console.log('Sent force complete to station');
-            }).catch(error => {
-              console.error('Failed to send force complete to station:', error);
-            });
-          }
-          
-          // Reload queue status to update UI
+    fetch('/api/create-round-penalty/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify(penaltyData)
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Reset form
+        resetStopAndGoForm();
+        
+        // Reload queue status to update UI
+        loadQueueStatus();
+        
+        addSystemMessage(`Stop & Go penalty created for team ${offenderTeamNumber} (${duration}s)`, 'info');
+        
+        // If this penalty is at the front of the queue, send to station
+        if (data.is_stop_and_go && data.queue_id) {
           setTimeout(() => {
-            loadQueueStatus();
-          }, 500);
-          
-        } else {
-          console.error('Failed to complete penalty:', result.error);
-          addSystemMessage('Failed to mark penalty as served: ' + result.error, 'danger');
+            // Check if this penalty is now next and send to station
+            if (nextPenalty && nextPenalty.penalty_id === data.penalty_id) {
+              const message = {
+                type: 'penalty_required',
+                team: parseInt(offenderTeamNumber),
+                duration: duration,
+                penalty_id: data.penalty_id,
+                queue_id: data.queue_id,
+                timestamp: new Date().toISOString()
+              };
+              
+              signMessage(message).then(signedMessage => {
+                if (stopAndGoSocket) {
+                  stopAndGoSocket.send(JSON.stringify(signedMessage));
+                  addSystemMessage(`Penalty sent to Stop & Go station for team ${offenderTeamNumber}`, 'info');
+                }
+              }).catch(error => {
+                console.error('Failed to sign penalty message:', error);
+              });
+            }
+          }, 1000); // Small delay to allow queue to update
         }
-      })
-      .catch(error => {
-        console.error('Error completing penalty:', error);
-        addSystemMessage('Error marking penalty as served: ' + error.message, 'danger');
-      });
-    }
+      } else {
+        throw new Error(data.error || 'Failed to create penalty record');
+      }
+    })
+    .catch(error => {
+      console.error('Failed to create penalty:', error);
+      addSystemMessage('Failed to send Stop & Go penalty: ' + error.message, 'danger');
+    });
   }
 }
 
@@ -1342,8 +1288,8 @@ function loadQueueStatus() {
     .then(response => response.json())
     .then(data => {
       if (data.success) {
-        activePenalty = data.active_penalty;
-        penaltyQueue = data.queue || [];
+        nextPenalty = data.next_penalty;
+        queueCount = data.queue_count || 0;
         
         updateQueueUI();
       } else {
@@ -1360,84 +1306,99 @@ function loadQueueStatus() {
  */
 function updateQueueUI() {
   const stopGoButton = document.getElementById('stopGoButton');
+  const servedButtonContainer = document.getElementById('servedButtonContainer');
   const penaltyControlButtons = document.getElementById('penaltyControlButtons');
   const queueStatusText = document.getElementById('queueStatusText');
   
-  if (!stopGoButton || !penaltyControlButtons || !queueStatusText) return;
+  if (!stopGoButton || !servedButtonContainer || !penaltyControlButtons || !queueStatusText) return;
   
   // Update queue status display
-  queueStatusText.textContent = `Queue: ${penaltyQueue.length} pending`;
+  queueStatusText.textContent = `Queue: ${queueCount} pending`;
   
-  if (activePenalty) {
-    // There's an active penalty
-    stopAndGoState = 'active';
-    currentQueueId = activePenalty.queue_id;
-    currentRoundPenaltyId = activePenalty.penalty_id;
+  if (nextPenalty) {
+    // There's a penalty at the front of the queue
+    currentQueueId = nextPenalty.queue_id;
+    currentRoundPenaltyId = nextPenalty.penalty_id;
     
-    // Show "Served" button
-    stopGoButton.disabled = false;
-    stopGoButton.style.backgroundColor = '#fd7e14';
-    stopGoButton.style.color = 'black';
-    stopGoButton.textContent = 'Served';
+    // Show Served button
+    servedButtonContainer.classList.remove('d-none');
     
     // Show Cancel and Delay buttons
     penaltyControlButtons.classList.remove('d-none');
     
-    // Disable penalty form
-    disablePenaltyForm();
-    
-    addSystemMessage(`Active penalty: Team ${activePenalty.team_number} - ${activePenalty.penalty_name} (${activePenalty.value}s)`, 'info');
+    addSystemMessage(`Next penalty: Team ${nextPenalty.team_number} - ${nextPenalty.penalty_name} (${nextPenalty.value}s)`, 'info');
     
   } else {
-    // No active penalty
-    stopAndGoState = 'idle';
+    // No penalty in queue
     currentQueueId = null;
     currentRoundPenaltyId = null;
     
-    // Show "Stop & Go" button (enabled based on form completion)
-    stopGoButton.style.backgroundColor = penaltyQueue.length > 0 ? '#28a745' : '#6c757d';
-    stopGoButton.style.color = penaltyQueue.length > 0 ? 'black' : '#fff';
-    stopGoButton.textContent = 'Stop & Go';
+    // Hide Served button
+    servedButtonContainer.classList.add('d-none');
     
     // Hide Cancel and Delay buttons
     penaltyControlButtons.classList.add('d-none');
     
-    // Enable penalty form
-    enablePenaltyForm();
-    
-    // Check if there are queued penalties
-    if (penaltyQueue.length > 0) {
-      addSystemMessage(`${penaltyQueue.length} penalty(ies) in queue`, 'info');
+    if (queueCount > 0) {
+      addSystemMessage(`${queueCount} penalty(ies) in queue`, 'info');
     }
   }
+  
+  // Stop & Go button is always available and always says "Stop & Go"
+  stopGoButton.textContent = 'Stop & Go';
+  stopGoButton.disabled = false;
 }
 
 /**
- * Disable penalty form when there's an active penalty
+ * Handle Served button click
  */
-function disablePenaltyForm() {
-  const penaltySelect = document.getElementById('penaltySelect');
-  const offenderSelect = document.getElementById('offenderSelect');
-  const victimSelect = document.getElementById('victimSelect');
-  const durationInput = document.getElementById('durationInput');
+function handleServedButtonClick() {
+  if (!currentQueueId) return;
   
-  if (penaltySelect) penaltySelect.disabled = true;
-  if (offenderSelect) offenderSelect.disabled = true;
-  if (victimSelect) victimSelect.disabled = true;
-  if (durationInput) durationInput.disabled = true;
-}
-
-/**
- * Enable penalty form when no active penalty
- */
-function enablePenaltyForm() {
-  const penaltySelect = document.getElementById('penaltySelect');
-  const offenderSelect = document.getElementById('offenderSelect');
-  const victimSelect = document.getElementById('victimSelect');
-  const durationInput = document.getElementById('durationInput');
-  
-  if (penaltySelect) penaltySelect.disabled = false;
-  // Other form elements are enabled based on selections in existing logic
+  if (confirm('Mark this Stop & Go penalty as served?')) {
+    fetch('/api/stop-go-penalty/complete/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify({ queue_id: currentQueueId })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        addSystemMessage('Penalty marked as served', 'success');
+        
+        // Send force complete to station
+        if (stopAndGoSocket) {
+          const message = {
+            type: 'force_complete_penalty',
+            penalty_id: currentRoundPenaltyId,
+            queue_id: currentQueueId,
+            timestamp: new Date().toISOString()
+          };
+          
+          signMessage(message).then(signedMessage => {
+            stopAndGoSocket.send(JSON.stringify(signedMessage));
+          }).catch(error => {
+            console.error('Failed to send force complete to station:', error);
+          });
+        }
+        
+        // Reload queue status
+        setTimeout(() => {
+          loadQueueStatus();
+        }, 500);
+        
+      } else {
+        addSystemMessage('Failed to mark penalty as served: ' + data.error, 'danger');
+      }
+    })
+    .catch(error => {
+      console.error('Error completing penalty:', error);
+      addSystemMessage('Error marking penalty as served: ' + error.message, 'danger');
+    });
+  }
 }
 
 /**
@@ -1465,7 +1426,7 @@ function handleCancelPenaltyClick() {
           const message = {
             type: 'reset_penalty',
             queue_id: currentQueueId,
-            team: activePenalty.team_number,
+            team: nextPenalty.team_number,
             timestamp: new Date().toISOString()
           };
           
@@ -1521,7 +1482,7 @@ function handleDelayPenaltyClick() {
           const resetMessage = {
             type: 'reset_penalty',
             queue_id: currentQueueId,
-            team: activePenalty.team_number,
+            team: nextPenalty.team_number,
             timestamp: new Date().toISOString()
           };
           
