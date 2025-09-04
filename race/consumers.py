@@ -422,14 +422,11 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
                     queue_id = data.get("queue_id")
                     team = data.get("team")
                     await self.channel_layer.group_send(
-                        self.stopandgo_group_name, {
-                            "type": "reset_penalty", 
-                            "queue_id": queue_id,
-                            "team": team
-                        }
+                        self.stopandgo_group_name,
+                        {"type": "reset_penalty", "queue_id": queue_id, "team": team},
                     )
                 elif message_type == "query_queue_status":
-                    # Station requesting current queue status 
+                    # Station requesting current queue status
                     await self.channel_layer.group_send(
                         self.stopandgo_group_name, {"type": "query_queue_status"}
                     )
@@ -492,11 +489,20 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
         signed_message = self.sign_message(message)
         await self.send(text_data=json.dumps(signed_message))
 
+    async def penalty_notification(self, event):
+        # Send penalty notification from queue API to station
+        message = event["message"]  # Message already contains the penalty details
+        message["type"] = "command"
+        message["command"] = "penalty_required"
+
+        signed_message = self.sign_message(message)
+        await self.send(text_data=json.dumps(signed_message))
+
     async def query_queue_status(self, event):
         """Handle queue status query from station and send response"""
         try:
             from .models import StopAndGoQueue
-            
+
             # Get current round - simplified version for consumer context
             current_round = await self.get_current_round()
             if not current_round:
@@ -511,17 +517,17 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
                 signed_message = self.sign_message(message)
                 await self.send(text_data=json.dumps(signed_message))
                 return
-            
+
             # Get active penalty
             active_penalty = await database_sync_to_async(
                 StopAndGoQueue.get_active_penalty
             )(current_round.id)
-            
-            # Get queue count  
-            queue_count = await database_sync_to_async(
-                StopAndGoQueue.get_queue_count
-            )(current_round.id)
-            
+
+            # Get queue count
+            queue_count = await database_sync_to_async(StopAndGoQueue.get_queue_count)(
+                current_round.id
+            )
+
             # Prepare active penalty data
             active_data = None
             if active_penalty:
@@ -529,12 +535,12 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
                     "penalty_id": active_penalty.round_penalty.id,
                     "team_number": active_penalty.round_penalty.offender.team.number,
                     "value": active_penalty.round_penalty.value,
-                    "queue_id": active_penalty.id
+                    "queue_id": active_penalty.id,
                 }
-            
+
             # Send response to station
             message = {
-                "type": "command", 
+                "type": "command",
                 "command": "queue_status_response",
                 "active_penalty": active_data,
                 "queue_count": queue_count,
@@ -542,7 +548,7 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
             }
             signed_message = self.sign_message(message)
             await self.send(text_data=json.dumps(signed_message))
-            
+
         except Exception as e:
             print(f"Error in query_queue_status: {e}")
 

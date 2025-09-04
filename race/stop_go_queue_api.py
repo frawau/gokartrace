@@ -5,6 +5,10 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 import json
 import datetime as dt
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+import threading
+import time
 
 from .models import Round, RoundPenalty, StopAndGoQueue, ChampionshipPenalty
 
@@ -63,6 +67,32 @@ def cancel_stop_go_penalty(request):
 
             # Get the next penalty in queue
             next_penalty = StopAndGoQueue.get_next_penalty(round_id)
+
+            # Send next penalty to station after 10 second delay
+            if next_penalty:
+
+                def send_next_penalty():
+                    time.sleep(10)  # 10 second delay
+                    try:
+                        channel_layer = get_channel_layer()
+                        message = {
+                            "type": "penalty_required",
+                            "team": next_penalty.round_penalty.offender.team.number,
+                            "duration": next_penalty.round_penalty.value,
+                            "penalty_id": next_penalty.round_penalty.id,
+                            "queue_id": next_penalty.id,
+                            "timestamp": dt.datetime.now().isoformat(),
+                        }
+                        async_to_sync(channel_layer.group_send)(
+                            f"stop_and_go_{round_id}",
+                            {"type": "penalty_notification", "message": message},
+                        )
+                    except Exception as e:
+                        print(f"Error sending next penalty to station: {e}")
+
+                # Start background thread to send penalty after delay
+                thread = threading.Thread(target=send_next_penalty, daemon=True)
+                thread.start()
 
             return JsonResponse(
                 {
@@ -125,6 +155,32 @@ def delay_stop_go_penalty(request):
 
             # Get the next penalty in queue
             next_penalty = StopAndGoQueue.get_next_penalty(queue_entry.round.id)
+
+            # Send next penalty to station after 10 second delay
+            if next_penalty:
+
+                def send_next_penalty():
+                    time.sleep(10)  # 10 second delay
+                    try:
+                        channel_layer = get_channel_layer()
+                        message = {
+                            "type": "penalty_required",
+                            "team": next_penalty.round_penalty.offender.team.number,
+                            "duration": next_penalty.round_penalty.value,
+                            "penalty_id": next_penalty.round_penalty.id,
+                            "queue_id": next_penalty.id,
+                            "timestamp": dt.datetime.now().isoformat(),
+                        }
+                        async_to_sync(channel_layer.group_send)(
+                            f"stop_and_go_{queue_entry.round.id}",
+                            {"type": "penalty_notification", "message": message},
+                        )
+                    except Exception as e:
+                        print(f"Error sending next penalty to station: {e}")
+
+                # Start background thread to send penalty after delay
+                thread = threading.Thread(target=send_next_penalty, daemon=True)
+                thread.start()
 
             return JsonResponse(
                 {
