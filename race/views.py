@@ -1719,27 +1719,15 @@ def create_round_penalty(request):
 
             # If it's a Stop & Go penalty (S or D), add to queue system
             queue_entry = None
-            is_stop_and_go = championship_penalty.sanction in ['S', 'D']
-            
+            is_stop_and_go = championship_penalty.sanction in ["S", "D"]
+
             if is_stop_and_go:
                 from .models import StopAndGoQueue
-                # Get the next queue position
-                max_position = StopAndGoQueue.objects.filter(
-                    round=round_obj,
-                    status='queued'
-                ).aggregate(models.Max('queue_position'))['queue_position__max'] or 0
-                
+
+                # Create queue entry with timestamp-based ordering
                 queue_entry = StopAndGoQueue.objects.create(
-                    round_penalty=round_penalty,
-                    round=round_obj,
-                    queue_position=max_position + 1,
-                    status='queued'
+                    round_penalty=round_penalty, round=round_obj
                 )
-                
-                # If this is the first penalty in queue and no penalty is currently active, activate it immediately
-                active_penalty = StopAndGoQueue.get_active_penalty(round_obj.id)
-                if not active_penalty:
-                    queue_entry.activate()
 
             return JsonResponse(
                 {
@@ -1886,27 +1874,15 @@ def create_round_penalty(request):
 
             # If it's a Stop & Go penalty (S or D), add to queue system
             queue_entry = None
-            is_stop_and_go = championship_penalty.sanction in ['S', 'D']
-            
+            is_stop_and_go = championship_penalty.sanction in ["S", "D"]
+
             if is_stop_and_go:
                 from .models import StopAndGoQueue
-                # Get the next queue position
-                max_position = StopAndGoQueue.objects.filter(
-                    round=round_obj,
-                    status='queued'
-                ).aggregate(models.Max('queue_position'))['queue_position__max'] or 0
-                
+
+                # Create queue entry with timestamp-based ordering
                 queue_entry = StopAndGoQueue.objects.create(
-                    round_penalty=round_penalty,
-                    round=round_obj,
-                    queue_position=max_position + 1,
-                    status='queued'
+                    round_penalty=round_penalty, round=round_obj
                 )
-                
-                # If this is the first penalty in queue and no penalty is currently active, activate it immediately
-                active_penalty = StopAndGoQueue.get_active_penalty(round_obj.id)
-                if not active_penalty:
-                    queue_entry.activate()
 
             return JsonResponse(
                 {
