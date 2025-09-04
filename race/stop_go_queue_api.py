@@ -84,7 +84,7 @@ def cancel_stop_go_penalty(request):
                             "timestamp": dt.datetime.now().isoformat(),
                         }
                         async_to_sync(channel_layer.group_send)(
-                            f"stop_and_go_{round_id}",
+                            "stopandgo",
                             {"type": "penalty_notification", "message": message},
                         )
                     except Exception as e:
@@ -172,7 +172,7 @@ def delay_stop_go_penalty(request):
                             "timestamp": dt.datetime.now().isoformat(),
                         }
                         async_to_sync(channel_layer.group_send)(
-                            f"stop_and_go_{queue_entry.round.id}",
+                            "stopandgo",
                             {"type": "penalty_notification", "message": message},
                         )
                     except Exception as e:
