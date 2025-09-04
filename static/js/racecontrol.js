@@ -803,12 +803,17 @@ function initializeStopAndGo() {
   
   // Add event listeners for buttons
   const stopGoButton = document.getElementById('stopGoButton');
+  const servedButton = document.getElementById('servedButton');
   const toggleFenceButton = document.getElementById('toggleFenceButton');
   const cancelPenaltyButton = document.getElementById('cancelPenaltyButton');
   const delayPenaltyButton = document.getElementById('delayPenaltyButton');
   
   if (stopGoButton) {
     stopGoButton.addEventListener('click', handleStopGoButtonClick);
+  }
+  
+  if (servedButton) {
+    servedButton.addEventListener('click', handleServedButtonClick);
   }
   
   if (toggleFenceButton) {

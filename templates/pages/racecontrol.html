@@ -128,12 +128,17 @@
                                         
                                         <!-- Right side - Buttons -->
                                         <div class="col-4 d-flex flex-column justify-content-between">
-                                            <!-- Stop & Go Button - Top -->
+                                            <!-- Stop & Go Button - Always visible for queueing penalties -->
                                             <div class="mb-2">
                                                 <button class="btn w-100" id="stopGoButton" disabled style="background-color: #dc3545; color: yellow; font-weight: bold; min-height: 45px; font-size: 0.9rem;">Stop & Go</button>
                                             </div>
                                             
-                                            <!-- Cancel and Delay buttons - Middle row (only visible when penalty is active) -->
+                                            <!-- Served Button - Only visible when penalty is active -->
+                                            <div class="mb-2 d-none" id="servedButtonContainer">
+                                                <button class="btn w-100 btn-success" id="servedButton" style="min-height: 40px; font-size: 0.9rem; font-weight: bold;">Served</button>
+                                            </div>
+                                            
+                                            <!-- Cancel and Delay buttons - Only visible when penalty is active -->
                                             <div class="mb-2 d-none" id="penaltyControlButtons">
                                                 <div class="row g-1">
                                                     <div class="col-6">

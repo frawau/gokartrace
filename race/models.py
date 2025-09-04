@@ -1211,97 +1211,35 @@ class RoundPenalty(models.Model):
 
 class StopAndGoQueue(models.Model):
     """
-    Queue system for Stop & Go penalties to survive page reloads
+    Simple queue system for Stop & Go penalties - ordered by timestamp
     """
-    QUEUE_STATUS_CHOICES = [
-        ('queued', 'Queued'),
-        ('active', 'Active'),
-        ('served', 'Served'),
-        ('cancelled', 'Cancelled'),
-        ('delayed', 'Delayed'),
-    ]
-    
+    round = models.ForeignKey(Round, on_delete=models.CASCADE)
     round_penalty = models.OneToOneField(
         RoundPenalty, 
         on_delete=models.CASCADE,
         related_name='stop_go_queue'
     )
-    round = models.ForeignKey(Round, on_delete=models.CASCADE)
-    queue_position = models.PositiveIntegerField(default=0)
-    status = models.CharField(
-        max_length=10, 
-        choices=QUEUE_STATUS_CHOICES, 
-        default='queued'
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-    activated_at = models.DateTimeField(null=True, blank=True)
-    completed_at = models.DateTimeField(null=True, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
     
     class Meta:
         verbose_name = _("Stop & Go Queue Entry")
         verbose_name_plural = _("Stop & Go Queue Entries")
-        ordering = ['queue_position', 'created_at']
+        ordering = ['timestamp']
     
     def __str__(self):
-        return f"Queue #{self.queue_position}: {self.round_penalty.penalty.penalty.name} - Team {self.round_penalty.offender.team.number} ({self.status})"
+        return f"{self.round_penalty.penalty.penalty.name} - Team {self.round_penalty.offender.team.number}"
     
     @classmethod
-    def get_next_in_queue(cls, round_id):
-        """Get the next queued penalty for the round"""
-        return cls.objects.filter(
-            round_id=round_id,
-            status='queued'
-        ).order_by('queue_position', 'created_at').first()
-    
-    @classmethod
-    def get_active_penalty(cls, round_id):
-        """Get the currently active penalty for the round"""
-        return cls.objects.filter(
-            round_id=round_id,
-            status='active'
-        ).first()
+    def get_next_penalty(cls, round_id):
+        """Get the next penalty in queue (oldest timestamp)"""
+        return cls.objects.filter(round_id=round_id).order_by('timestamp').first()
     
     @classmethod
     def get_queue_count(cls, round_id):
         """Get count of queued penalties"""
-        return cls.objects.filter(
-            round_id=round_id,
-            status='queued'
-        ).count()
-    
-    def activate(self):
-        """Activate this penalty (move from queue to active)"""
-        from django.utils import timezone
-        self.status = 'active'
-        self.activated_at = timezone.now()
-        self.save()
-    
-    def complete(self):
-        """Mark penalty as served/completed"""
-        from django.utils import timezone
-        self.status = 'served'
-        self.completed_at = timezone.now()
-        # Also update the RoundPenalty served timestamp
-        self.round_penalty.served = timezone.now()
-        self.round_penalty.save()
-        self.save()
-    
-    def cancel(self):
-        """Cancel this penalty"""
-        from django.utils import timezone
-        self.status = 'cancelled'
-        self.completed_at = timezone.now()
-        self.save()
+        return cls.objects.filter(round_id=round_id).count()
     
     def delay(self):
-        """Move penalty to end of queue"""
-        # Get the highest queue position
-        max_position = StopAndGoQueue.objects.filter(
-            round=self.round,
-            status='queued'
-        ).aggregate(models.Max('queue_position'))['queue_position__max'] or 0
-        
-        self.status = 'queued'
-        self.queue_position = max_position + 1
-        self.activated_at = None
+        """Move penalty to end of queue by updating timestamp"""
+        self.timestamp = dt.datetime.now()
         self.save()
