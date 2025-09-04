@@ -1025,7 +1025,7 @@ function handleStopGoButtonClick() {
         round_id: currentRoundId,
         offender_id: offenderId,
         victim_id: victimId,
-        championship_penalty_id: selectedPenalty.id,
+        championship_penalty_id: parseInt(selectedPenalty.id),
         value: duration
       };
       
