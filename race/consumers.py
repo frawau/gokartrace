@@ -504,7 +504,9 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
                     round_penalty__round=current_round,
                     round_penalty__offender__team__number=team_number,
                     round_penalty__served__isnull=True,
-                ).order_by('timestamp').first()
+                )
+                .order_by("timestamp")
+                .first()
             )()
 
             if active_penalty:
