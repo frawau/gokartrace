@@ -497,13 +497,14 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
             if not current_round:
                 return
 
-            # Find the active penalty for this team that hasn't been served yet
+            # Find the next penalty in queue for this team that hasn't been served yet
+            # Use the queue order to get the first one for this team
             active_penalty = await database_sync_to_async(
                 lambda: PenaltyQueue.objects.filter(
                     round_penalty__round=current_round,
                     round_penalty__offender__team__number=team_number,
                     round_penalty__served__isnull=True,
-                ).first()
+                ).order_by('timestamp').first()
             )()
 
             if active_penalty:

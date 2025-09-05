@@ -2049,9 +2049,19 @@ def serve_penalty(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body)
-            queue_id = data.get("queue_id")
+            round_id = data.get("round_id")
 
-            queue_entry = get_object_or_404(PenaltyQueue, id=queue_id)
+            if not round_id:
+                return JsonResponse(
+                    {"success": False, "error": "round_id is required"}, status=400
+                )
+
+            # Get the current active penalty (first in queue order)
+            queue_entry = PenaltyQueue.get_next_penalty(round_id)
+            if not queue_entry:
+                return JsonResponse(
+                    {"success": False, "error": "No active penalty found"}, status=404
+                )
 
             # Mark penalty as served
             queue_entry.round_penalty.served = dt.datetime.now()
@@ -2061,17 +2071,17 @@ def serve_penalty(request):
             round_id = queue_entry.round_penalty.round.id
             queue_entry.delete()
 
-            # Force complete the penalty at the station and handle queue progression
+            # Reset the station and handle queue progression
             from channels.layers import get_channel_layer
             from asgiref.sync import async_to_sync
 
             channel_layer = get_channel_layer()
 
-            # Send force complete to station first
+            # Send reset to station to clear display
             async_to_sync(channel_layer.group_send)(
                 "stopandgo",
                 {
-                    "type": "force_complete_penalty",
+                    "type": "reset_station",
                 },
             )
 

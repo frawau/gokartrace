@@ -1108,7 +1108,7 @@ function handleStopGoButtonClick() {
  * Handle Served button click
  */
 function handleServedButtonClick() {
-  if (!currentQueueId) return;
+  if (!currentQueueId || !currentRoundId) return;
   
   fetch('/api/serve-penalty/', {
     method: 'POST',
@@ -1116,7 +1116,7 @@ function handleServedButtonClick() {
       'Content-Type': 'application/json',
       'X-CSRFToken': getCookie('csrftoken')
     },
-    body: JSON.stringify({ queue_id: currentQueueId })
+    body: JSON.stringify({ round_id: currentRoundId })
   })
   .then(response => response.json())
   .then(data => {
