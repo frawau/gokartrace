@@ -2060,9 +2060,18 @@ def serve_penalty(request):
             # Remove from queue
             queue_entry.delete()
 
-            # Signal penalty state change - trigger next penalty after delay
-            # This will be handled by the StopAndGoConsumer when it receives penalty_served
-            pass
+            # Signal penalty state change to consumer for queue progression
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                "stopandgo",
+                {
+                    "type": "penalty_cancelled",  # Use same handler as cancel
+                    "round_id": queue_entry.round_penalty.round.id,
+                },
+            )
 
             return JsonResponse({"success": True})
 
@@ -2090,8 +2099,18 @@ def cancel_penalty(request):
             queue_entry.delete()
             round_penalty.delete()
 
-            # Signal penalty state change - will be handled by consumer
-            pass
+            # Signal penalty state change to consumer
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                "stopandgo",
+                {
+                    "type": "penalty_cancelled",
+                    "round_id": round_id,
+                },
+            )
 
             return JsonResponse({"success": True})
 
@@ -2138,8 +2157,18 @@ def delay_penalty(request):
                 # No "ignoring s&g" penalty configured
                 pass
 
-            # Signal penalty state change - will be handled by consumer
-            pass
+            # Signal penalty state change to consumer
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                "stopandgo",
+                {
+                    "type": "penalty_delayed",
+                    "round_id": round_id,
+                },
+            )
 
             return JsonResponse({"success": True})
 
