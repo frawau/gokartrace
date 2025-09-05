@@ -11,9 +11,7 @@ from .signals import race_end_requested
 class RaceTasks:
 
     _lock = aio.Semaphore(1)
-    _penalty_queue_event = aio.Event()
-    _penalty_queue_data = []
-    _penalty_queue_lock = aio.Lock()
+    _send_next_penalty_event = aio.Event()
 
     @classmethod
     async def race_events(cls):
@@ -99,82 +97,67 @@ class RaceTasks:
             return
 
     @classmethod
-    async def queue_penalty_notification(cls, penalty_data, delay_seconds=10):
-        """Queue a penalty notification to be sent after delay"""
-        async with cls._penalty_queue_lock:
-            cls._penalty_queue_data.append(
-                {
-                    "penalty_data": penalty_data,
-                    "delay": delay_seconds,
-                    "queue_time": dt.datetime.now(),
-                    "send_time": dt.datetime.now()
-                    + dt.timedelta(seconds=delay_seconds),
-                }
-            )
-            cls._penalty_queue_event.set()  # Signal that there's work to do
+    async def trigger_send_next_penalty(cls, was_queue_empty=True):
+        """Trigger sending next penalty - immediately if queue was empty, after delay if not"""
+        if was_queue_empty:
+            print("Queue was empty, sending next penalty immediately")
+        else:
+            print("Queue had penalties, waiting 10 seconds before sending next penalty")
+            await aio.sleep(10)
 
-        print(
-            f"Queued penalty notification for team {penalty_data['team']} with {delay_seconds}s delay"
-        )
+        cls._send_next_penalty_event.set()  # Signal to send next penalty
 
     @classmethod
-    async def penalty_queue_processor(cls):
-        """Process penalty queue notifications"""
+    async def penalty_sender(cls):
+        """Send next penalty when triggered"""
+        from .models import StopAndGoQueue, Round
+
         channel_layer = get_channel_layer()
 
         while True:
             try:
-                # Wait for notifications to be queued
-                await cls._penalty_queue_event.wait()
+                # Wait for trigger
+                await cls._send_next_penalty_event.wait()
+                cls._send_next_penalty_event.clear()
 
-                # Process all pending notifications
-                async with cls._penalty_queue_lock:
-                    now = dt.datetime.now()
-                    ready_to_send = []
-                    remaining = []
+                # Get current round
+                end_date = dt.date.today()
+                start_date = end_date - dt.timedelta(days=1)
+                current_round = await Round.objects.filter(
+                    Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
+                ).afirst()
 
-                    for item in cls._penalty_queue_data:
-                        if now >= item["send_time"]:
-                            ready_to_send.append(item)
-                        else:
-                            remaining.append(item)
+                if not current_round:
+                    continue
 
-                    cls._penalty_queue_data = remaining
+                # Get next penalty from database queue
+                next_penalty = await sync_to_async(StopAndGoQueue.get_next_penalty)(
+                    current_round.id
+                )
 
-                    # Clear event if no more items
-                    if not cls._penalty_queue_data:
-                        cls._penalty_queue_event.clear()
+                if next_penalty:
+                    message = {
+                        "type": "penalty_required",
+                        "team": next_penalty.round_penalty.offender.team.number,
+                        "duration": next_penalty.round_penalty.value,
+                        "penalty_id": next_penalty.round_penalty.id,
+                        "queue_id": next_penalty.id,
+                        "timestamp": dt.datetime.now().isoformat(),
+                    }
 
-                # Send ready notifications
-                for item in ready_to_send:
-                    try:
-                        penalty_data = item["penalty_data"]
-                        message = {
-                            "type": "penalty_required",
-                            "team": penalty_data["team"],
-                            "duration": penalty_data["duration"],
-                            "penalty_id": penalty_data["penalty_id"],
-                            "queue_id": penalty_data["queue_id"],
-                            "timestamp": dt.datetime.now().isoformat(),
-                        }
+                    await channel_layer.group_send(
+                        "stopandgo",
+                        {"type": "penalty_notification", "message": message},
+                    )
 
-                        await channel_layer.group_send(
-                            "stopandgo",
-                            {"type": "penalty_notification", "message": message},
-                        )
-
-                        print(
-                            f"Sent penalty notification for team {penalty_data['team']}"
-                        )
-
-                    except Exception as e:
-                        print(f"Error sending penalty notification: {e}")
-
-                # Sleep briefly before checking again
-                await aio.sleep(1)
+                    print(
+                        f"Sent next penalty for team {next_penalty.round_penalty.offender.team.number}"
+                    )
+                else:
+                    print("No more penalties in queue")
 
             except Exception as e:
-                print(f"Error in penalty queue processor: {e}")
+                print(f"Error in penalty sender: {e}")
                 await aio.sleep(5)
 
 
@@ -183,6 +166,6 @@ def run_race_events():
 
     async def run_both():
         # Start both the race events and penalty queue processor
-        await aio.gather(RaceTasks.race_events(), RaceTasks.penalty_queue_processor())
+        await aio.gather(RaceTasks.race_events(), RaceTasks.penalty_sender())
 
     aio.run(run_both())
