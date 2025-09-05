@@ -5,19 +5,67 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 import json
 import datetime as dt
+import asyncio
 from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 
 from .models import Round, RoundPenalty, StopAndGoQueue, ChampionshipPenalty
 
 
 def send_next_penalty_to_station(queue_count_before_action):
-    """Trigger sending next penalty - immediately if queue was empty, after delay if not"""
-    from .tasks import RaceTasks
+    """Send next penalty - sleep if needed, then send message"""
 
-    was_queue_empty = queue_count_before_action == 0
+    async def send_penalty_async():
+        was_queue_empty = queue_count_before_action == 0
 
-    # Use async_to_sync to trigger the next penalty
-    async_to_sync(RaceTasks.trigger_send_next_penalty)(was_queue_empty)
+        if not was_queue_empty:
+            print("Queue had penalties, waiting 10 seconds")
+            await asyncio.sleep(10)
+        else:
+            print("Queue was empty, sending immediately")
+
+        # Get next penalty from database
+        from django.db.models import Q
+
+        end_date = dt.date.today()
+        start_date = end_date - dt.timedelta(days=1)
+        current_round = Round.objects.filter(
+            Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
+        ).first()
+
+        if not current_round:
+            print("No current round")
+            return
+
+        next_penalty = StopAndGoQueue.get_next_penalty(current_round.id)
+
+        if next_penalty:
+            channel_layer = get_channel_layer()
+            message = {
+                "type": "penalty_required",
+                "team": next_penalty.round_penalty.offender.team.number,
+                "duration": next_penalty.round_penalty.value,
+                "penalty_id": next_penalty.round_penalty.id,
+                "queue_id": next_penalty.id,
+                "timestamp": dt.datetime.now().isoformat(),
+            }
+
+            await channel_layer.group_send(
+                "stopandgo", {"type": "penalty_notification", "message": message}
+            )
+
+            print(
+                f"Sent penalty for team {next_penalty.round_penalty.offender.team.number}"
+            )
+        else:
+            print("No penalties in queue")
+
+    # Create task to run in background
+    try:
+        asyncio.create_task(send_penalty_async())
+    except RuntimeError:
+        # If no event loop, run with async_to_sync
+        async_to_sync(send_penalty_async)()
 
 
 @login_required
@@ -92,6 +140,7 @@ def cancel_stop_go_penalty(request):
         except Exception as e:
             print(f"ERROR in API endpoint: {e}")
             import traceback
+
             traceback.print_exc()
             return JsonResponse({"success": False, "error": str(e)}, status=400)
 
@@ -166,6 +215,7 @@ def delay_stop_go_penalty(request):
         except Exception as e:
             print(f"ERROR in API endpoint: {e}")
             import traceback
+
             traceback.print_exc()
             return JsonResponse({"success": False, "error": str(e)}, status=400)
 
@@ -211,6 +261,7 @@ def complete_stop_go_penalty(request):
         except Exception as e:
             print(f"ERROR in API endpoint: {e}")
             import traceback
+
             traceback.print_exc()
             return JsonResponse({"success": False, "error": str(e)}, status=400)
 
