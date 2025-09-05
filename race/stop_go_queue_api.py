@@ -90,6 +90,9 @@ def cancel_stop_go_penalty(request):
             )
 
         except Exception as e:
+            print(f"ERROR in API endpoint: {e}")
+            import traceback
+            traceback.print_exc()
             return JsonResponse({"success": False, "error": str(e)}, status=400)
 
     return JsonResponse({"error": "Only POST method allowed"}, status=405)
@@ -161,6 +164,9 @@ def delay_stop_go_penalty(request):
             )
 
         except Exception as e:
+            print(f"ERROR in API endpoint: {e}")
+            import traceback
+            traceback.print_exc()
             return JsonResponse({"success": False, "error": str(e)}, status=400)
 
     return JsonResponse({"error": "Only POST method allowed"}, status=405)
@@ -203,6 +209,9 @@ def complete_stop_go_penalty(request):
             )
 
         except Exception as e:
+            print(f"ERROR in API endpoint: {e}")
+            import traceback
+            traceback.print_exc()
             return JsonResponse({"success": False, "error": str(e)}, status=400)
 
     return JsonResponse({"error": "Only POST method allowed"}, status=405)
