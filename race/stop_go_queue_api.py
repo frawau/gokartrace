@@ -6,7 +6,7 @@ from django.http import JsonResponse
 import json
 import datetime as dt
 import asyncio
-from asgiref.sync import async_to_sync
+from asgiref.sync import async_to_sync, sync_to_async
 from channels.layers import get_channel_layer
 
 from .models import Round, RoundPenalty, StopAndGoQueue, ChampionshipPenalty
@@ -24,20 +24,24 @@ def send_next_penalty_to_station(queue_count_before_action):
         else:
             print("Queue was empty, sending immediately")
 
-        # Get next penalty from database
+        # Get next penalty from database using sync_to_async
         from django.db.models import Q
 
         end_date = dt.date.today()
         start_date = end_date - dt.timedelta(days=1)
-        current_round = Round.objects.filter(
-            Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
-        ).first()
+        current_round = await sync_to_async(
+            Round.objects.filter(
+                Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
+            ).first
+        )()
 
         if not current_round:
             print("No current round")
             return
 
-        next_penalty = StopAndGoQueue.get_next_penalty(current_round.id)
+        next_penalty = await sync_to_async(StopAndGoQueue.get_next_penalty)(
+            current_round.id
+        )
 
         if next_penalty:
             channel_layer = get_channel_layer()
