@@ -1207,3 +1207,55 @@ class RoundPenalty(models.Model):
 
     def __str__(self):
         return f"{self.penalty.penalty.name} ({self.value}) for {self.offender}"
+
+
+class PenaltyQueue(models.Model):
+    """
+    Queue for Stop & Go penalties to handle multiple penalties in sequence.
+    Only Stop & Go ('S') and Self Stop & Go ('D') penalties can be queued.
+    Ordered by timestamp, oldest first.
+    """
+
+    round_penalty = models.OneToOneField(
+        RoundPenalty, on_delete=models.CASCADE, related_name="penalty_queue"
+    )
+    timestamp = models.DateTimeField(default=dt.datetime.now)
+
+    class Meta:
+        verbose_name = _("Penalty Queue Entry")
+        verbose_name_plural = _("Penalty Queue Entries")
+        ordering = ["timestamp"]  # Oldest first
+
+    def clean(self):
+        """Validate that only Stop & Go penalties can be queued"""
+        if self.round_penalty and self.round_penalty.penalty.sanction not in ["S", "D"]:
+            raise ValidationError(
+                "Only Stop & Go ('S') and Self Stop & Go ('D') penalties can be queued."
+            )
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Queue: {self.round_penalty} at {self.timestamp}"
+
+    @classmethod
+    def get_next_penalty(cls, round_id):
+        """Get the next penalty in queue for a given round"""
+        return cls.objects.filter(round_penalty__round_id=round_id).first()
+
+    @classmethod
+    async def aget_next_penalty(cls, round_id):
+        """Async version of get_next_penalty"""
+        return await cls.objects.filter(round_penalty__round_id=round_id).afirst()
+
+    def delay_penalty(self):
+        """Move this penalty to the end of the queue"""
+        self.timestamp = dt.datetime.now()
+        self.save()
+
+    @sync_to_async
+    def adelay_penalty(self):
+        """Async version of delay_penalty"""
+        return self.delay_penalty()

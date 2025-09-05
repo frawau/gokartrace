@@ -130,7 +130,19 @@
                                         <div class="col-4 d-flex flex-column justify-content-between">
                                             <!-- Stop & Go Button - Top -->
                                             <div class="mb-2">
-                                                <button class="btn w-100" id="stopGoButton" disabled style="background-color: #dc3545; color: yellow; font-weight: bold; min-height: 45px; font-size: 0.9rem;">Stop & Go</button>
+                                                <button class="btn w-100" id="stopGoButton" disabled style="background-color: #6c757d; color: #fff; font-weight: bold; min-height: 45px; font-size: 0.9rem;">Stop & Go</button>
+                                            </div>
+                                            
+                                            <!-- Queue Action Buttons - When penalty is active -->
+                                            <div id="queueActionButtons" class="mb-2" style="display: none;">
+                                                <!-- Served Button -->
+                                                <button class="btn w-100 mb-1" id="servedButton" disabled style="background-color: #28a745; color: white; font-weight: bold; min-height: 35px; font-size: 0.8rem;">Served</button>
+                                                
+                                                <!-- Cancel and Delay buttons side by side -->
+                                                <div class="d-flex gap-1">
+                                                    <button class="btn flex-fill" id="cancelButton" disabled style="background-color: #dc3545; color: white; font-weight: bold; min-height: 35px; font-size: 0.8rem;">Cancel</button>
+                                                    <button class="btn flex-fill" id="delayButton" disabled style="background-color: #ffc107; color: black; font-weight: bold; min-height: 35px; font-size: 0.8rem;">Delay</button>
+                                                </div>
                                             </div>
                                             
                                             <!-- Toggle Fence Button - Center -->

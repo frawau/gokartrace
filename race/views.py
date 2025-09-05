@@ -42,6 +42,7 @@ from .models import (
     Penalty,
     ChampionshipPenalty,
     RoundPenalty,
+    PenaltyQueue,
 )
 from .signals import race_end_requested
 from .serializers import ChangeLaneSerializer
@@ -1927,3 +1928,260 @@ def get_laps_penalties(request, round_id):
         return JsonResponse({"penalties": penalties_data})
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
+
+
+@csrf_exempt
+def queue_penalty(request):
+    """API endpoint to queue a Stop & Go penalty."""
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+
+            round_id = data.get("round_id")
+            offender_id = data.get("offender_id")
+            victim_id = data.get("victim_id")
+            championship_penalty_id = data.get("championship_penalty_id")
+            value = data.get("value")
+
+            round_obj = get_object_or_404(Round, id=round_id)
+            offender = get_object_or_404(round_team, id=offender_id)
+            championship_penalty = get_object_or_404(
+                ChampionshipPenalty, id=championship_penalty_id
+            )
+
+            # Validate that this is a Stop & Go penalty
+            if championship_penalty.sanction not in ["S", "D"]:
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "error": "Only Stop & Go penalties can be queued",
+                    },
+                    status=400,
+                )
+
+            victim = None
+            if victim_id:
+                victim = get_object_or_404(round_team, id=victim_id)
+
+            # Check if queue was empty before adding new penalty
+            was_queue_empty = not PenaltyQueue.objects.filter(
+                round_penalty__round_id=round_id
+            ).exists()
+
+            # Create RoundPenalty
+            round_penalty = RoundPenalty.objects.create(
+                round=round_obj,
+                offender=offender,
+                victim=victim,
+                penalty=championship_penalty,
+                value=value,
+                imposed=dt.datetime.now(),
+            )
+
+            # Create PenaltyQueue entry
+            queue_entry = PenaltyQueue.objects.create(
+                round_penalty=round_penalty, timestamp=dt.datetime.now()
+            )
+
+            # Signal penalty queue system
+            # Only triggers immediately if queue was empty (0→1)
+            asyncio.create_task(handle_penalty_queued(round_id, was_queue_empty))
+
+            return JsonResponse(
+                {
+                    "success": True,
+                    "penalty_id": round_penalty.id,
+                    "queue_id": queue_entry.id,
+                }
+            )
+
+        except json.JSONDecodeError:
+            return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+    return JsonResponse({"success": False, "error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def get_penalty_queue_status(request, round_id):
+    """API endpoint to get current penalty queue status."""
+    try:
+        active_penalty = PenaltyQueue.get_next_penalty(round_id)
+
+        if active_penalty:
+            return JsonResponse(
+                {
+                    "active_penalty": {
+                        "queue_id": active_penalty.id,
+                        "penalty_id": active_penalty.round_penalty.id,
+                        "team_number": active_penalty.round_penalty.offender.team.number,
+                        "penalty_name": active_penalty.round_penalty.penalty.penalty.name,
+                        "value": active_penalty.round_penalty.value,
+                        "timestamp": active_penalty.timestamp.isoformat(),
+                    }
+                }
+            )
+        else:
+            return JsonResponse({"active_penalty": None})
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@csrf_exempt
+def serve_penalty(request):
+    """API endpoint to mark a penalty as served."""
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            queue_id = data.get("queue_id")
+
+            queue_entry = get_object_or_404(PenaltyQueue, id=queue_id)
+
+            # Mark penalty as served
+            queue_entry.round_penalty.served = dt.datetime.now()
+            queue_entry.round_penalty.save()
+
+            # Remove from queue
+            queue_entry.delete()
+
+            # Signal penalty state change
+            asyncio.create_task(
+                handle_penalty_served(queue_entry.round_penalty.round.id)
+            )
+
+            return JsonResponse({"success": True})
+
+        except json.JSONDecodeError:
+            return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+    return JsonResponse({"success": False, "error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def cancel_penalty(request):
+    """API endpoint to cancel a penalty (remove both penalty and queue entry)."""
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            queue_id = data.get("queue_id")
+
+            queue_entry = get_object_or_404(PenaltyQueue, id=queue_id)
+            round_id = queue_entry.round_penalty.round.id
+
+            # Delete both penalty and queue entry
+            round_penalty = queue_entry.round_penalty
+            queue_entry.delete()
+            round_penalty.delete()
+
+            # Signal penalty state change
+            asyncio.create_task(handle_penalty_cancelled(round_id))
+
+            return JsonResponse({"success": True})
+
+        except json.JSONDecodeError:
+            return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+    return JsonResponse({"success": False, "error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def delay_penalty(request):
+    """API endpoint to delay a penalty (move to end of queue)."""
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            queue_id = data.get("queue_id")
+
+            queue_entry = get_object_or_404(PenaltyQueue, id=queue_id)
+            round_id = queue_entry.round_penalty.round.id
+
+            # Move to end of queue
+            queue_entry.delay_penalty()
+
+            # Check if this was a delayed penalty and apply "ignoring s&g" penalty
+            # as specified in requirements
+            round_obj = queue_entry.round_penalty.round
+            try:
+                ignoring_sg_penalty = ChampionshipPenalty.objects.get(
+                    championship=round_obj.championship, penalty__name="ignoring s&g"
+                )
+
+                # Apply ignoring s&g penalty to the offending team
+                RoundPenalty.objects.create(
+                    round=round_obj,
+                    offender=queue_entry.round_penalty.offender,
+                    victim=None,
+                    penalty=ignoring_sg_penalty,
+                    value=ignoring_sg_penalty.value,
+                    imposed=dt.datetime.now(),
+                )
+            except ChampionshipPenalty.DoesNotExist:
+                # No "ignoring s&g" penalty configured
+                pass
+
+            # Signal penalty state change
+            asyncio.create_task(handle_penalty_delayed(round_id))
+
+            return JsonResponse({"success": True})
+
+        except json.JSONDecodeError:
+            return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+    return JsonResponse({"success": False, "error": "Method not allowed"}, status=405)
+
+
+# Async signal handlers for penalty queue management
+async def handle_penalty_queued(round_id, was_queue_empty):
+    """Handle when a new penalty is queued."""
+    # Only trigger immediately if the queue was previously empty (0→1)
+    if was_queue_empty:
+        await trigger_next_penalty(round_id)
+
+
+async def handle_penalty_served(round_id):
+    """Handle when a penalty is served."""
+    # Trigger next penalty after 10 seconds delay
+    await asyncio.sleep(10)
+    await trigger_next_penalty(round_id)
+
+
+async def handle_penalty_cancelled(round_id):
+    """Handle when a penalty is cancelled."""
+    # Trigger next penalty after 10 seconds delay
+    await asyncio.sleep(10)
+    await trigger_next_penalty(round_id)
+
+
+async def handle_penalty_delayed(round_id):
+    """Handle when a penalty is delayed."""
+    # Trigger next penalty after 10 seconds delay
+    await asyncio.sleep(10)
+    await trigger_next_penalty(round_id)
+
+
+async def trigger_next_penalty(round_id):
+    """Trigger the next penalty in the queue."""
+    from channels.layers import get_channel_layer
+
+    next_penalty = await PenaltyQueue.aget_next_penalty(round_id)
+
+    if next_penalty:
+        # Signal the stop and go station
+        channel_layer = get_channel_layer()
+        await channel_layer.group_send(
+            "stopandgo",
+            {
+                "type": "penalty_required",
+                "team": next_penalty.round_penalty.offender.team.number,
+                "duration": next_penalty.round_penalty.value,
+                "penalty_id": next_penalty.round_penalty.id,
+            },
+        )
