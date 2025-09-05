@@ -4,12 +4,16 @@ import asyncio as aio
 import datetime as dt
 from django.db.models import Q
 from asgiref.sync import sync_to_async
+from channels.layers import get_channel_layer
 from .signals import race_end_requested
 
 
 class RaceTasks:
 
     _lock = aio.Semaphore(1)
+    _penalty_queue_event = aio.Event()
+    _penalty_queue_data = []
+    _penalty_queue_lock = aio.Lock()
 
     @classmethod
     async def race_events(cls):
@@ -94,7 +98,91 @@ class RaceTasks:
             # bail out
             return
 
+    @classmethod
+    async def queue_penalty_notification(cls, penalty_data, delay_seconds=10):
+        """Queue a penalty notification to be sent after delay"""
+        async with cls._penalty_queue_lock:
+            cls._penalty_queue_data.append(
+                {
+                    "penalty_data": penalty_data,
+                    "delay": delay_seconds,
+                    "queue_time": dt.datetime.now(),
+                    "send_time": dt.datetime.now()
+                    + dt.timedelta(seconds=delay_seconds),
+                }
+            )
+            cls._penalty_queue_event.set()  # Signal that there's work to do
+
+        print(
+            f"Queued penalty notification for team {penalty_data['team']} with {delay_seconds}s delay"
+        )
+
+    @classmethod
+    async def penalty_queue_processor(cls):
+        """Process penalty queue notifications"""
+        channel_layer = get_channel_layer()
+
+        while True:
+            try:
+                # Wait for notifications to be queued
+                await cls._penalty_queue_event.wait()
+
+                # Process all pending notifications
+                async with cls._penalty_queue_lock:
+                    now = dt.datetime.now()
+                    ready_to_send = []
+                    remaining = []
+
+                    for item in cls._penalty_queue_data:
+                        if now >= item["send_time"]:
+                            ready_to_send.append(item)
+                        else:
+                            remaining.append(item)
+
+                    cls._penalty_queue_data = remaining
+
+                    # Clear event if no more items
+                    if not cls._penalty_queue_data:
+                        cls._penalty_queue_event.clear()
+
+                # Send ready notifications
+                for item in ready_to_send:
+                    try:
+                        penalty_data = item["penalty_data"]
+                        message = {
+                            "type": "penalty_required",
+                            "team": penalty_data["team"],
+                            "duration": penalty_data["duration"],
+                            "penalty_id": penalty_data["penalty_id"],
+                            "queue_id": penalty_data["queue_id"],
+                            "timestamp": dt.datetime.now().isoformat(),
+                        }
+
+                        await channel_layer.group_send(
+                            "stopandgo",
+                            {"type": "penalty_notification", "message": message},
+                        )
+
+                        print(
+                            f"Sent penalty notification for team {penalty_data['team']}"
+                        )
+
+                    except Exception as e:
+                        print(f"Error sending penalty notification: {e}")
+
+                # Sleep briefly before checking again
+                await aio.sleep(1)
+
+            except Exception as e:
+                print(f"Error in penalty queue processor: {e}")
+                await aio.sleep(5)
+
 
 def run_race_events():
     """Wrapper function to run the async race_events task."""
-    aio.run(RaceTasks.race_events())
+
+    async def run_both():
+        # Start both the race events and penalty queue processor
+        await aio.gather(RaceTasks.race_events(), RaceTasks.penalty_queue_processor())
+
+    aio.run(run_both())

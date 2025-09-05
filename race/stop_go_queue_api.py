@@ -5,86 +5,15 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 import json
 import datetime as dt
-from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
-import asyncio
-import queue
-import threading
 
 from .models import Round, RoundPenalty, StopAndGoQueue, ChampionshipPenalty
 
-# Global queue for penalty notifications
-penalty_notification_queue = queue.Queue()
-
-# Flag to track if notification task is running
-notification_task_running = False
-
-
-def start_penalty_notification_task():
-    """Start the penalty notification background task if not already running"""
-    global notification_task_running
-
-    if notification_task_running:
-        return
-
-    def notification_worker():
-        """Background worker that processes penalty notifications"""
-        global notification_task_running
-        notification_task_running = True
-
-        async def process_notifications():
-            channel_layer = get_channel_layer()
-
-            while True:
-                try:
-                    # Check for new notifications (non-blocking)
-                    try:
-                        penalty_data, delay = penalty_notification_queue.get_nowait()
-
-                        if delay > 0:
-                            await asyncio.sleep(delay)
-
-                        message = {
-                            "type": "penalty_required",
-                            "team": penalty_data["team"],
-                            "duration": penalty_data["duration"],
-                            "penalty_id": penalty_data["penalty_id"],
-                            "queue_id": penalty_data["queue_id"],
-                            "timestamp": dt.datetime.now().isoformat(),
-                        }
-
-                        await channel_layer.group_send(
-                            "stopandgo",
-                            {"type": "penalty_notification", "message": message},
-                        )
-
-                        print(
-                            f"Sent penalty notification for team {penalty_data['team']}"
-                        )
-
-                    except queue.Empty:
-                        # No notifications pending, wait a bit
-                        await asyncio.sleep(1)
-
-                except Exception as e:
-                    print(f"Error in penalty notification worker: {e}")
-                    await asyncio.sleep(5)  # Wait before retrying
-
-        # Run the async process in this thread
-        asyncio.run(process_notifications())
-
-    # Start the worker thread
-    thread = threading.Thread(target=notification_worker, daemon=True)
-    thread.start()
-    print("Started penalty notification background task")
-
 
 def send_next_penalty_to_station(next_penalty, delay_seconds=10):
-    """Queue a penalty notification to be sent after delay"""
-    # Ensure the notification task is running
-    start_penalty_notification_task()
+    """Queue a penalty notification to be sent after delay using RaceTasks"""
+    from .tasks import RaceTasks
 
-    # Add to queue
     penalty_data = {
         "team": next_penalty.round_penalty.offender.team.number,
         "duration": next_penalty.round_penalty.value,
@@ -92,10 +21,8 @@ def send_next_penalty_to_station(next_penalty, delay_seconds=10):
         "queue_id": next_penalty.id,
     }
 
-    penalty_notification_queue.put((penalty_data, delay_seconds))
-    print(
-        f"Queued penalty notification for team {penalty_data['team']} with {delay_seconds}s delay"
-    )
+    # Use async_to_sync to call the async method from sync context
+    async_to_sync(RaceTasks.queue_penalty_notification)(penalty_data, delay_seconds)
 
 
 @login_required
