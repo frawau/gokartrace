@@ -497,7 +497,7 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
             if not current_round:
                 return
 
-            # Find the active penalty for this team
+            # Find the active penalty for this team that hasn't been served yet
             active_penalty = await database_sync_to_async(
                 lambda: PenaltyQueue.objects.filter(
                     round_penalty__round=current_round,
@@ -507,6 +507,10 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
             )()
 
             if active_penalty:
+                print(
+                    f"Processing station-reported penalty served for team {team_number}"
+                )
+
                 # Mark penalty as served
                 await database_sync_to_async(
                     lambda: setattr(
@@ -522,6 +526,10 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
 
                 # Trigger next penalty after 10 seconds
                 await self.trigger_next_penalty_after_delay(current_round.id)
+            else:
+                print(
+                    f"Ignoring station penalty_served for team {team_number} - penalty already processed or not found"
+                )
 
         except Exception as e:
             print(f"Error handling penalty served from station: {e}")
@@ -585,6 +593,16 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
         round_id = event.get("round_id")
         if round_id:
             await self.handle_penalty_state_change(round_id)
+
+    async def reset_station(self, event):
+        """Send reset command to stop and go station"""
+        message = {
+            "type": "command",
+            "command": "reset",
+            "timestamp": dt.datetime.now().isoformat(),
+        }
+        signed_message = self.sign_message(message)
+        await self.send(text_data=json.dumps(signed_message))
 
 
 # Signal handler for race end requests - placed outside classes

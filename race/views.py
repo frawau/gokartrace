@@ -2058,18 +2058,29 @@ def serve_penalty(request):
             queue_entry.round_penalty.save()
 
             # Remove from queue
+            round_id = queue_entry.round_penalty.round.id
             queue_entry.delete()
 
-            # Signal penalty state change to consumer for queue progression
+            # Force complete the penalty at the station and handle queue progression
             from channels.layers import get_channel_layer
             from asgiref.sync import async_to_sync
 
             channel_layer = get_channel_layer()
+
+            # Send force complete to station first
             async_to_sync(channel_layer.group_send)(
                 "stopandgo",
                 {
-                    "type": "penalty_cancelled",  # Use same handler as cancel
-                    "round_id": queue_entry.round_penalty.round.id,
+                    "type": "force_complete_penalty",
+                },
+            )
+
+            # Then signal queue progression
+            async_to_sync(channel_layer.group_send)(
+                "stopandgo",
+                {
+                    "type": "penalty_cancelled",  # Use same handler as cancel for queue progression
+                    "round_id": round_id,
                 },
             )
 
@@ -2099,11 +2110,21 @@ def cancel_penalty(request):
             queue_entry.delete()
             round_penalty.delete()
 
-            # Signal penalty state change to consumer
+            # Reset the station and handle queue progression
             from channels.layers import get_channel_layer
             from asgiref.sync import async_to_sync
 
             channel_layer = get_channel_layer()
+
+            # Send reset to station first
+            async_to_sync(channel_layer.group_send)(
+                "stopandgo",
+                {
+                    "type": "reset_station",
+                },
+            )
+
+            # Then signal queue progression
             async_to_sync(channel_layer.group_send)(
                 "stopandgo",
                 {
@@ -2157,11 +2178,21 @@ def delay_penalty(request):
                 # No "ignoring s&g" penalty configured
                 pass
 
-            # Signal penalty state change to consumer
+            # Reset the station and handle queue progression
             from channels.layers import get_channel_layer
             from asgiref.sync import async_to_sync
 
             channel_layer = get_channel_layer()
+
+            # Send reset to station first
+            async_to_sync(channel_layer.group_send)(
+                "stopandgo",
+                {
+                    "type": "reset_station",
+                },
+            )
+
+            # Then signal queue progression
             async_to_sync(channel_layer.group_send)(
                 "stopandgo",
                 {
