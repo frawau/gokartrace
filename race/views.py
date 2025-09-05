@@ -2,7 +2,6 @@
 """
 Copyright (c) 2019 - present AppSeed.us
 """
-import asyncio
 import datetime as dt
 import json
 import re
@@ -1986,7 +1985,21 @@ def queue_penalty(request):
 
             # Signal penalty queue system
             # Only triggers immediately if queue was empty (0→1)
-            asyncio.create_task(handle_penalty_queued(round_id, was_queue_empty))
+            if was_queue_empty:
+                # Trigger first penalty immediately using channels
+                from channels.layers import get_channel_layer
+                from asgiref.sync import async_to_sync
+
+                channel_layer = get_channel_layer()
+                async_to_sync(channel_layer.group_send)(
+                    "stopandgo",
+                    {
+                        "type": "penalty_required",
+                        "team": offender.team.number,
+                        "duration": value,
+                        "penalty_id": round_penalty.id,
+                    },
+                )
 
             return JsonResponse(
                 {
@@ -2047,10 +2060,9 @@ def serve_penalty(request):
             # Remove from queue
             queue_entry.delete()
 
-            # Signal penalty state change
-            asyncio.create_task(
-                handle_penalty_served(queue_entry.round_penalty.round.id)
-            )
+            # Signal penalty state change - trigger next penalty after delay
+            # This will be handled by the StopAndGoConsumer when it receives penalty_served
+            pass
 
             return JsonResponse({"success": True})
 
@@ -2078,8 +2090,8 @@ def cancel_penalty(request):
             queue_entry.delete()
             round_penalty.delete()
 
-            # Signal penalty state change
-            asyncio.create_task(handle_penalty_cancelled(round_id))
+            # Signal penalty state change - will be handled by consumer
+            pass
 
             return JsonResponse({"success": True})
 
@@ -2126,8 +2138,8 @@ def delay_penalty(request):
                 # No "ignoring s&g" penalty configured
                 pass
 
-            # Signal penalty state change
-            asyncio.create_task(handle_penalty_delayed(round_id))
+            # Signal penalty state change - will be handled by consumer
+            pass
 
             return JsonResponse({"success": True})
 
@@ -2139,50 +2151,5 @@ def delay_penalty(request):
     return JsonResponse({"success": False, "error": "Method not allowed"}, status=405)
 
 
-# Async signal handlers for penalty queue management
-async def handle_penalty_queued(round_id, was_queue_empty):
-    """Handle when a new penalty is queued."""
-    # Only trigger immediately if the queue was previously empty (0→1)
-    if was_queue_empty:
-        await trigger_next_penalty(round_id)
-
-
-async def handle_penalty_served(round_id):
-    """Handle when a penalty is served."""
-    # Trigger next penalty after 10 seconds delay
-    await asyncio.sleep(10)
-    await trigger_next_penalty(round_id)
-
-
-async def handle_penalty_cancelled(round_id):
-    """Handle when a penalty is cancelled."""
-    # Trigger next penalty after 10 seconds delay
-    await asyncio.sleep(10)
-    await trigger_next_penalty(round_id)
-
-
-async def handle_penalty_delayed(round_id):
-    """Handle when a penalty is delayed."""
-    # Trigger next penalty after 10 seconds delay
-    await asyncio.sleep(10)
-    await trigger_next_penalty(round_id)
-
-
-async def trigger_next_penalty(round_id):
-    """Trigger the next penalty in the queue."""
-    from channels.layers import get_channel_layer
-
-    next_penalty = await PenaltyQueue.aget_next_penalty(round_id)
-
-    if next_penalty:
-        # Signal the stop and go station
-        channel_layer = get_channel_layer()
-        await channel_layer.group_send(
-            "stopandgo",
-            {
-                "type": "penalty_required",
-                "team": next_penalty.round_penalty.offender.team.number,
-                "duration": next_penalty.round_penalty.value,
-                "penalty_id": next_penalty.round_penalty.id,
-            },
-        )
+# Note: Penalty queue timing and next penalty triggering will be handled
+# by the StopAndGoConsumer when it receives penalty state updates
