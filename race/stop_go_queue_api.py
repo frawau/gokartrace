@@ -10,19 +10,14 @@ from asgiref.sync import async_to_sync
 from .models import Round, RoundPenalty, StopAndGoQueue, ChampionshipPenalty
 
 
-def send_next_penalty_to_station(next_penalty, delay_seconds=10):
-    """Queue a penalty notification to be sent after delay using RaceTasks"""
+def send_next_penalty_to_station(queue_count_before_action):
+    """Trigger sending next penalty - immediately if queue was empty, after delay if not"""
     from .tasks import RaceTasks
 
-    penalty_data = {
-        "team": next_penalty.round_penalty.offender.team.number,
-        "duration": next_penalty.round_penalty.value,
-        "penalty_id": next_penalty.round_penalty.id,
-        "queue_id": next_penalty.id,
-    }
+    was_queue_empty = queue_count_before_action == 0
 
-    # Use async_to_sync to call the async method from sync context
-    async_to_sync(RaceTasks.queue_penalty_notification)(penalty_data, delay_seconds)
+    # Use async_to_sync to trigger the next penalty
+    async_to_sync(RaceTasks.trigger_send_next_penalty)(was_queue_empty)
 
 
 @login_required
@@ -80,9 +75,11 @@ def cancel_stop_go_penalty(request):
             # Get the next penalty in queue
             next_penalty = StopAndGoQueue.get_next_penalty(round_id)
 
-            # Send next penalty to station after 10 second delay
+            # Send next penalty to station (immediately if queue was empty, after delay if not)
             if next_penalty:
-                send_next_penalty_to_station(next_penalty)
+                send_next_penalty_to_station(
+                    queue_count_before_action=1
+                )  # There was at least 1 penalty before this action
 
             return JsonResponse(
                 {
@@ -146,9 +143,11 @@ def delay_stop_go_penalty(request):
             # Get the next penalty in queue
             next_penalty = StopAndGoQueue.get_next_penalty(queue_entry.round.id)
 
-            # Send next penalty to station after 10 second delay
+            # Send next penalty to station (immediately if queue was empty, after delay if not)
             if next_penalty:
-                send_next_penalty_to_station(next_penalty)
+                send_next_penalty_to_station(
+                    queue_count_before_action=1
+                )  # There was at least 1 penalty before this action
 
             return JsonResponse(
                 {
@@ -189,9 +188,11 @@ def complete_stop_go_penalty(request):
             # Get the next penalty in queue
             next_penalty = StopAndGoQueue.get_next_penalty(round_id)
 
-            # Send next penalty to station after 10 second delay (for manual completion)
+            # Send next penalty to station (immediately if queue was empty, after delay if not)
             if next_penalty:
-                send_next_penalty_to_station(next_penalty)
+                send_next_penalty_to_station(
+                    queue_count_before_action=1
+                )  # There was at least 1 penalty before this action
 
             return JsonResponse(
                 {
