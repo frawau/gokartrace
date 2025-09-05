@@ -554,27 +554,36 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
         # Wait 10 seconds for station to clear
         await asyncio.sleep(10)
 
-        # Get next penalty in queue
-        from .models import PenaltyQueue
+        # Get next penalty in queue with all related data
+        penalty_data = await self.get_next_penalty_data(round_id)
 
-        next_penalty = await database_sync_to_async(PenaltyQueue.get_next_penalty)(
-            round_id
-        )
-
-        if next_penalty:
+        if penalty_data:
             # Signal the stop and go station for next penalty
             await self.channel_layer.group_send(
                 self.stopandgo_group_name,
                 {
                     "type": "penalty_required",
-                    "team": next_penalty.round_penalty.offender.team.number,
-                    "duration": next_penalty.round_penalty.value,
-                    "penalty_id": next_penalty.round_penalty.id,
+                    "team": penalty_data["team_number"],
+                    "duration": penalty_data["duration"],
+                    "penalty_id": penalty_data["penalty_id"],
                 },
             )
-            print(
-                f"Triggered next penalty for team {next_penalty.round_penalty.offender.team.number}"
-            )
+            print(f"Triggered next penalty for team {penalty_data['team_number']}")
+
+    @database_sync_to_async
+    def get_next_penalty_data(self, round_id):
+        """Get next penalty data with all relationships resolved"""
+        from .models import PenaltyQueue
+
+        next_penalty = PenaltyQueue.get_next_penalty(round_id)
+
+        if next_penalty:
+            return {
+                "team_number": next_penalty.round_penalty.offender.team.number,
+                "duration": next_penalty.round_penalty.value,
+                "penalty_id": next_penalty.round_penalty.id,
+            }
+        return None
 
     async def handle_penalty_state_change(self, round_id):
         """Handle penalty state changes from race control (cancel/delay)"""
