@@ -1304,8 +1304,16 @@ function handleStopAndGoMessage(data) {
             console.log('Penalty served timestamp updated');
             addSystemMessage(`Penalty served by team ${data.team}`, 'success');
             
-            // Reset form after successful update
+            // Reset current penalty state
+            currentQueueId = null;
+            currentRoundPenaltyId = null;
+            
+            // Reset form and update UI
             resetStopAndGoForm();
+            updateQueueButtons();
+            
+            // Refresh queue state to handle next penalty
+            setTimeout(() => loadQueueState(), 1000);
           } else {
             console.error('Failed to update penalty served timestamp:', result.error);
           }
