@@ -708,13 +708,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const roundIdContainer = document.getElementById('race-control-buttons');
       currentRoundId = roundIdContainer?.dataset.roundId;
       
-      console.log('Round ID container:', roundIdContainer);
-      console.log('Current round ID:', currentRoundId);
-      
       if (currentRoundId) {
         loadStopAndGoPenalties();
-      } else {
-        console.error('No round ID found - check data-round-id attribute');
       }
       
       initializeStopAndGo();
@@ -1113,14 +1108,7 @@ function handleStopGoButtonClick() {
  * Handle Served button click
  */
 function handleServedButtonClick() {
-  console.log('handleServedButtonClick called');
-  console.log('currentQueueId:', currentQueueId);
-  console.log('currentRoundId:', currentRoundId);
-  
-  if (!currentQueueId || !currentRoundId) {
-    console.error('Missing required values - currentQueueId:', currentQueueId, 'currentRoundId:', currentRoundId);
-    return;
-  }
+  if (!currentQueueId || !currentRoundId) return;
   
   fetch('/api/serve-penalty/', {
     method: 'POST',
