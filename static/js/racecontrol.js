@@ -1013,6 +1013,7 @@ function loadQueueState() {
   fetch(`/api/round/${currentRoundId}/penalty-queue-status/`)
     .then(response => response.json())
     .then(data => {
+      // Update queue management state
       if (data.active_penalty) {
         currentQueueId = data.active_penalty.queue_id;
         currentRoundPenaltyId = data.active_penalty.penalty_id;
@@ -1021,6 +1022,12 @@ function loadQueueState() {
         currentRoundPenaltyId = null;
       }
       updateQueueButtons();
+      
+      // Update penalty queue status display
+      updatePenaltyQueueStatus({
+        serving_team: data.serving_team,
+        queue_count: data.queue_count
+      });
     })
     .catch(error => {
       console.error('Error loading queue state:', error);
@@ -1091,7 +1098,7 @@ function handleStopGoButtonClick() {
         // Reset form after successful queueing
         resetStopAndGoForm();
         
-        // Refresh queue state
+        // Refresh queue state and status display
         loadQueueState();
       } else {
         throw new Error(data.error || 'Failed to queue penalty');
@@ -1274,6 +1281,11 @@ function handleStopAndGoMessage(data) {
   console.log('Stop & Go message received:', data);
   
   switch (data.type) {
+    case 'penalty_queue_update':
+      // Update penalty queue status display
+      updatePenaltyQueueStatus(data);
+      break;
+      
     case 'penalty_served':
       // Only process if we have an active penalty (currentRoundPenaltyId is set)
       if (currentRoundPenaltyId) {
@@ -1409,3 +1421,28 @@ function updateFenceButton() {
     }
   }
 }
+
+/**
+ * Update penalty queue status display
+ */
+function updatePenaltyQueueStatus(data) {
+  const statusElement = document.getElementById('penaltyQueueStatus');
+  const servingTeamElement = document.getElementById('servingTeam');
+  const queueCountElement = document.getElementById('queueCount');
+  
+  if (!statusElement || !servingTeamElement || !queueCountElement) {
+    console.warn('Penalty queue status elements not found');
+    return;
+  }
+  
+  if (data && data.queue_count > 0) {
+    // Show status when there are penalties in queue
+    statusElement.style.display = 'block';
+    servingTeamElement.textContent = data.serving_team || '--';
+    queueCountElement.textContent = data.queue_count;
+  } else {
+    // Hide status when no penalties in queue
+    statusElement.style.display = 'none';
+  }
+}
+

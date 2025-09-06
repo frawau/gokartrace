@@ -2023,21 +2023,34 @@ def get_penalty_queue_status(request, round_id):
     try:
         active_penalty = PenaltyQueue.get_next_penalty(round_id)
 
+        # Count total penalties in queue for this round
+        queue_count = PenaltyQueue.objects.filter(
+            round_penalty__round_id=round_id
+        ).count()
+
+        # Get serving team number if there's an active penalty
+        serving_team = None
+        if active_penalty and active_penalty.round_penalty.offender:
+            serving_team = active_penalty.round_penalty.offender.team.number
+
+        response_data = {
+            "queue_count": queue_count,
+            "serving_team": serving_team,
+        }
+
         if active_penalty:
-            return JsonResponse(
-                {
-                    "active_penalty": {
-                        "queue_id": active_penalty.id,
-                        "penalty_id": active_penalty.round_penalty.id,
-                        "team_number": active_penalty.round_penalty.offender.team.number,
-                        "penalty_name": active_penalty.round_penalty.penalty.penalty.name,
-                        "value": active_penalty.round_penalty.value,
-                        "timestamp": active_penalty.timestamp.isoformat(),
-                    }
-                }
-            )
+            response_data["active_penalty"] = {
+                "queue_id": active_penalty.id,
+                "penalty_id": active_penalty.round_penalty.id,
+                "team_number": active_penalty.round_penalty.offender.team.number,
+                "penalty_name": active_penalty.round_penalty.penalty.penalty.name,
+                "value": active_penalty.round_penalty.value,
+                "timestamp": active_penalty.timestamp.isoformat(),
+            }
         else:
-            return JsonResponse({"active_penalty": None})
+            response_data["active_penalty"] = None
+
+        return JsonResponse(response_data)
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)

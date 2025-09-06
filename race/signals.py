@@ -2,7 +2,15 @@ from django.db.models.signals import post_save, post_delete, pre_delete
 from django.dispatch import receiver, Signal
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
-from .models import ChangeLane, round_pause, team_member, round_team, Round, Session
+from .models import (
+    ChangeLane,
+    round_pause,
+    team_member,
+    round_team,
+    Round,
+    Session,
+    PenaltyQueue,
+)
 from django.template.loader import render_to_string
 from django.db.models import Count
 
@@ -192,6 +200,40 @@ def handle_session_change(sender, instance, **kwargs):
             "completed sessions": completed_sessions_count,
         },
     )
+
+
+def send_penalty_queue_update(round_id):
+    """Send penalty queue status update to WebSocket clients"""
+    channel_layer = get_channel_layer()
+
+    # Get the next penalty in queue (oldest timestamp)
+    next_penalty = PenaltyQueue.get_next_penalty(round_id)
+
+    # Count total penalties in queue for this round
+    queue_count = PenaltyQueue.objects.filter(round_penalty__round_id=round_id).count()
+
+    # Get serving team number if there's an active penalty
+    serving_team = None
+    if next_penalty and next_penalty.round_penalty.offender:
+        serving_team = next_penalty.round_penalty.offender.team.number
+
+    # Send update to stopandgo channel
+    async_to_sync(channel_layer.group_send)(
+        "stopandgo",
+        {
+            "type": "penalty_queue_update",
+            "serving_team": serving_team,
+            "queue_count": queue_count,
+            "round_id": round_id,
+        },
+    )
+
+
+@receiver([post_save, post_delete], sender=PenaltyQueue)
+def penalty_queue_changed(sender, instance, **kwargs):
+    """Called when a PenaltyQueue entry is created, updated, or deleted"""
+    round_id = instance.round_penalty.round.id
+    send_penalty_queue_update(round_id)
 
 
 @receiver(pre_delete, sender=Session)

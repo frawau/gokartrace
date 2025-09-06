@@ -91,7 +91,14 @@
                             </div>
                             <div class="card h-100" id="teamSelectCard" {% if not round or not round.ready %}style="display: none;"{% endif %}>
                                 <div class="card-header">
-                                    <h5 class="mb-0">Penalties</h5>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-0">Penalties</h5>
+                                        <div id="penaltyQueueStatus" class="text-end" style="display: none;">
+                                            <small class="text-muted" style="font-size: 1rem;">
+                                                Serving Team: <span id="servingTeam">--</span>&nbsp;&nbsp;&nbsp;<span id="queueCount">0</span> in Queue
+                                            </small>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="card-body overflow-auto">
                                     <div class="row">

@@ -485,6 +485,19 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
             text_data=json.dumps({"type": "penalty_completed", "team": event["team"]})
         )
 
+    async def penalty_queue_update(self, event):
+        # Broadcast penalty queue status update to race control interfaces
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "penalty_queue_update",
+                    "serving_team": event["serving_team"],
+                    "queue_count": event["queue_count"],
+                    "round_id": event["round_id"],
+                }
+            )
+        )
+
     async def handle_penalty_served_from_station(self, team_number):
         """Handle when station reports a penalty as served"""
         from channels.db import database_sync_to_async
