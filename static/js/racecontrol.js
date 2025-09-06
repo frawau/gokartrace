@@ -1284,81 +1284,40 @@ function handleStopAndGoMessage(data) {
     case 'penalty_queue_update':
       // Update penalty queue status display
       updatePenaltyQueueStatus(data);
+      
+      // Load queue state to update button management when queue changes
+      loadQueueState();
       break;
       
     case 'penalty_served':
-      // Only process if we have an active penalty (currentRoundPenaltyId is set)
-      if (currentRoundPenaltyId) {
-        // Update penalty served timestamp
-        fetch('/api/update-penalty-served/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
-          },
-          body: JSON.stringify({ penalty_id: currentRoundPenaltyId })
-        })
-        .then(response => response.json())
-        .then(result => {
-          if (result.success) {
-            console.log('Penalty served timestamp updated');
-            addSystemMessage(`Penalty served by team ${data.team}`, 'success');
-            
-            // Reset current penalty state
-            currentQueueId = null;
-            currentRoundPenaltyId = null;
-            
-            // Reset form and update UI
-            resetStopAndGoForm();
-            updateQueueButtons();
-            
-            // Refresh queue state to handle next penalty
-            setTimeout(() => loadQueueState(), 1000);
-          } else {
-            console.error('Failed to update penalty served timestamp:', result.error);
-          }
-        })
-        .catch(error => {
-          console.error('Error updating penalty served timestamp:', error);
+      // Server already handles penalty serving, just update UI and send acknowledgment
+      addSystemMessage(`Penalty served by team ${data.team}`, 'success');
+      
+      // Reset current penalty state since server handled it
+      currentQueueId = null;
+      currentRoundPenaltyId = null;
+      
+      // Reset form and update UI
+      resetStopAndGoForm();
+      updateQueueButtons();
+      
+      // Send acknowledgment back to station
+      if (stopAndGoSocket) {
+        const ackMessage = {
+          type: 'penalty_acknowledged',
+          team: data.team,
+          timestamp: new Date().toISOString()
+        };
+        
+        signMessage(ackMessage).then(signedMessage => {
+          stopAndGoSocket.send(JSON.stringify(signedMessage));
+          console.log('Sent penalty acknowledgment for team', data.team);
+        }).catch(error => {
+          console.error('Failed to sign acknowledgment:', error);
         });
-        
-        // Send acknowledgment back to station
-        if (stopAndGoSocket) {
-          const ackMessage = {
-            type: 'penalty_acknowledged',
-            team: data.team,
-            penalty_id: currentRoundPenaltyId,
-            timestamp: new Date().toISOString()
-          };
-          
-          signMessage(ackMessage).then(signedMessage => {
-            stopAndGoSocket.send(JSON.stringify(signedMessage));
-            console.log('Sent penalty acknowledgment for team', data.team);
-          }).catch(error => {
-            console.error('Failed to sign acknowledgment:', error);
-          });
-        }
-      } else {
-        // No active penalty - ignore message (penalty was already handled manually)
-        console.log(`Ignoring penalty_served message from team ${data.team} - no active penalty (already handled manually)`);
-        
-        // Still send acknowledgment to keep station happy
-        if (stopAndGoSocket) {
-          const ackMessage = {
-            type: 'penalty_acknowledged',
-            team: data.team,
-            penalty_id: data.penalty_id || null,
-            timestamp: new Date().toISOString()
-          };
-          
-          signMessage(ackMessage).then(signedMessage => {
-            stopAndGoSocket.send(JSON.stringify(signedMessage));
-            console.log('Sent penalty acknowledgment for team', data.team);
-          }).catch(error => {
-            console.error('Failed to sign acknowledgment:', error);
-          });
-        }
       }
+      
+      // The penalty_queue_update signal will trigger loadQueueState when needed
       break;
       
     case 'fence_status':
