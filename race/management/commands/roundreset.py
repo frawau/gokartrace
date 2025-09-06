@@ -1,6 +1,13 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from race.models import Round, Session, round_pause, ChangeLane, RoundPenalty
+from race.models import (
+    Round,
+    Session,
+    round_pause,
+    ChangeLane,
+    RoundPenalty,
+    PenaltyQueue,
+)
 import datetime as dt
 
 
@@ -49,11 +56,17 @@ class Command(BaseCommand):
         pauses_count = round_pause.objects.filter(round=current_round).count()
         changelanes_count = ChangeLane.objects.filter(round=current_round).count()
         penalties_count = RoundPenalty.objects.filter(round=current_round).count()
+        penalty_queue_count = PenaltyQueue.objects.filter(
+            round_penalty__round=current_round
+        ).count()
 
         self.stdout.write(f"Found {sessions_count} sessions to delete")
         self.stdout.write(f"Found {pauses_count} pauses to delete")
         self.stdout.write(f"Found {changelanes_count} pit lanes to delete")
         self.stdout.write(f"Found {penalties_count} penalties to delete")
+        self.stdout.write(
+            f"Found {penalty_queue_count} penalty queue entries to delete"
+        )
 
         if options["dry_run"]:
             self.stdout.write(
@@ -63,6 +76,7 @@ class Command(BaseCommand):
                     "- Deleting all sessions for this round\n"
                     "- Deleting all pauses for this round\n"
                     "- Deleting all pit lanes (ChangeLane) for this round\n"
+                    "- Deleting all penalty queue entries for this round\n"
                     "- Deleting all penalties for this round\n\n"
                     "Run without --dry-run to actually perform the reset."
                 )
@@ -94,6 +108,16 @@ class Command(BaseCommand):
                 ).delete()
                 self.stdout.write(
                     self.style.SUCCESS(f"Deleted {deleted_changelanes[0]} pit lanes")
+                )
+
+                # Delete all penalty queue entries associated with this round
+                deleted_penalty_queues = PenaltyQueue.objects.filter(
+                    round_penalty__round=current_round
+                ).delete()
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f"Deleted {deleted_penalty_queues[0]} penalty queue entries"
+                    )
                 )
 
                 # Delete all penalties associated with this round

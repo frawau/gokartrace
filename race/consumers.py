@@ -347,6 +347,9 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
                         signed_message = self.sign_message(message)
                         await self.send(text_data=json.dumps(signed_message))
 
+                        # Mark penalty as served in database and handle queue
+                        await self.handle_penalty_served_from_station(team_number)
+
                         # Broadcast penalty served to race control
                         await self.channel_layer.group_send(
                             self.stopandgo_group_name,
@@ -481,6 +484,150 @@ class StopAndGoConsumer(AsyncWebsocketConsumer):
         await self.send(
             text_data=json.dumps({"type": "penalty_completed", "team": event["team"]})
         )
+
+    async def penalty_queue_update(self, event):
+        # Broadcast penalty queue status update to race control interfaces
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "penalty_queue_update",
+                    "serving_team": event["serving_team"],
+                    "queue_count": event["queue_count"],
+                    "round_id": event["round_id"],
+                }
+            )
+        )
+
+    async def handle_penalty_served_from_station(self, team_number):
+        """Handle when station reports a penalty as served"""
+        from channels.db import database_sync_to_async
+        from .models import PenaltyQueue, RoundPenalty, Round
+        import datetime as dt
+
+        try:
+            # Find current round
+            current_round = await self.get_current_round()
+            if not current_round:
+                return
+
+            # Find the next penalty in queue for this team that hasn't been served yet
+            # Use the queue order to get the first one for this team
+            active_penalty = await database_sync_to_async(
+                lambda: PenaltyQueue.objects.filter(
+                    round_penalty__round=current_round,
+                    round_penalty__offender__team__number=team_number,
+                    round_penalty__served__isnull=True,
+                )
+                .order_by("timestamp")
+                .first()
+            )()
+
+            if active_penalty:
+                print(
+                    f"Processing station-reported penalty served for team {team_number}"
+                )
+
+                # Mark penalty as served
+                await database_sync_to_async(
+                    lambda: setattr(
+                        active_penalty.round_penalty, "served", dt.datetime.now()
+                    )
+                )()
+                await database_sync_to_async(
+                    lambda: active_penalty.round_penalty.save()
+                )()
+
+                # Remove from queue
+                await database_sync_to_async(lambda: active_penalty.delete())()
+
+                # Trigger next penalty after 10 seconds
+                await self.trigger_next_penalty_after_delay(current_round.id)
+            else:
+                print(
+                    f"Ignoring station penalty_served for team {team_number} - penalty already processed or not found"
+                )
+
+        except Exception as e:
+            print(f"Error handling penalty served from station: {e}")
+
+    @database_sync_to_async
+    def get_current_round(self):
+        """Get the current active round"""
+        from .models import Round
+        import datetime as dt
+        from django.db.models import Q
+
+        end_date = dt.date.today()
+        start_date = end_date - dt.timedelta(days=1)
+        return Round.objects.filter(
+            Q(start__date__range=[start_date, end_date]) & Q(ended__isnull=True)
+        ).first()
+
+    async def trigger_next_penalty_after_delay(self, round_id):
+        """Trigger next penalty in queue after 10 second delay"""
+        import asyncio
+
+        # Wait 10 seconds for station to clear
+        await asyncio.sleep(10)
+
+        # Get next penalty in queue with all related data
+        penalty_data = await self.get_next_penalty_data(round_id)
+
+        if penalty_data:
+            # Signal the stop and go station for next penalty
+            await self.channel_layer.group_send(
+                self.stopandgo_group_name,
+                {
+                    "type": "penalty_required",
+                    "team": penalty_data["team_number"],
+                    "duration": penalty_data["duration"],
+                    "penalty_id": penalty_data["penalty_id"],
+                },
+            )
+            print(f"Triggered next penalty for team {penalty_data['team_number']}")
+
+    @database_sync_to_async
+    def get_next_penalty_data(self, round_id):
+        """Get next penalty data with all relationships resolved"""
+        from .models import PenaltyQueue
+
+        next_penalty = PenaltyQueue.get_next_penalty(round_id)
+
+        if next_penalty:
+            return {
+                "team_number": next_penalty.round_penalty.offender.team.number,
+                "duration": next_penalty.round_penalty.value,
+                "penalty_id": next_penalty.round_penalty.id,
+            }
+        return None
+
+    async def handle_penalty_state_change(self, round_id):
+        """Handle penalty state changes from race control (cancel/delay)"""
+        # Trigger next penalty after 10 second delay
+        await self.trigger_next_penalty_after_delay(round_id)
+
+    # Add handlers for penalty state changes from race control
+    async def penalty_cancelled(self, event):
+        """Handle penalty cancellation from race control"""
+        round_id = event.get("round_id")
+        if round_id:
+            await self.handle_penalty_state_change(round_id)
+
+    async def penalty_delayed(self, event):
+        """Handle penalty delay from race control"""
+        round_id = event.get("round_id")
+        if round_id:
+            await self.handle_penalty_state_change(round_id)
+
+    async def reset_station(self, event):
+        """Send reset command to stop and go station"""
+        message = {
+            "type": "command",
+            "command": "reset",
+            "timestamp": dt.datetime.now().isoformat(),
+        }
+        signed_message = self.sign_message(message)
+        await self.send(text_data=json.dumps(signed_message))
 
 
 # Signal handler for race end requests - placed outside classes

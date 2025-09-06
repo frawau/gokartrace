@@ -107,4 +107,30 @@ urlpatterns = [
         views.get_laps_penalties,
         name="get_laps_penalties",
     ),
+    # Penalty Queue API endpoints
+    path(
+        "api/queue-penalty/",
+        views.queue_penalty,
+        name="queue_penalty",
+    ),
+    path(
+        "api/round/<int:round_id>/penalty-queue-status/",
+        views.get_penalty_queue_status,
+        name="get_penalty_queue_status",
+    ),
+    path(
+        "api/serve-penalty/",
+        views.serve_penalty,
+        name="serve_penalty",
+    ),
+    path(
+        "api/cancel-penalty/",
+        views.cancel_penalty,
+        name="cancel_penalty",
+    ),
+    path(
+        "api/delay-penalty/",
+        views.delay_penalty,
+        name="delay_penalty",
+    ),
 ]

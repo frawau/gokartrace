@@ -343,6 +343,13 @@ class StopAndGoStation:
                 # Send penalty served message (will set last_team)
                 self.penalty_ok_task = asyncio.create_task(self.send_penalty_ok())
 
+        # Handle reset command (clear display and return to idle)
+        elif command == "reset":
+            logging.info(
+                "Reset command received - clearing display and returning to idle"
+            )
+            await self.reset_to_idle()
+
     async def send_response(self, response_type, data):
         """Send a response message via websocket with HMAC signature"""
         if self.websocket:
