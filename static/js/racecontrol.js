@@ -1129,17 +1129,7 @@ function handleServedButtonClick() {
   .then(data => {
     if (data.success) {
       addSystemMessage('Penalty marked as served', 'success');
-      
-      // Reset current penalty
-      currentQueueId = null;
-      currentRoundPenaltyId = null;
-      
-      // Reset form and update UI
-      resetStopAndGoForm();
-      updateQueueButtons();
-      
-      // Refresh queue state to handle next penalty
-      setTimeout(() => loadQueueState(), 1000);
+      // Let penalty_queue_update signal handle all UI state changes
     } else {
       throw new Error(data.error || 'Failed to serve penalty');
     }
@@ -1172,17 +1162,7 @@ function handleCancelButtonClick() {
   .then(data => {
     if (data.success) {
       addSystemMessage('Penalty cancelled', 'warning');
-      
-      // Reset current penalty
-      currentQueueId = null;
-      currentRoundPenaltyId = null;
-      
-      // Reset form and update UI
-      resetStopAndGoForm();
-      updateQueueButtons();
-      
-      // Refresh queue state to handle next penalty
-      setTimeout(() => loadQueueState(), 1000);
+      // Let penalty_queue_update signal handle all UI state changes
     } else {
       throw new Error(data.error || 'Failed to cancel penalty');
     }
@@ -1211,17 +1191,7 @@ function handleDelayButtonClick() {
   .then(data => {
     if (data.success) {
       addSystemMessage('Penalty delayed to end of queue', 'info');
-      
-      // Reset current penalty
-      currentQueueId = null;
-      currentRoundPenaltyId = null;
-      
-      // Reset form and update UI
-      resetStopAndGoForm();
-      updateQueueButtons();
-      
-      // Refresh queue state to handle next penalty
-      setTimeout(() => loadQueueState(), 1000);
+      // Let penalty_queue_update signal handle all UI state changes
     } else {
       throw new Error(data.error || 'Failed to delay penalty');
     }
@@ -1285,21 +1255,38 @@ function handleStopAndGoMessage(data) {
       // Update penalty queue status display
       updatePenaltyQueueStatus(data);
       
-      // Load queue state to update button management when queue changes
-      loadQueueState();
+      // Simple signal-based button management
+      if (data && data.queue_count > 0) {
+        // Show SCD buttons when there are penalties in queue
+        const queueActionButtons = document.getElementById('queueActionButtons');
+        if (queueActionButtons) {
+          queueActionButtons.style.display = 'block';
+          
+          // Enable all buttons
+          document.getElementById('servedButton').disabled = false;
+          document.getElementById('cancelButton').disabled = false;
+          document.getElementById('delayButton').disabled = false;
+          
+          // Load current penalty details for management
+          loadQueueState();
+        }
+      } else {
+        // Hide SCD buttons when queue is empty
+        const queueActionButtons = document.getElementById('queueActionButtons');
+        if (queueActionButtons) {
+          queueActionButtons.style.display = 'none';
+        }
+        
+        // Reset state
+        currentQueueId = null;
+        currentRoundPenaltyId = null;
+        resetStopAndGoForm();
+      }
       break;
       
     case 'penalty_served':
       // Server already handles penalty serving, just update UI and send acknowledgment
       addSystemMessage(`Penalty served by team ${data.team}`, 'success');
-      
-      // Reset current penalty state since server handled it
-      currentQueueId = null;
-      currentRoundPenaltyId = null;
-      
-      // Reset form and update UI
-      resetStopAndGoForm();
-      updateQueueButtons();
       
       // Send acknowledgment back to station
       if (stopAndGoSocket) {
@@ -1317,7 +1304,7 @@ function handleStopAndGoMessage(data) {
         });
       }
       
-      // The penalty_queue_update signal will trigger loadQueueState when needed
+      // Let penalty_queue_update signal handle all UI state changes
       break;
       
     case 'fence_status':
