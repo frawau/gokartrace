@@ -1128,7 +1128,8 @@ function handleServedButtonClick() {
   .then(response => response.json())
   .then(data => {
     if (data.success) {
-      addSystemMessage('Penalty marked as served', 'success');
+      // Don't add message here - let penalty_served WebSocket handler add it
+      // This ensures consistent messaging regardless of how penalty is served
       // Let penalty_queue_update signal handle all UI state changes
     } else {
       throw new Error(data.error || 'Failed to serve penalty');
