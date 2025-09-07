@@ -1013,9 +1013,6 @@ function initializeDropdownLogic() {
       stopGoButton.style.color = '#fff';
       stopGoButton.textContent = 'Stop & Go';
     }
-    
-    // Update penalty queue UI (status and action buttons)
-    updatePenaltyQueueUI();
   }
 }
 
@@ -1061,8 +1058,8 @@ function updatePenaltyQueueUI(data = null) {
   const cancelButton = document.getElementById('cancelButton');
   const delayButton = document.getElementById('delayButton');
   
-  // Determine if we have active penalties
-  const hasActivePenalties = (data && data.queue_count > 0) || currentQueueId;
+  // Determine if we have active penalties - only show when there are actually penalties in queue
+  const hasActivePenalties = (data && data.queue_count > 0);
   
   // Update status display
   if (statusElement && servingTeamElement && queueCountElement) {

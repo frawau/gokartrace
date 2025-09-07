@@ -129,6 +129,15 @@ STOPANDGO_HMAC_SECRET=your-hmac-secret-for-station-security
 DATABASE_URL=postgresql://user:password@localhost/gokartrace
 ```
 
+### External Access Configuration
+
+The system automatically detects internal vs external connections for the `agent_login` endpoint by checking if the client IP belongs to any local network interface. This ensures QR code URLs include the correct port:
+
+- **Internal connections**: Return URLs without port (e.g., `https://domain.com/driver_queue/`)
+- **External connections**: Return URLs with external port (e.g., `https://domain.com:8000/driver_queue/`)
+
+No additional nginx configuration is required - the system uses network interface detection to determine connection source.
+
 ### Management Commands
 
 ```bash
