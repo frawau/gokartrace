@@ -640,6 +640,11 @@ function updateEmptyTeamsList(teams) {
                 team_id: teamId,
               }),
             );
+            
+            // Reload page after a short delay to refresh all team lists
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
           } else if (window.emptyTeamsSocket === null) {
             addSystemMessage("Team management is closed. Pre-race checks have already been completed.", "warning");
           } else {
