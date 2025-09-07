@@ -89,20 +89,21 @@
     });
     
     {% if not change_lanes %}
-    // Function to periodically check if pit lanes are ready
+    // Function to continuously check if pit lanes are ready
     function startPitLaneChecker() {
         let attemptCount = 0;
-        const maxAttempts = 30; // 30 seconds at 1-second intervals
+        let noRaceDetected = false;
         const statusElement = document.getElementById('retry-status');
+        const loadingContainer = document.getElementById('loading-container');
         
         function checkForPitLanes() {
             attemptCount++;
             
-            if (statusElement) {
-                statusElement.textContent = `Checking for pit lanes... (${attemptCount}/${maxAttempts})`;
+            if (statusElement && !noRaceDetected) {
+                statusElement.textContent = `Checking for pit lanes... (${attemptCount})`;
             }
             
-            console.log(`Pit lane check attempt ${attemptCount}/${maxAttempts}`);
+            console.log(`Pit lane check attempt ${attemptCount}`);
             
             // Check if pit lanes are available by fetching the current page
             fetch(window.location.href, { 
@@ -130,29 +131,46 @@
                     setTimeout(() => {
                         window.location.reload();
                     }, 500);
-                    return true; // Stop checking
+                    return; // Stop checking
                 }
                 
-                // Continue checking if under max attempts
-                if (attemptCount < maxAttempts) {
-                    setTimeout(checkForPitLanes, 1000); // Check every second
-                } else {
-                    console.log('Max attempts reached. Pit lanes still not available.');
-                    if (statusElement) {
-                        statusElement.innerHTML = 'Pit lanes still not available. <a href="javascript:window.location.reload()">Click to retry</a>';
-                    }
+                // Check if this is a "No Race" page
+                const noRaceContent = tempDiv.querySelector('body');
+                if (noRaceContent && (noRaceContent.textContent.includes('No race') || html.includes('norace.html'))) {
+                    console.log('No race today detected');
+                    showNoRaceMessage();
+                    noRaceDetected = true;
+                    // Continue checking every 30 seconds in case a race gets scheduled
+                    setTimeout(checkForPitLanes, 30000);
+                    return;
                 }
+                
+                // Continue checking - no max limit for public display
+                setTimeout(checkForPitLanes, 2000); // Check every 2 seconds
             })
             .catch(error => {
                 console.error('Error checking for pit lanes:', error);
-                if (attemptCount < maxAttempts) {
-                    setTimeout(checkForPitLanes, 2000); // Wait longer on error
-                } else {
-                    if (statusElement) {
-                        statusElement.innerHTML = 'Error checking pit lanes. <a href="javascript:window.location.reload()">Click to retry</a>';
-                    }
-                }
+                // Continue checking even on error - this is a public display
+                setTimeout(checkForPitLanes, 5000); // Wait longer on error
             });
+        }
+        
+        function showNoRaceMessage() {
+            if (loadingContainer) {
+                loadingContainer.innerHTML = `
+                    <div class="text-center text-white">
+                        <div class="mb-5">
+                            <i class="fas fa-calendar-times" style="font-size: 8rem;"></i>
+                        </div>
+                        <h1 class="mb-4" style="font-size: 4rem; font-weight: bold;">No Race Today</h1>
+                        <h2 class="mb-5" style="font-size: 2.5rem;">No race is currently scheduled</h2>
+                        <h3 class="mb-4" style="font-size: 2rem;">Check back later or contact race control for more information</h3>
+                        <div class="mt-5">
+                            <h5 id="no-race-status" class="text-light" style="font-size: 1.3rem;">Checking for new races...</h5>
+                        </div>
+                    </div>
+                `;
+            }
         }
         
         // Start checking after a short delay
