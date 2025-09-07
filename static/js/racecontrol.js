@@ -1013,9 +1013,6 @@ function initializeDropdownLogic() {
       stopGoButton.style.color = '#fff';
       stopGoButton.textContent = 'Stop & Go';
     }
-    
-    // Update penalty queue UI (status and action buttons)
-    updatePenaltyQueueUI();
   }
 }
 
