@@ -375,7 +375,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // --- Empty Teams WebSocket ---
         const emptyTeamsSocketUrl = `${wsScheme}://${window.location.host}/ws/empty_teams/`;
-        const emptyTeamsSocket = createWebSocketWithReconnect(
+        window.emptyTeamsSocket = createWebSocketWithReconnect(
             emptyTeamsSocketUrl,
             function(e) {
                 try {
@@ -397,7 +397,18 @@ document.addEventListener('DOMContentLoaded', function() {
         // Add event listener for delete button
         document.getElementById('deleteEmptyTeamsBtn')?.addEventListener('click', function() {
             if (confirm('Are you sure you want to delete all teams with no members?')) {
-                emptyTeamsSocket.send(JSON.stringify({'action': 'delete_empty_teams'}));
+                if (window.emptyTeamsSocket && window.emptyTeamsSocket.getReadyState() === WebSocket.OPEN) {
+                    window.emptyTeamsSocket.send(JSON.stringify({'action': 'delete_empty_teams'}));
+                    
+                    // Reload page after a short delay to refresh all team lists
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else if (window.emptyTeamsSocket === null) {
+                    addSystemMessage('Team management is closed. Pre-race checks have already been completed.', 'warning');
+                } else {
+                    addSystemMessage('Connection error. Please refresh the page.', 'danger');
+                }
             }
         });
 

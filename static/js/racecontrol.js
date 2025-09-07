@@ -564,6 +564,14 @@ async function handleRaceAction(event) {
           if (typeof connectToLaneSockets === "function")
             connectToLaneSockets();
           else console.error("connectToLaneSockets missing!");
+          
+          // Close empty teams WebSocket as it's no longer needed after pre-race checks
+          if (window.emptyTeamsSocket) {
+            console.log("Closing empty teams WebSocket - no longer needed after pre-race checks");
+            window.emptyTeamsSocket.close();
+            window.emptyTeamsSocket = null;
+            addSystemMessage("Team management closed - race is ready to start", "info");
+          }
         }
       }
     } else {
@@ -624,18 +632,25 @@ function updateEmptyTeamsList(teams) {
       button.addEventListener("click", function () {
         const teamId = this.getAttribute("data-team-id");
         if (confirm("Delete this team?")) {
-          const emptyTeamsSocket = new WebSocket(
-            "ws://" + window.location.host + "/ws/empty_teams/",
-          );
-
-          emptyTeamsSocket.onopen = function () {
-            emptyTeamsSocket.send(
+          // Use the existing emptyTeamsSocket from the global window scope
+          if (window.emptyTeamsSocket && window.emptyTeamsSocket.getReadyState() === WebSocket.OPEN) {
+            window.emptyTeamsSocket.send(
               JSON.stringify({
                 action: "delete_single_team",
                 team_id: teamId,
               }),
             );
-          };
+            
+            // Reload page after a short delay to refresh all team lists
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
+          } else if (window.emptyTeamsSocket === null) {
+            addSystemMessage("Team management is closed. Pre-race checks have already been completed.", "warning");
+          } else {
+            console.error("Empty teams socket is not available or not open");
+            addSystemMessage("Connection error. Please refresh the page.", "danger");
+          }
         }
       });
     });
@@ -999,8 +1014,8 @@ function initializeDropdownLogic() {
       stopGoButton.textContent = 'Stop & Go';
     }
     
-    // Update queue action buttons (Served, Cancel, Delay)
-    updateQueueButtons();
+    // Update penalty queue UI (status and action buttons)
+    updatePenaltyQueueUI();
   }
 }
 
@@ -1021,10 +1036,9 @@ function loadQueueState() {
         currentQueueId = null;
         currentRoundPenaltyId = null;
       }
-      updateQueueButtons();
       
-      // Update penalty queue status display
-      updatePenaltyQueueStatus({
+      // Update penalty queue UI (status and buttons)
+      updatePenaltyQueueUI({
         serving_team: data.serving_team,
         queue_count: data.queue_count
       });
@@ -1035,27 +1049,54 @@ function loadQueueState() {
 }
 
 /**
- * Update queue action buttons based on current state
+ * Update penalty queue UI (both status display and action buttons) based on current state
  */
-function updateQueueButtons() {
+function updatePenaltyQueueUI(data = null) {
+  // Get all UI elements
+  const statusElement = document.getElementById('penaltyQueueStatus');
+  const servingTeamElement = document.getElementById('servingTeam');
+  const queueCountElement = document.getElementById('queueCount');
   const queueActionButtons = document.getElementById('queueActionButtons');
   const servedButton = document.getElementById('servedButton');
   const cancelButton = document.getElementById('cancelButton');
   const delayButton = document.getElementById('delayButton');
   
-  if (currentQueueId) {
-    // Show and enable queue action buttons when there's an active penalty
-    queueActionButtons.style.display = 'block';
-    servedButton.disabled = false;
-    cancelButton.disabled = false;
-    delayButton.disabled = false;
-  } else {
-    // Hide queue action buttons when no active penalty
-    queueActionButtons.style.display = 'none';
-    servedButton.disabled = true;
-    cancelButton.disabled = true;
-    delayButton.disabled = true;
+  // Determine if we have active penalties
+  const hasActivePenalties = (data && data.queue_count > 0) || currentQueueId;
+  
+  // Update status display
+  if (statusElement && servingTeamElement && queueCountElement) {
+    if (hasActivePenalties && data) {
+      statusElement.style.display = 'block';
+      servingTeamElement.textContent = data.serving_team || '--';
+      queueCountElement.textContent = data.queue_count;
+    } else {
+      statusElement.style.display = 'none';
+    }
   }
+  
+  // Update action buttons
+  if (queueActionButtons && servedButton && cancelButton && delayButton) {
+    if (hasActivePenalties) {
+      queueActionButtons.style.display = 'block';
+      servedButton.disabled = false;
+      cancelButton.disabled = false;
+      delayButton.disabled = false;
+    } else {
+      queueActionButtons.style.display = 'none';
+      servedButton.disabled = true;
+      cancelButton.disabled = true;
+      delayButton.disabled = true;
+    }
+  }
+}
+
+/**
+ * Update queue action buttons based on current state
+ * @deprecated Use updatePenaltyQueueUI() instead
+ */
+function updateQueueButtons() {
+  updatePenaltyQueueUI();
 }
 
 /**
@@ -1253,32 +1294,14 @@ function handleStopAndGoMessage(data) {
   
   switch (data.type) {
     case 'penalty_queue_update':
-      // Update penalty queue status display
-      updatePenaltyQueueStatus(data);
+      // Update penalty queue UI (consolidated status and buttons)
+      updatePenaltyQueueUI(data);
       
-      // Simple signal-based button management
       if (data && data.queue_count > 0) {
-        // Show SCD buttons when there are penalties in queue
-        const queueActionButtons = document.getElementById('queueActionButtons');
-        if (queueActionButtons) {
-          queueActionButtons.style.display = 'block';
-          
-          // Enable all buttons
-          document.getElementById('servedButton').disabled = false;
-          document.getElementById('cancelButton').disabled = false;
-          document.getElementById('delayButton').disabled = false;
-          
-          // Load current penalty details for management
-          loadQueueState();
-        }
+        // Load current penalty details for management
+        loadQueueState();
       } else {
-        // Hide SCD buttons when queue is empty
-        const queueActionButtons = document.getElementById('queueActionButtons');
-        if (queueActionButtons) {
-          queueActionButtons.style.display = 'none';
-        }
-        
-        // Reset state
+        // Reset state when queue is empty
         currentQueueId = null;
         currentRoundPenaltyId = null;
         resetStopAndGoForm();
@@ -1377,27 +1400,4 @@ function updateFenceButton() {
   }
 }
 
-/**
- * Update penalty queue status display
- */
-function updatePenaltyQueueStatus(data) {
-  const statusElement = document.getElementById('penaltyQueueStatus');
-  const servingTeamElement = document.getElementById('servingTeam');
-  const queueCountElement = document.getElementById('queueCount');
-  
-  if (!statusElement || !servingTeamElement || !queueCountElement) {
-    console.warn('Penalty queue status elements not found');
-    return;
-  }
-  
-  if (data && data.queue_count > 0) {
-    // Show status when there are penalties in queue
-    statusElement.style.display = 'block';
-    servingTeamElement.textContent = data.serving_team || '--';
-    queueCountElement.textContent = data.queue_count;
-  } else {
-    // Hide status when no penalties in queue
-    statusElement.style.display = 'none';
-  }
-}
 

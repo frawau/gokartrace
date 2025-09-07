@@ -140,10 +140,23 @@ def get_team_card(request):
 
 
 def changelane_info(request, lane_number):
-    end_date = dt.date.today()
-    cround = current_round()
-    change_lane = get_object_or_404(ChangeLane, round=cround, lane=lane_number)
-    return render(request, "layout/changelane_info.html", {"change_lane": change_lane})
+    try:
+        cround = current_round()
+    except:
+        cround = None
+
+    change_lane = None
+    if cround:
+        try:
+            change_lane = ChangeLane.objects.get(round=cround, lane=lane_number)
+        except ChangeLane.DoesNotExist:
+            pass
+
+    return render(
+        request,
+        "layout/changelane_info.html",
+        {"change_lane": change_lane, "round": cround, "lane_number": lane_number},
+    )
 
 
 def changelane_detail(request, lane_number):
@@ -188,14 +201,19 @@ def changedriver_info(request):
 def all_pitlanes(request):
     try:
         cround = current_round()
-        change_lanes = ChangeLane.objects.filter(round=cround).order_by("lane")
-        return render(
-            request,
-            "pages/all_pitlanes.html",
-            {"change_lanes": change_lanes, "round": cround},
-        )
     except:
-        return render(request, "pages/norace.html")
+        cround = None
+
+    if cround:
+        change_lanes = ChangeLane.objects.filter(round=cround).order_by("lane")
+    else:
+        change_lanes = []
+
+    return render(
+        request,
+        "pages/all_pitlanes.html",
+        {"change_lanes": change_lanes, "round": cround},
+    )
 
 
 def is_race_director(user):
