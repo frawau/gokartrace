@@ -564,6 +564,14 @@ async function handleRaceAction(event) {
           if (typeof connectToLaneSockets === "function")
             connectToLaneSockets();
           else console.error("connectToLaneSockets missing!");
+          
+          // Close empty teams WebSocket as it's no longer needed after pre-race checks
+          if (window.emptyTeamsSocket) {
+            console.log("Closing empty teams WebSocket - no longer needed after pre-race checks");
+            window.emptyTeamsSocket.close();
+            window.emptyTeamsSocket = null;
+            addSystemMessage("Team management closed - race is ready to start", "info");
+          }
         }
       }
     } else {
@@ -624,18 +632,20 @@ function updateEmptyTeamsList(teams) {
       button.addEventListener("click", function () {
         const teamId = this.getAttribute("data-team-id");
         if (confirm("Delete this team?")) {
-          const emptyTeamsSocket = new WebSocket(
-            "ws://" + window.location.host + "/ws/empty_teams/",
-          );
-
-          emptyTeamsSocket.onopen = function () {
-            emptyTeamsSocket.send(
+          // Use the existing emptyTeamsSocket from the global window scope
+          if (window.emptyTeamsSocket && window.emptyTeamsSocket.getReadyState() === WebSocket.OPEN) {
+            window.emptyTeamsSocket.send(
               JSON.stringify({
                 action: "delete_single_team",
                 team_id: teamId,
               }),
             );
-          };
+          } else if (window.emptyTeamsSocket === null) {
+            addSystemMessage("Team management is closed. Pre-race checks have already been completed.", "warning");
+          } else {
+            console.error("Empty teams socket is not available or not open");
+            addSystemMessage("Connection error. Please refresh the page.", "danger");
+          }
         }
       });
     });
