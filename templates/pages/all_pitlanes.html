@@ -4,7 +4,17 @@
 {% block title %} All Pit Lanes {% endblock %}
 
 {% block content %}
-{% if not change_lanes %}
+{% if not round %}
+    <!-- Show "No Race Today" message when there's no current round -->
+    <div style="height: 100vh; width: 100vw; display: flex; align-items: center; justify-content: center; flex-direction: column; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="text-center text-white">
+            <div class="mb-5">
+                <i class="fas fa-calendar-times" style="font-size: 8rem;"></i>
+            </div>
+            <h1 class="mb-4" style="font-size: 4rem; font-weight: bold;">No Race Today</h1>
+        </div>
+    </div>
+{% elif not change_lanes %}
     <!-- Show loading message when pit lanes don't exist yet -->
     <div id="loading-container" style="height: 100vh; width: 100vw; display: flex; align-items: center; justify-content: center; flex-direction: column; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
         <div class="text-center text-white">
@@ -15,11 +25,6 @@
             </div>
             <h1 class="mb-4" style="font-size: 4rem; font-weight: bold;">Pit Lanes Not Ready</h1>
             <h2 class="mb-5" style="font-size: 2.5rem;">Waiting for pre-race checks to complete...</h2>
-            <h3 class="mb-4" style="font-size: 2rem;">Pit lanes will be available after the race control completes pre-race checks.</h3>
-            <h4 style="font-size: 1.5rem;">This page will automatically refresh when ready.</h4>
-            <div class="mt-5">
-                <h5 id="retry-status" class="text-light" style="font-size: 1.3rem;">Checking for pit lanes...</h5>
-            </div>
         </div>
     </div>
 {% else %}
@@ -44,7 +49,10 @@
     document.addEventListener('DOMContentLoaded', function() {
         const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
         
-        {% if not change_lanes %}
+        {% if not round %}
+            // No round available - this should rarely happen as the template handles it
+            console.log('No round available');
+        {% elif not change_lanes %}
             // No pit lanes available yet - start checking for them
             console.log('No pit lanes found - starting retry mechanism');
             startPitLaneChecker();
@@ -88,20 +96,15 @@
         {% endif %}
     });
     
-    {% if not change_lanes %}
+    {% if not round %}
+        // No round - template handles this case, nothing to do in JavaScript
+    {% elif not change_lanes %}
     // Function to continuously check if pit lanes are ready
     function startPitLaneChecker() {
         let attemptCount = 0;
-        let noRaceDetected = false;
-        const statusElement = document.getElementById('retry-status');
-        const loadingContainer = document.getElementById('loading-container');
         
         function checkForPitLanes() {
             attemptCount++;
-            
-            if (statusElement && !noRaceDetected) {
-                statusElement.textContent = `Checking for pit lanes... (${attemptCount})`;
-            }
             
             console.log(`Pit lane check attempt ${attemptCount}`);
             
@@ -125,24 +128,10 @@
                 
                 if (laneContainers.length > 0) {
                     console.log('Pit lanes are now available! Reloading page...');
-                    if (statusElement) {
-                        statusElement.textContent = 'Pit lanes found! Reloading...';
-                    }
                     setTimeout(() => {
                         window.location.reload();
                     }, 500);
                     return; // Stop checking
-                }
-                
-                // Check if this is a "No Race" page
-                const noRaceContent = tempDiv.querySelector('body');
-                if (noRaceContent && (noRaceContent.textContent.includes('No race') || html.includes('norace.html'))) {
-                    console.log('No race today detected');
-                    showNoRaceMessage();
-                    noRaceDetected = true;
-                    // Continue checking every 30 seconds in case a race gets scheduled
-                    setTimeout(checkForPitLanes, 30000);
-                    return;
                 }
                 
                 // Continue checking - no max limit for public display
@@ -153,24 +142,6 @@
                 // Continue checking even on error - this is a public display
                 setTimeout(checkForPitLanes, 5000); // Wait longer on error
             });
-        }
-        
-        function showNoRaceMessage() {
-            if (loadingContainer) {
-                loadingContainer.innerHTML = `
-                    <div class="text-center text-white">
-                        <div class="mb-5">
-                            <i class="fas fa-calendar-times" style="font-size: 8rem;"></i>
-                        </div>
-                        <h1 class="mb-4" style="font-size: 4rem; font-weight: bold;">No Race Today</h1>
-                        <h2 class="mb-5" style="font-size: 2.5rem;">No race is currently scheduled</h2>
-                        <h3 class="mb-4" style="font-size: 2rem;">Check back later or contact race control for more information</h3>
-                        <div class="mt-5">
-                            <h5 id="no-race-status" class="text-light" style="font-size: 1.3rem;">Checking for new races...</h5>
-                        </div>
-                    </div>
-                `;
-            }
         }
         
         // Start checking after a short delay

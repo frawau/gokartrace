@@ -188,14 +188,19 @@ def changedriver_info(request):
 def all_pitlanes(request):
     try:
         cround = current_round()
-        change_lanes = ChangeLane.objects.filter(round=cround).order_by("lane")
-        return render(
-            request,
-            "pages/all_pitlanes.html",
-            {"change_lanes": change_lanes, "round": cround},
-        )
     except:
-        return render(request, "pages/norace.html")
+        cround = None
+
+    if cround:
+        change_lanes = ChangeLane.objects.filter(round=cround).order_by("lane")
+    else:
+        change_lanes = []
+
+    return render(
+        request,
+        "pages/all_pitlanes.html",
+        {"change_lanes": change_lanes, "round": cround},
+    )
 
 
 def is_race_director(user):
