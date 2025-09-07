@@ -4,60 +4,165 @@
 {% block title %} All Pit Lanes {% endblock %}
 
 {% block content %}
-<div style="height: 100vh; width: 100vw; display: flex; align-items: stretch; justify-content: center; margin: 0; padding: 0;">
-    <div class="row g-0" style="height: 100vh; width: 100vw; margin: 0; padding: 0;">
-        {% for change_lane in change_lanes %}
-        <div id="lane-container-{{ change_lane.id }}" class="col" style="height: 100%;">
-            <div class="text-center bg-dark text-white py-2">
-                <h3>Pit Lane {{ change_lane.lane }}</h3>
+{% if not change_lanes %}
+    <!-- Show loading message when pit lanes don't exist yet -->
+    <div id="loading-container" style="height: 100vh; width: 100vw; display: flex; align-items: center; justify-content: center; flex-direction: column; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="text-center text-white">
+            <div class="mb-4">
+                <div class="spinner-border" style="width: 4rem; height: 4rem;" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
             </div>
-            <div class="flex-grow-1">
-                {% include 'layout/changelane_vdetail.html' with change_lane=change_lane %}
+            <h2 class="mb-3">Pit Lanes Not Ready</h2>
+            <p class="lead mb-4">Waiting for pre-race checks to complete...</p>
+            <div class="alert alert-info" style="background-color: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);">
+                <i class="fas fa-info-circle me-2"></i>
+                Pit lanes will be available after the race control completes pre-race checks.
+                <br>
+                <small class="text-light">This page will automatically refresh when ready.</small>
+            </div>
+            <div class="mt-3">
+                <small id="retry-status" class="text-light">Checking for pit lanes...</small>
             </div>
         </div>
-        {% endfor %}
     </div>
-</div>
+{% else %}
+    <!-- Normal pit lanes view -->
+    <div style="height: 100vh; width: 100vw; display: flex; align-items: stretch; justify-content: center; margin: 0; padding: 0;">
+        <div class="row g-0" style="height: 100vh; width: 100vw; margin: 0; padding: 0;">
+            {% for change_lane in change_lanes %}
+            <div id="lane-container-{{ change_lane.id }}" class="col" style="height: 100%;">
+                <div class="text-center bg-dark text-white py-2">
+                    <h3>Pit Lane {{ change_lane.lane }}</h3>
+                </div>
+                <div class="flex-grow-1">
+                    {% include 'layout/changelane_vdetail.html' with change_lane=change_lane %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endif %}
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
-        {% for change_lane in change_lanes %}
-        const socket{{ change_lane.lane }} = new WebSocket(wsScheme + "://" + window.location.host + "/ws/pitlanes/{{ change_lane.lane }}/");
         
-        socket{{ change_lane.lane }}.onmessage = function(event) {
-            const data = JSON.parse(event.data);
-            if (data.type === 'lane.update') {
-                // Fetch the updated content using the large detail view
-                fetch('/pitlanevdetail/{{ change_lane.lane }}/')
-                    .then(response => {
-                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                        return response.text();
-                    })
-                    .then(htmlData => {
-                        updateLaneContent({{ change_lane.id }}, htmlData);
-                    })
-                    .catch(error => {
-                        console.error('Failed to update lane {{ change_lane.lane }}:', error);
-                        // Fallback to page reload if fetch fails
-                        setTimeout(() => window.location.reload(), 1000);
-                    });
-            }
-        };
-        
-        socket{{ change_lane.lane }}.onclose = function(event) {
-            if (!event.wasClean) {
-                setTimeout(function() {
-                    window.location.reload();
-                }, 3000);
-            }
-        };
-        
-        socket{{ change_lane.lane }}.onerror = function(error) {
-            console.error('WebSocket error on lane {{ change_lane.lane }}:', error);
-        };
-        {% endfor %}
+        {% if not change_lanes %}
+            // No pit lanes available yet - start checking for them
+            console.log('No pit lanes found - starting retry mechanism');
+            startPitLaneChecker();
+        {% else %}
+            // Pit lanes are available - set up WebSocket connections
+            {% for change_lane in change_lanes %}
+            const socket{{ change_lane.lane }} = new WebSocket(wsScheme + "://" + window.location.host + "/ws/pitlanes/{{ change_lane.lane }}/");
+            
+            socket{{ change_lane.lane }}.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                if (data.type === 'lane.update') {
+                    // Fetch the updated content using the large detail view
+                    fetch('/pitlanevdetail/{{ change_lane.lane }}/')
+                        .then(response => {
+                            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                            return response.text();
+                        })
+                        .then(htmlData => {
+                            updateLaneContent({{ change_lane.id }}, htmlData);
+                        })
+                        .catch(error => {
+                            console.error('Failed to update lane {{ change_lane.lane }}:', error);
+                            // Fallback to page reload if fetch fails
+                            setTimeout(() => window.location.reload(), 1000);
+                        });
+                }
+            };
+            
+            socket{{ change_lane.lane }}.onclose = function(event) {
+                if (!event.wasClean) {
+                    setTimeout(function() {
+                        window.location.reload();
+                    }, 3000);
+                }
+            };
+            
+            socket{{ change_lane.lane }}.onerror = function(error) {
+                console.error('WebSocket error on lane {{ change_lane.lane }}:', error);
+            };
+            {% endfor %}
+        {% endif %}
     });
+    
+    {% if not change_lanes %}
+    // Function to periodically check if pit lanes are ready
+    function startPitLaneChecker() {
+        let attemptCount = 0;
+        const maxAttempts = 180; // 3 minutes at 1-second intervals
+        const statusElement = document.getElementById('retry-status');
+        
+        function checkForPitLanes() {
+            attemptCount++;
+            
+            if (statusElement) {
+                statusElement.textContent = `Checking for pit lanes... (${attemptCount}/${maxAttempts})`;
+            }
+            
+            console.log(`Pit lane check attempt ${attemptCount}/${maxAttempts}`);
+            
+            // Check if pit lanes are available by fetching the current page
+            fetch(window.location.href, { 
+                method: 'GET',
+                cache: 'no-cache',
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                }
+            })
+            .then(response => response.text())
+            .then(html => {
+                // Check if the response contains pit lane content
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                
+                // Look for pit lane containers in the response
+                const laneContainers = tempDiv.querySelectorAll('[id^="lane-container-"]');
+                
+                if (laneContainers.length > 0) {
+                    console.log('Pit lanes are now available! Reloading page...');
+                    if (statusElement) {
+                        statusElement.textContent = 'Pit lanes found! Reloading...';
+                    }
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                    return true; // Stop checking
+                }
+                
+                // Continue checking if under max attempts
+                if (attemptCount < maxAttempts) {
+                    setTimeout(checkForPitLanes, 1000); // Check every second
+                } else {
+                    console.log('Max attempts reached. Pit lanes still not available.');
+                    if (statusElement) {
+                        statusElement.innerHTML = 'Pit lanes still not available. <a href="javascript:window.location.reload()">Click to retry</a>';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error checking for pit lanes:', error);
+                if (attemptCount < maxAttempts) {
+                    setTimeout(checkForPitLanes, 2000); // Wait longer on error
+                } else {
+                    if (statusElement) {
+                        statusElement.innerHTML = 'Error checking pit lanes. <a href="javascript:window.location.reload()">Click to retry</a>';
+                    }
+                }
+            });
+        }
+        
+        // Start checking after a short delay
+        setTimeout(checkForPitLanes, 1000);
+    }
+    {% endif %}
     
     function updateLaneContent(laneId, newHtml) {
         try {
