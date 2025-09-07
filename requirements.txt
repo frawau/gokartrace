@@ -22,3 +22,4 @@ faker
 langdetect
 requests
 djangorestframework
+netifaces

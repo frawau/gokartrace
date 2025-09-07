@@ -5,6 +5,9 @@ Copyright (c) 2019 - present AppSeed.us
 import datetime as dt
 import json
 import re
+import socket
+import ipaddress
+import netifaces
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate
@@ -347,16 +350,52 @@ def agent_login(request):
         )
         schema = "https" if is_secure else "http"
 
-        # Check if APP_DOMAIN already includes port, otherwise get port from request
+        # Determine if connection is external by checking if request comes from local network
+        def is_external_connection():
+            # Get the client IP (accounting for proxy headers)
+            client_ip = request.META.get('HTTP_X_REAL_IP') or request.META.get('REMOTE_ADDR')
+            if not client_ip:
+                return False  # Default to internal if we can't determine IP
+                
+            try:
+                client_ip_obj = ipaddress.ip_address(client_ip)
+                
+                # Get all network interfaces on this server
+                for interface in netifaces.interfaces():
+                    try:
+                        addresses = netifaces.ifaddresses(interface)
+                        for addr_family in [netifaces.AF_INET, netifaces.AF_INET6]:
+                            if addr_family in addresses:
+                                for addr_info in addresses[addr_family]:
+                                    if 'addr' in addr_info and 'netmask' in addr_info:
+                                        try:
+                                            network = ipaddress.ip_network(f"{addr_info['addr']}/{addr_info['netmask']}", strict=False)
+                                            if client_ip_obj in network:
+                                                return False  # Internal - same network
+                                        except:
+                                            pass
+                    except:
+                        continue
+                
+                # If we get here, client is not on any local network
+                return True
+                
+            except Exception:
+                # If anything fails, default to internal (safer)
+                return False
+        
+        is_external = is_external_connection()
+        
         if ":" in settings.APP_DOMAIN:
+            # APP_DOMAIN already includes port
             servurl = f"{schema}://{settings.APP_DOMAIN}"
+        elif is_external:
+            # External connection - get external port from X-Forwarded-Port or use default 8000
+            external_port = request.META.get("HTTP_X_FORWARDED_PORT", "8000")
+            servurl = f"{schema}://{settings.APP_DOMAIN}:{external_port}"
         else:
-            port = request.META.get("SERVER_PORT")
-            # Only include non-standard ports
-            if port and port not in ("80", "443"):
-                servurl = f"{schema}://{settings.APP_DOMAIN}:{port}"
-            else:
-                servurl = f"{schema}://{settings.APP_DOMAIN}"
+            # Internal connection - no port needed (uses standard 443/80)
+            servurl = f"{schema}://{settings.APP_DOMAIN}"
     else:
         # Fallback to original logic if APP_DOMAIN is not configured
         schema = request.scheme
