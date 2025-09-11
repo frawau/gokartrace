@@ -6,25 +6,13 @@
 /* Timer widget CSS */
 <link rel="stylesheet" href="{% static 'css/timer-widget.css' %}">
 
-/* Ensure full width layout */
-.container-fluid {
-    max-width: 100% !important;
-    padding-left: 2rem !important;
-    padding-right: 2rem !important;
-}
-
-.table-responsive {
-    width: 100% !important;
-    margin: 0 !important;
-}
+/* Remove full width overrides - let Bootstrap container handle boundaries */
 
 .pending-table {
     width: 100%;
     font-size: 2rem;
     border-collapse: collapse;
     background-color: white !important;
-    margin: 0 auto;
-    min-width: 100%;
 }
 
 .pending-table th,
@@ -64,7 +52,7 @@
 {% endblock extra_style %}
 
 {% block main_content %}
-<div class="container-fluid px-4">
+<div class="container">
     {% if round is None %}
         <h2>No race today.</h2>
     {% else %}
