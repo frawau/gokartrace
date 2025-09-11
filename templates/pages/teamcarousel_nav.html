@@ -15,6 +15,14 @@ table, table th, table td {
     background-color: white !important;
 }
 
+/* White background wrapper for header and content */
+.content-wrapper {
+    background-color: white !important;
+    padding: 2rem;
+    border-radius: 0.5rem;
+    margin-bottom: 2rem;
+}
+
 /* Preserve timer color scheme */
 .timer {
     color: #f59e0b !important; /* Orange color for inactive drivers (default) */
@@ -83,13 +91,14 @@ table, table th, table td {
             </div>
         </div>
     {% else %}
-        <div class="row mb-4">
-            <div class="col-12 text-left">
-                <h1>{{ round.name }}&nbsp;&nbsp;Remaining Time: {% timer_widget "race-countdown" "countdownDisplay" round %}</h1>
+        <div class="content-wrapper">
+            <div class="row mb-4">
+                <div class="col-12 text-left">
+                    <h1>{{ round.name }}&nbsp;&nbsp;Remaining Time: {% timer_widget "race-countdown" "countdownDisplay" round %}</h1>
+                </div>
             </div>
-        </div>
 
-        <div id="teamCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="10000">
+            <div id="teamCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="10000">
             <div class="carousel-inner">
                 {% for round_team in teams_with_limits %}
                     <div class="carousel-item {% if forloop.first %}active{% endif %}" id="team-slide-{{ round_team.id }}">
@@ -106,6 +115,7 @@ table, table th, table td {
                 <span class="carousel-control-next-icon" aria-hidden="true"></span>
                 <span class="visually-hidden">Next</span>
             </button>
+            </div>
         </div>
     {% endif %}
 </div>

@@ -15,6 +15,14 @@ table, table th, table td {
     background-color: white !important;
 }
 
+/* White background wrapper for header and content */
+.content-wrapper {
+    background-color: white !important;
+    padding: 2rem;
+    border-radius: 0.5rem;
+    margin-bottom: 2rem;
+}
+
 /* Preserve timer color scheme */
 .timer {
     color: #f59e0b !important; /* Orange color for inactive drivers (default) */
@@ -104,13 +112,14 @@ table, table th, table td {
             </div>
         </div>
     {% else %}
-        <div class="row mb-4">
-            <div class="col-12 text-left">
-                <h1>{{ round.name }}&nbsp;&nbsp;Remaining Time: {% timer_widget "race-countdown" "countdownDisplay" round %}</h1>
+        <div class="content-wrapper">
+            <div class="row mb-4">
+                <div class="col-12 text-left">
+                    <h1>{{ round.name }}&nbsp;&nbsp;Remaining Time: {% timer_widget "race-countdown" "countdownDisplay" round %}</h1>
+                </div>
             </div>
-        </div>
 
-        <div class="row mb-4 team-selection-container">
+            <div class="row mb-4 team-selection-container">
             <div class="col-12">
                 <form method="post" class="form-inline team-selection-form">
                     {% csrf_token %}
@@ -138,6 +147,7 @@ table, table th, table td {
                     Please select a team to view details
                 </div>
             {% endif %}
+        </div>
         </div>
     {% endif %}
 </div>
