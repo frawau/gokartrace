@@ -15,6 +15,31 @@ table, table th, table td {
     background-color: white !important;
 }
 
+/* Preserve timer color scheme */
+.timer {
+    color: #f59e0b !important; /* Orange color for inactive drivers (default) */
+}
+
+.timer.timer-active {
+    color: #000000 !important; /* Black color for active drivers */
+}
+
+.timer.timer-paused {
+    color: #f59e0b !important; /* Amber color for paused state */
+}
+
+.timer.timer-frozen {
+    color: #f59e0b !important; /* Amber color for paused state */
+}
+
+.timer.timer-ended {
+    color: #87cefa !important; /* Light blue color for ended state */
+}
+
+.timer.timer-over {
+    color: #ef4444 !important; /* Red color for over state */
+}
+
 @media (max-width: 768px) {
     .card-title {
         font-size: 2.5rem !important;
