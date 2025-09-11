@@ -6,13 +6,17 @@
 /* Timer widget CSS */
 <link rel="stylesheet" href="{% static 'css/timer-widget.css' %}">
 
-/* Remove full width overrides - let Bootstrap container handle boundaries */
+/* Ensure table uses full container width */
+.table-responsive {
+    width: 100%;
+}
 
 .pending-table {
     width: 100%;
     font-size: 2rem;
     border-collapse: collapse;
     background-color: white !important;
+    table-layout: fixed;
 }
 
 .pending-table th,
@@ -23,6 +27,21 @@
     font-weight: bold;
     color: #333;
     background-color: white !important;
+}
+
+.pending-table th:nth-child(1),
+.pending-table td:nth-child(1) {
+    width: 25%;
+}
+
+.pending-table th:nth-child(2),
+.pending-table td:nth-child(2) {
+    width: 50%;
+}
+
+.pending-table th:nth-child(3),
+.pending-table td:nth-child(3) {
+    width: 25%;
 }
 
 .pending-row {
