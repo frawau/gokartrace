@@ -1,7 +1,20 @@
 {% extends "layout/content.html" %}
 {% load timer_tags %}
+{% load static %}
 
 {% block extra_style %}
+/* Timer widget CSS */
+<link rel="stylesheet" href="{% static 'css/timer-widget.css' %}">
+
+/* Fix table background for navigation version */
+table, table th, table td {
+    background-color: white !important;
+}
+
+.card {
+    background-color: white !important;
+}
+
 @media (max-width: 768px) {
     .card-title {
         font-size: 2.5rem !important;
@@ -12,6 +25,7 @@
     th, td {
         padding: 8px !important;
         border: 6px solid #ddd !important;
+        background-color: white !important;
     }
     table thead tr th:nth-child(3),
     table tbody tr td:nth-child(3) {
@@ -105,6 +119,7 @@
 {% endblock main_content %}
 
 {% block extra_js %}
+<script src="{% static 'js/timer-widget.js' %}"></script>
 {% if round is not None %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {

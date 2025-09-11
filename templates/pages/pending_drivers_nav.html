@@ -1,12 +1,16 @@
 {% extends "layout/content.html" %}
 {% load timer_tags %}
+{% load static %}
 
 {% block extra_style %}
+/* Timer widget CSS */
+<link rel="stylesheet" href="{% static 'css/timer-widget.css' %}">
+
 .pending-table {
     width: 100%;
     font-size: 2rem;
     border-collapse: collapse;
-    background-color: transparent;
+    background-color: white !important;
 }
 
 .pending-table th,
@@ -16,7 +20,7 @@
     text-align: center;
     font-weight: bold;
     color: #333;
-    background-color: transparent;
+    background-color: white !important;
 }
 
 .pending-row {
@@ -94,6 +98,7 @@
 {% endblock main_content %}
 
 {% block extra_js %}
+<script src="{% static 'js/timer-widget.js' %}"></script>
 {% if round is not None %}
 <script>
 let pendingDriversCount = {{ pending_sessions|length }};
