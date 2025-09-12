@@ -76,8 +76,8 @@ def index(request):
     # Page from the theme
     button_matrix = [
         [
-            {"label": "Team Carousel", "url": "/teamcarousel/"},
-            {"label": "Driver's Queue", "url": "/pending_drivers/"},
+            {"label": "Team Carousel", "url": "/teamcarousel-nav/"},
+            {"label": "Driver's Queue", "url": "/pending_drivers-nav/"},
             {"label": "Round Info", "url": "/round_info/"},
         ],
         [
@@ -115,6 +115,34 @@ def team_carousel(request):
     return render(
         request,
         "pages/teamcarousel.html",
+        {"round": cround, "teams_with_limits": teams_with_limits},
+    )
+
+
+def team_carousel_with_nav(request):
+    """Team carousel view with navigation bar"""
+    cround = current_round()
+
+    # Pre-calculate time limits for all teams to avoid template recalculation
+    teams_with_limits = []
+    if cround:
+        for round_team in cround.round_team_set.all():
+            limit_type, limit_value = cround.driver_time_limit(round_team)
+            if limit_type and limit_type != "none" and limit_value:
+                # Convert timedelta to seconds if needed
+                if hasattr(limit_value, "total_seconds"):
+                    seconds = limit_value.total_seconds()
+                else:
+                    seconds = limit_value
+                # Attach the time limit to the round_team object for template access
+                round_team.time_limit_seconds = seconds
+            else:
+                round_team.time_limit_seconds = None
+            teams_with_limits.append(round_team)
+
+    return render(
+        request,
+        "pages/teamcarousel_nav.html",
         {"round": cround, "teams_with_limits": teams_with_limits},
     )
 
@@ -353,13 +381,15 @@ def agent_login(request):
         # Determine if connection is external by checking if request comes from local network
         def is_external_connection():
             # Get the client IP (accounting for proxy headers)
-            client_ip = request.META.get('HTTP_X_REAL_IP') or request.META.get('REMOTE_ADDR')
+            client_ip = request.META.get("HTTP_X_REAL_IP") or request.META.get(
+                "REMOTE_ADDR"
+            )
             if not client_ip:
                 return False  # Default to internal if we can't determine IP
-                
+
             try:
                 client_ip_obj = ipaddress.ip_address(client_ip)
-                
+
                 # Get all network interfaces on this server
                 for interface in netifaces.interfaces():
                     try:
@@ -367,25 +397,28 @@ def agent_login(request):
                         for addr_family in [netifaces.AF_INET, netifaces.AF_INET6]:
                             if addr_family in addresses:
                                 for addr_info in addresses[addr_family]:
-                                    if 'addr' in addr_info and 'netmask' in addr_info:
+                                    if "addr" in addr_info and "netmask" in addr_info:
                                         try:
-                                            network = ipaddress.ip_network(f"{addr_info['addr']}/{addr_info['netmask']}", strict=False)
+                                            network = ipaddress.ip_network(
+                                                f"{addr_info['addr']}/{addr_info['netmask']}",
+                                                strict=False,
+                                            )
                                             if client_ip_obj in network:
                                                 return False  # Internal - same network
                                         except:
                                             pass
                     except:
                         continue
-                
+
                 # If we get here, client is not on any local network
                 return True
-                
+
             except Exception:
                 # If anything fails, default to internal (safer)
                 return False
-        
+
         is_external = is_external_connection()
-        
+
         if ":" in settings.APP_DOMAIN:
             # APP_DOMAIN already includes port
             servurl = f"{schema}://{settings.APP_DOMAIN}"
@@ -820,6 +853,48 @@ def pending_drivers(request):
     }
 
     return render(request, "pages/pending_drivers.html", context)
+
+
+def pending_drivers_with_nav(request):
+    """View to display all pending sessions for the current round with navigation"""
+    try:
+        cround = current_round()
+    except:
+        cround = None
+
+    # If no round is found
+    if not cround:
+        return render(request, "pages/pending_drivers_nav.html", {"round": None})
+
+    # Get all sessions that are registered but not started or ended
+    pending_sessions = (
+        Session.objects.filter(
+            round=cround,
+            register__isnull=False,
+            start__isnull=True,
+            end__isnull=True,
+        )
+        .select_related(
+            "driver", "driver__team", "driver__member", "driver__team__team"
+        )
+        .order_by("register")
+    )  # Order by registration time
+
+    # For each session, get the team's completed sessions count
+    for session in pending_sessions:
+        completed_count = Session.objects.filter(
+            driver__team=session.driver.team, end__isnull=False
+        ).count()
+
+        # Add as property to the session object
+        session.team_completed_count = completed_count
+
+    context = {
+        "round": cround,
+        "pending_sessions": pending_sessions,
+    }
+
+    return render(request, "pages/pending_drivers_nav.html", context)
 
 
 def driver_info_api(request, driver_id):

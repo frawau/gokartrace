@@ -73,42 +73,21 @@ table, table th, table td {
         content: attr(data-current-session);
     }
 }
-
-.team-selection-container {
-    margin-bottom: 2rem;
-}
-
-/* Increase dropdown font size */
-.form-select {
-    font-size: 1.25rem !important;
-    height: auto !important;
-    padding: 0.75rem 1rem !important;
-}
-
-/* Make the dropdown text bold for better visibility */
-.form-select option {
-    font-size: 1.25rem !important;
-    font-weight: 500;
-}
-
-@media (max-width: 768px) {
-    .form-select, .form-select option {
-        font-size: 1.5rem !important;
-    }
-
-    .form-select {
-        padding: 1rem !important;
-    }
-}
 {% endblock extra_style %}
 
 {% block main_content %}
 <div class="container">
     {% if round is None %}
         <h2>Hu?</h2>
-        <div class="card" style="background-color: transparent;">
-            <div class="card-body">
-                <h1>No race today</h1>
+        <div id="teamCarousel" class="carousel slide" data-ride="carousel">
+            <div class="carousel-inner">
+                <div class="carousel-item active">
+                    <div class="card" style="background-color: transparent;">
+                        <div class="card-body">
+                            <h1>No race today</h1>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     {% else %}
@@ -119,35 +98,24 @@ table, table th, table td {
                 </div>
             </div>
 
-            <div class="row mb-4 team-selection-container">
-            <div class="col-12">
-                <form method="post" class="form-inline team-selection-form">
-                    {% csrf_token %}
-                    <div class="form-group">
-                        <select name="team_id" class="form-select" id="team-select">
-                            <option value="">-- Select a Team --</option>
-                            {% for round_team in teams %}
-                                <option value="{{ round_team.id }}" {% if selected_team and selected_team.id == round_team.id %}selected{% endif %}>
-                                    {{ round_team.name }} ({{ round_team.number }})
-                                </option>
-                            {% endfor %}
-                        </select>
+            <div id="teamCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="10000">
+            <div class="carousel-inner">
+                {% for round_team in teams_with_limits %}
+                    <div class="carousel-item {% if forloop.first %}active{% endif %}" id="team-slide-{{ round_team.id }}">
+                        {% include "layout/teamcard.html" with round_team=round_team %}
                     </div>
-                </form>
+                {% endfor %}
             </div>
-        </div>
 
-        <div id="teamDisplay">
-            {% if selected_team %}
-                {% with round_team=selected_team %}
-                    {% include "layout/teamcard.html" with round_team=round_team %}
-                {% endwith %}
-            {% else %}
-                <div class="alert alert-info">
-                    Please select a team to view details
-                </div>
-            {% endif %}
-        </div>
+            <button class="carousel-control-prev" type="button" data-bs-target="#teamCarousel" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Previous</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#teamCarousel" data-bs-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Next</span>
+            </button>
+            </div>
         </div>
     {% endif %}
 </div>
@@ -157,14 +125,27 @@ table, table th, table td {
 <script src="{% static 'js/timer-widget.js' %}"></script>
 {% if round is not None %}
 <script>
+// Add this to your extra_js block in teamcarousel.html
 document.addEventListener('DOMContentLoaded', function() {
-    // Handle team selection change
-    const teamSelect = document.getElementById('team-select');
-    if (teamSelect) {
-        teamSelect.addEventListener('change', function() {
-            // Submit the form when selection changes
-            this.form.submit();
-        });
+    // Initialize Bootstrap Carousel
+    const carousel = document.getElementById('teamCarousel');
+    if (carousel) {
+        // Check if we're using Bootstrap 5
+        if (typeof bootstrap !== 'undefined') {
+            // Bootstrap 5
+            const carouselInstance = new bootstrap.Carousel(carousel, {
+                interval: 5000, // 5 seconds between slides
+                wrap: true,     // Cycle continuously
+                pause: false    // Don't pause on hover
+            });
+        } else {
+            // Bootstrap 4 (fallback)
+            $(carousel).carousel({
+                interval: {{ display_timeout|default:5 }} * 1000,
+                wrap: true,
+                pause: false
+            });
+        }
     }
 
     // Connect to WebSocket for round updates
@@ -210,7 +191,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     driverTimers.forEach(timer => {
                         console.log(`Updating timer ${timer.element.id} (type: ${timer.timerType}) for driver ${data.driver_id}`);
                         timer.handleSessionUpdate(data.driver_status, data.time_spent);
-                    });
+                        });
                 } else {
                     console.warn(`No timers found in registry for driver ${data.driver_id}`);
                 }
@@ -224,10 +205,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (!headerRow) return;
                     let changesHeader = headerRow.querySelector('th:first-child');
                     if (changesHeader) {
-                        changesHeader.textContent = `${data.completed_sessions} Changes`;
-                    console.log(`Updated header to: ${data.completed_sessions} Changes`);
+                        const completedSessions = Math.max(0, parseInt(data.completed_sessions) || 0);
+                        changesHeader.textContent = `${completedSessions} Changes`;
+                    console.log(`Updated header to: ${completedSessions} Changes`);
                     }
                 }
+
             } else {
                 const isPaused = data.is_paused;
 

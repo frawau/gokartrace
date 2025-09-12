@@ -12,6 +12,11 @@ from .teammgt import TeamMembersView
 urlpatterns = [
     path("", views.index, name="Home"),
     path("teamcarousel/", views.team_carousel, name="Participating Teams"),
+    path(
+        "teamcarousel-nav/",
+        views.team_carousel_with_nav,
+        name="Participating Teams with Navigation",
+    ),
     path("racecontrol/", views.racecontrol, name="Race Control"),
     path("get_team_card/", views.get_team_card, name="Team Card"),
     # path('ws/pitlane/<int:lane_number>/', views.changelane_info, name = 'change_lane_ws'),
@@ -40,6 +45,11 @@ urlpatterns = [
     path("driver_queue/", views.add_driver_to_queue, name="Driver Queue"),
     path("driver_change/", views.change_kart_driver, name="Driver Change"),
     path("pending_drivers/", views.pending_drivers, name="pending_drivers"),
+    path(
+        "pending_drivers-nav/",
+        views.pending_drivers_with_nav,
+        name="pending_drivers with Navigation",
+    ),
     path(
         "api/driver/<int:driver_id>/info/",
         views.driver_info_api,

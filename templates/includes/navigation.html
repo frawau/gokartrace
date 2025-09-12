@@ -9,9 +9,8 @@
           class="navbar navbar-expand-lg  blur border-radius-xl top-0 z-index-fixed shadow position-absolute my-3 p-2 start-0 end-0 mx-4">
           <div class="container-fluid px-0">
             <a class="navbar-brand font-weight-bolder ms-sm-3 text-sm"
-              href="https://github.com/frawau/gokartrace" rel="tooltip"
-              title="Coded by François Wautier" data-placement="bottom">
-              Easykart.net Race System
+              href="{% url 'Home' %}">
+              Endurance Race System
             </a>
             <button class="navbar-toggler shadow-none ms-2" type="button" data-bs-toggle="collapse"
               data-bs-target="#navigation" aria-controls="navigation" aria-expanded="false"
@@ -164,7 +163,7 @@
                       <ul class="list-group">
                         <li class="nav-item list-group-item border-0 p-0">
                           <a class="dropdown-item py-2 ps-3 border-radius-md"
-                            href="/pending_drivers/">
+                            href="/pending_drivers-nav/">
                             <h6
                               class="dropdown-header text-dark font-weight-bolder d-flex justify-content-cente align-items-center p-0">
                               Drivers Queue</h6>
@@ -228,7 +227,7 @@
                         </li>
                         <li class="nav-item list-group-item border-0 p-0">
                           <a class="dropdown-item py-2 ps-3 border-radius-md"
-                            href="/teamcarousel/">
+                            href="/teamcarousel-nav/">
                             <h6
                               class="dropdown-header text-dark font-weight-bolder d-flex justify-content-cente align-items-center p-0">
                               Team Carousel</h6>
@@ -286,12 +285,12 @@
                     </div>
                   </ul>
                 </li>
-                {% if active_round_change_lanes > 0 %}
+                {% if active_round_change_lanes > 0 and request.user.is_authenticated %}
                 <li class="nav-item dropdown dropdown-hover mx-2">
                   <a class="nav-link ps-2 d-flex cursor-pointer align-items-center font-weight-semibold"
                     id="dropdownMenuDocs" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="material-symbols-rounded opacity-6 me-2 text-md">article</i>
-                    Pit Lanes
+                    Displays
                     <img src="{% static "img/down-arrow-dark.svg" %}" alt="down-arrow" class="arrow ms-auto ms-md-2">
                   </a>
                   <ul
@@ -327,6 +326,24 @@
                               class="dropdown-header text-dark font-weight-bolder d-flex justify-content-cente align-items-center p-0">
                               Driver Change</h6>
                             <span class="text-sm">Call driver change.</span>
+                          </a>
+                        </li>
+                        <li class="nav-item list-group-item border-0 p-0">
+                          <a class="dropdown-item py-2 ps-3 border-radius-md"
+                            href="/teamcarousel/">
+                            <h6
+                              class="dropdown-header text-dark font-weight-bolder d-flex justify-content-cente align-items-center p-0">
+                              Team Carousel</h6>
+                            <span class="text-sm">Display all team status sequentially.</span>
+                          </a>
+                        </li>
+                        <li class="nav-item list-group-item border-0 p-0">
+                          <a class="dropdown-item py-2 ps-3 border-radius-md"
+                            href="/pending_drivers/">
+                            <h6
+                              class="dropdown-header text-dark font-weight-bolder d-flex justify-content-cente align-items-center p-0">
+                              Driver Queue</h6>
+                            <span class="text-sm">Display driver queue status.</span>
                           </a>
                         </li>
                       </ul>
