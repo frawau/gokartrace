@@ -574,12 +574,19 @@ def round_list_update(request):
         rounds = Round.objects.filter(championship=championship, ready=False).order_by(
             "start"
         )
-    context = {"rounds": rounds, "next_round": next_round, "championship": championship}
+    context = {
+        "rounds": rounds,
+        "next_round": next_round,
+        "championship": championship,
+        "organiser_logo": get_organiser_logo(next_round),
+    }
 
     if request.method == "GET" and "round_id" in request.GET:
         try:
             selected_round = Round.objects.get(pk=request.GET["round_id"])
             context["selected_round"] = selected_round
+            # Update organiser logo to selected round
+            context["organiser_logo"] = get_organiser_logo(selected_round)
         except Round.DoesNotExist:
             messages.error(request, "Round not found")
 
@@ -1369,6 +1376,7 @@ def create_championship_view(request):
     current_year = dt.date.today().year
     context = {
         "current_year": current_year,
+        "organiser_logo": get_organiser_logo(current_round()),
     }
     return render(request, "pages/create_championship.html", context)
 
@@ -1628,6 +1636,7 @@ def edit_championship_view(request):
         "championships": championships,
         "sanction_choices": ChampionshipPenalty.PTYPE,
         "option_choices": ChampionshipPenalty.OPTION_CHOICES,
+        "organiser_logo": get_organiser_logo(current_round()),
     }
     return render(request, "pages/edit_championship.html", context)
 

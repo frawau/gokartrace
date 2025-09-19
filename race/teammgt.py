@@ -8,6 +8,7 @@ from django.db.models import Exists, OuterRef, Value, BooleanField
 from django.contrib.auth.decorators import login_required, user_passes_test
 from .utils import is_admin_user
 from django.utils.decorators import method_decorator
+from .views import get_organiser_logo
 
 
 class TeamChoiceField(forms.ModelChoiceField):
@@ -136,6 +137,7 @@ class TeamMembersView(View):
             "team_form": team_form,
             "add_member_form": add_member_form,
             "round_ready": current_round.ready,
+            "organiser_logo": get_organiser_logo(current_round),
         }
         return render(request, template_to_use, context)
 
@@ -262,6 +264,7 @@ class TeamMembersView(View):
             "team_form": TeamSelectionForm(
                 initial={"team": selected_team.id}, current_round=current_round
             ),
+            "organiser_logo": get_organiser_logo(current_round),
         }
 
         # Only add the add_member_form if using the editable template
