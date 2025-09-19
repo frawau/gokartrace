@@ -122,7 +122,11 @@ def team_carousel(request):
     return render(
         request,
         "pages/teamcarousel.html",
-        {"round": cround, "teams_with_limits": teams_with_limits},
+        {
+            "round": cround,
+            "teams_with_limits": teams_with_limits,
+            "organiser_logo": get_organiser_logo(cround),
+        },
     )
 
 
@@ -237,7 +241,9 @@ def changedriver_info(request):
             request, "layout/changedriver_info.html", {"change_lanes": change_lanes}
         )
     except:
-        return render(request, "pages/norace.html")
+        return render(
+            request, "pages/norace.html", {"organiser_logo": get_organiser_logo(None)}
+        )
 
 
 def all_pitlanes(request):
@@ -302,7 +308,9 @@ def racecontrol(request):
             },
         )
     except:
-        return render(request, "pages/norace.html")
+        return render(
+            request, "pages/norace.html", {"organiser_logo": get_organiser_logo(None)}
+        )
 
 
 @login_required
@@ -844,7 +852,9 @@ def singleteam_view(request):
         }
         return render(request, "pages/singleteam.html", context)
     else:
-        return render(request, "pages/norace.html")
+        return render(
+            request, "pages/norace.html", {"organiser_logo": get_organiser_logo(None)}
+        )
 
 
 def pending_drivers(request):
@@ -856,7 +866,11 @@ def pending_drivers(request):
 
     # If no round is found
     if not cround:
-        return render(request, "pages/pending_drivers.html", {"round": None})
+        return render(
+            request,
+            "pages/pending_drivers.html",
+            {"round": None, "organiser_logo": None},
+        )
 
     # Get all sessions that are registered but not started or ended
     pending_sessions = (
@@ -884,6 +898,7 @@ def pending_drivers(request):
     context = {
         "round": cround,
         "pending_sessions": pending_sessions,
+        "organiser_logo": get_organiser_logo(cround),
     }
 
     return render(request, "pages/pending_drivers.html", context)
