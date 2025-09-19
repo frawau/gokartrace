@@ -1259,3 +1259,25 @@ class PenaltyQueue(models.Model):
     def adelay_penalty(self):
         """Async version of delay_penalty"""
         return self.delay_penalty()
+
+
+class Logo(models.Model):
+    name = models.CharField(max_length=128)
+    image = models.ImageField(upload_to=logo_path)
+    championship = models.ForeignKey(
+        Championship, on_delete=models.CASCADE, null=True, blank=True
+    )
+
+    class Meta:
+        verbose_name = _("Logo")
+        verbose_name_plural = _("Logos")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["name", "championship"],
+                condition=models.Q(name="organiser logo"),
+                name="unique_organiser_logo_per_championship",
+            )
+        ]
+
+    def __str__(self):
+        return self.name

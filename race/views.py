@@ -46,6 +46,7 @@ from .models import (
     ChampionshipPenalty,
     RoundPenalty,
     PenaltyQueue,
+    Logo,
 )
 from .signals import race_end_requested
 from .serializers import ChangeLaneSerializer
@@ -65,11 +66,19 @@ def current_round():
 
 
 def active_round():
-    end_date = dt.date.today()
-    start_date = end_date - dt.timedelta(days=1)
+    start_date = dt.date.today() - dt.timedelta(days=1)
     return Round.objects.filter(
         Q(start__date__gte=start_date) & Q(ended__isnull=True)
     ).first()
+
+
+def editable_round():
+    start_date = dt.date.today() - dt.timedelta(days=1)
+    return (
+        Round.objects.filter(Q(start__date__gte=start_date), ready=False)
+        .order_by("start")
+        .first()
+    )
 
 
 def index(request):
@@ -88,7 +97,14 @@ def index(request):
     ]
     cround = current_round()
     return render(
-        request, "pages/index.html", {"round": cround, "buttons": button_matrix}
+        request,
+        "pages/index.html",
+        {
+            "round": cround,
+            "buttons": button_matrix,
+            "organiser_logo": get_organiser_logo(cround),
+            "sponsors_logos": get_sponsor_logos(cround),
+        },
     )
 
 
@@ -115,7 +131,12 @@ def team_carousel(request):
     return render(
         request,
         "pages/teamcarousel.html",
-        {"round": cround, "teams_with_limits": teams_with_limits},
+        {
+            "round": cround,
+            "teams_with_limits": teams_with_limits,
+            "organiser_logo": get_organiser_logo(cround),
+            "sponsors_logos": get_sponsor_logos(cround),
+        },
     )
 
 
@@ -143,7 +164,12 @@ def team_carousel_with_nav(request):
     return render(
         request,
         "pages/teamcarousel_nav.html",
-        {"round": cround, "teams_with_limits": teams_with_limits},
+        {
+            "round": cround,
+            "teams_with_limits": teams_with_limits,
+            "organiser_logo": get_organiser_logo(cround),
+            "sponsors_logos": get_sponsor_logos(cround),
+        },
     )
 
 
@@ -226,7 +252,14 @@ def changedriver_info(request):
             request, "layout/changedriver_info.html", {"change_lanes": change_lanes}
         )
     except:
-        return render(request, "pages/norace.html")
+        return render(
+            request,
+            "pages/norace.html",
+            {
+                "organiser_logo": get_organiser_logo(None),
+                "sponsors_logos": get_sponsor_logos(None),
+            },
+        )
 
 
 def all_pitlanes(request):
@@ -291,7 +324,14 @@ def racecontrol(request):
             },
         )
     except:
-        return render(request, "pages/norace.html")
+        return render(
+            request,
+            "pages/norace.html",
+            {
+                "organiser_logo": get_organiser_logo(None),
+                "sponsors_logos": get_sponsor_logos(None),
+            },
+        )
 
 
 @login_required
@@ -551,11 +591,8 @@ def change_kart_driver(request):
 @user_passes_test(is_admin_user)
 def round_list_update(request):
     """View to list all not ready rounds for the championship whose next round is the soonest upcoming (today or after)"""
-    today = dt.datetime.now()
     # Find the next not ready round in any championship
-    next_round = (
-        Round.objects.filter(ready=False, start__gte=today).order_by("start").first()
-    )
+    next_round = editable_round()
     rounds = []
     championship = None
     if next_round:
@@ -563,12 +600,20 @@ def round_list_update(request):
         rounds = Round.objects.filter(championship=championship, ready=False).order_by(
             "start"
         )
-    context = {"rounds": rounds, "next_round": next_round, "championship": championship}
+    context = {
+        "rounds": rounds,
+        "next_round": next_round,
+        "championship": championship,
+        "organiser_logo": get_organiser_logo(next_round),
+        "sponsors_logos": get_sponsor_logos(next_round),
+    }
 
     if request.method == "GET" and "round_id" in request.GET:
         try:
             selected_round = Round.objects.get(pk=request.GET["round_id"])
             context["selected_round"] = selected_round
+            # Update organiser logo to selected round
+            context["organiser_logo"] = get_organiser_logo(selected_round)
         except Round.DoesNotExist:
             messages.error(request, "Round not found")
 
@@ -687,7 +732,15 @@ def create_driver(request):
             return redirect("add_driver")  # Redirect to a page listing persons
     else:
         form = DriverForm()
-    return render(request, "pages/add_driver.html", {"form": form})
+    return render(
+        request,
+        "pages/add_driver.html",
+        {
+            "form": form,
+            "organiser_logo": get_organiser_logo(current_round()),
+            "sponsors_logos": get_sponsor_logos(current_round()),
+        },
+    )
 
 
 @login_required
@@ -713,12 +766,24 @@ def create_team(request):
                         "team_number", "This team number is no longer available."
                     )
                     team.delete()  # Clean up the team if registration failed
-                    return render(request, "pages/add_team.html", {"form": form})
+                    return render(
+                        request,
+                        "pages/add_team.html",
+                        {
+                            "form": form,
+                            "organiser_logo": get_organiser_logo(current_round()),
+                            "sponsors_logos": get_sponsor_logos(current_round()),
+                        },
+                    )
             messages.success(request, "Team added successfully!")
             return redirect("add_team")  # Redirect to a page listing persons
     else:
         form = TeamForm()
-    return render(request, "pages/add_team.html", {"form": form})
+    return render(
+        request,
+        "pages/add_team.html",
+        {"form": form, "organiser_logo": get_organiser_logo(current_round())},
+    )
 
 
 def get_round_status(request):
@@ -807,10 +872,19 @@ def singleteam_view(request):
             "round": cround,
             "teams": teams,
             "selected_team": selected_team,
+            "organiser_logo": get_organiser_logo(cround),
+            "sponsors_logos": get_sponsor_logos(cround),
         }
         return render(request, "pages/singleteam.html", context)
     else:
-        return render(request, "pages/norace.html")
+        return render(
+            request,
+            "pages/norace.html",
+            {
+                "organiser_logo": get_organiser_logo(None),
+                "sponsors_logos": get_sponsor_logos(None),
+            },
+        )
 
 
 def pending_drivers(request):
@@ -822,7 +896,15 @@ def pending_drivers(request):
 
     # If no round is found
     if not cround:
-        return render(request, "pages/pending_drivers.html", {"round": None})
+        return render(
+            request,
+            "pages/pending_drivers.html",
+            {
+                "round": None,
+                "organiser_logo": None,
+                "sponsors_logos": get_sponsor_logos(None),
+            },
+        )
 
     # Get all sessions that are registered but not started or ended
     pending_sessions = (
@@ -850,6 +932,7 @@ def pending_drivers(request):
     context = {
         "round": cround,
         "pending_sessions": pending_sessions,
+        "organiser_logo": get_organiser_logo(cround),
     }
 
     return render(request, "pages/pending_drivers.html", context)
@@ -864,7 +947,15 @@ def pending_drivers_with_nav(request):
 
     # If no round is found
     if not cround:
-        return render(request, "pages/pending_drivers_nav.html", {"round": None})
+        return render(
+            request,
+            "pages/pending_drivers_nav.html",
+            {
+                "round": None,
+                "organiser_logo": None,
+                "sponsors_logos": get_sponsor_logos(None),
+            },
+        )
 
     # Get all sessions that are registered but not started or ended
     pending_sessions = (
@@ -892,6 +983,8 @@ def pending_drivers_with_nav(request):
     context = {
         "round": cround,
         "pending_sessions": pending_sessions,
+        "organiser_logo": get_organiser_logo(cround),
+        "sponsors_logos": get_sponsor_logos(cround),
     }
 
     return render(request, "pages/pending_drivers_nav.html", context)
@@ -947,7 +1040,12 @@ def join_championship_view(request):
     return render(
         request,
         "pages/join_championship.html",
-        {"form": form, "success_message": success_message},
+        {
+            "form": form,
+            "success_message": success_message,
+            "organiser_logo": get_organiser_logo(current_round()),
+            "sponsors_logos": get_sponsor_logos(current_round()),
+        },
     )
 
 
@@ -1041,6 +1139,8 @@ def round_info(request):
         "selected_round": selected_round,
         "selected_round_id": int(selected_round_id) if selected_round_id else None,
         "round_teams": round_teams,
+        "organiser_logo": get_organiser_logo(selected_round),
+        "sponsors_logos": get_sponsor_logos(selected_round),
     }
     return render(request, "pages/round_info.html", context)
 
@@ -1099,6 +1199,8 @@ def round_penalties(request):
         "selected_round": selected_round,
         "selected_round_id": int(selected_round_id) if selected_round_id else None,
         "round_penalties": round_penalties_list,
+        "organiser_logo": get_organiser_logo(selected_round),
+        "sponsors_logos": get_sponsor_logos(selected_round),
     }
     return render(request, "pages/round_penalties.html", context)
 
@@ -1143,11 +1245,24 @@ def all_drivers_view(request):
                         }
                     )
 
+    # Get organiser logo for current round or selected championship
+    current_round_obj = current_round()
+    if selected_championship and not current_round_obj:
+        # If no current round but we have a selected championship, use latest round from that championship
+        latest_round = rounds.last() if rounds else None
+        organiser_logo = get_organiser_logo(latest_round)
+        sponsors_logos = get_sponsor_logos(latest_round)
+    else:
+        organiser_logo = get_organiser_logo(current_round_obj)
+        sponsors_logos = get_sponsor_logos(current_round_obj)
+
     context = {
         "championships": championships,
         "selected_championship": selected_championship,
         "rounds": rounds,
         "persons": persons,
+        "organiser_logo": organiser_logo,
+        "sponsors_logos": sponsors_logos,
     }
 
     return render(request, "pages/alldriver.html", context)
@@ -1192,11 +1307,24 @@ def all_teams_view(request):
             .order_by("championship_number")
         )
 
+    # Get organiser logo for current round or selected championship
+    current_round_obj = current_round()
+    if selected_championship and not current_round_obj:
+        # If no current round but we have a selected championship, use latest round from that championship
+        latest_round = rounds.last() if rounds else None
+        organiser_logo = get_organiser_logo(latest_round)
+        sponsors_logos = get_sponsor_logos(latest_round)
+    else:
+        organiser_logo = get_organiser_logo(current_round_obj)
+        sponsors_logos = get_sponsor_logos(current_round_obj)
+
     context = {
         "championships": championships,
         "selected_championship": selected_championship,
         "rounds": rounds,
         "teams": teams,
+        "organiser_logo": organiser_logo,
+        "sponsors_logos": sponsors_logos,
     }
 
     return render(request, "pages/allteams.html", context)
@@ -1235,6 +1363,8 @@ def edit_driver_view(request):
     context = {
         "drivers": drivers,
         "countries": countries_list,
+        "organiser_logo": get_organiser_logo(current_round()),
+        "sponsors_logos": get_sponsor_logos(current_round()),
     }
     return render(request, "pages/edit_driver.html", context)
 
@@ -1264,6 +1394,8 @@ def edit_team_view(request):
 
     context = {
         "teams": teams,
+        "organiser_logo": get_organiser_logo(current_round()),
+        "sponsors_logos": get_sponsor_logos(current_round()),
     }
     return render(request, "pages/edit_team.html", context)
 
@@ -1309,6 +1441,8 @@ def create_championship_view(request):
     current_year = dt.date.today().year
     context = {
         "current_year": current_year,
+        "organiser_logo": get_organiser_logo(current_round()),
+        "sponsors_logos": get_sponsor_logos(current_round()),
     }
     return render(request, "pages/create_championship.html", context)
 
@@ -1568,6 +1702,8 @@ def edit_championship_view(request):
         "championships": championships,
         "sanction_choices": ChampionshipPenalty.PTYPE,
         "option_choices": ChampionshipPenalty.OPTION_CHOICES,
+        "organiser_logo": get_organiser_logo(current_round()),
+        "sponsors_logos": get_sponsor_logos(current_round()),
     }
     return render(request, "pages/edit_championship.html", context)
 
@@ -1632,6 +1768,8 @@ def edit_round_view(request):
 
     context = {
         "championships": championships,
+        "organiser_logo": get_organiser_logo(current_round()),
+        "sponsors_logos": get_sponsor_logos(current_round()),
     }
     return render(request, "pages/edit_round.html", context)
 
@@ -1748,8 +1886,133 @@ def penalty_management_view(request):
     penalties = Penalty.objects.all().order_by("name")
     context = {
         "penalties": penalties,
+        "organiser_logo": get_organiser_logo(current_round()),
+        "sponsors_logos": get_sponsor_logos(current_round()),
     }
     return render(request, "pages/penalty_management.html", context)
+
+
+@login_required
+@user_passes_test(is_admin_user)
+def sponsor_management_view(request):
+    if request.method == "POST":
+        try:
+            action = request.POST.get("action")
+
+            if action == "create_logo":
+                name = request.POST.get("name")
+                championship_id = request.POST.get("championship_id")
+
+                # Validate name
+                if name not in ["organiser logo", "sponsor logo"]:
+                    return JsonResponse(
+                        {
+                            "success": False,
+                            "error": "Logo name must be 'organiser logo' or 'sponsor logo'",
+                        }
+                    )
+
+                # Handle championship
+                championship = None
+                if championship_id:
+                    championship = get_object_or_404(Championship, id=championship_id)
+
+                # Check for organiser logo uniqueness constraint (only for organiser logos)
+                if name == "organiser logo":
+                    if Logo.objects.filter(
+                        name="organiser logo", championship=championship
+                    ).exists():
+                        return JsonResponse(
+                            {
+                                "success": False,
+                                "error": "Organiser logo already exists for this championship",
+                            }
+                        )
+
+                # Create logo
+                logo = Logo.objects.create(name=name, championship=championship)
+
+                if "image" in request.FILES:
+                    logo.image = request.FILES["image"]
+                    logo.save()
+                else:
+                    return JsonResponse(
+                        {"success": False, "error": "Image file is required"}
+                    )
+
+                return JsonResponse(
+                    {"success": True, "message": "Logo created successfully"}
+                )
+
+            elif action == "edit_logo":
+                logo_id = request.POST.get("logo_id")
+                logo = get_object_or_404(Logo, id=logo_id)
+
+                name = request.POST.get("name")
+                championship_id = request.POST.get("championship_id")
+
+                # Validate name
+                if name not in ["organiser logo", "sponsor logo"]:
+                    return JsonResponse(
+                        {
+                            "success": False,
+                            "error": "Logo name must be 'organiser logo' or 'sponsor logo'",
+                        }
+                    )
+
+                # Handle championship
+                championship = None
+                if championship_id:
+                    championship = get_object_or_404(Championship, id=championship_id)
+
+                # Check for organiser logo uniqueness constraint (exclude current logo, only for organiser logos)
+                if name == "organiser logo":
+                    if (
+                        Logo.objects.filter(
+                            name="organiser logo", championship=championship
+                        )
+                        .exclude(id=logo.id)
+                        .exists()
+                    ):
+                        return JsonResponse(
+                            {
+                                "success": False,
+                                "error": "Organiser logo already exists for this championship",
+                            }
+                        )
+
+                logo.name = name
+                logo.championship = championship
+
+                if "image" in request.FILES:
+                    logo.image = request.FILES["image"]
+
+                logo.save()
+                return JsonResponse(
+                    {"success": True, "message": "Logo updated successfully"}
+                )
+
+            elif action == "delete_logo":
+                logo_id = request.POST.get("logo_id")
+                logo = get_object_or_404(Logo, id=logo_id)
+                logo.delete()
+                return JsonResponse(
+                    {"success": True, "message": "Logo deleted successfully"}
+                )
+
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+
+    # GET request - show the logos
+    logos = Logo.objects.all().order_by("name", "championship__name")
+    championships = Championship.objects.all().order_by("name")
+    context = {
+        "logos": logos,
+        "championships": championships,
+        "organiser_logo": get_organiser_logo(current_round()),
+        "sponsors_logos": get_sponsor_logos(current_round()),
+    }
+    return render(request, "pages/sponsor_management.html", context)
 
 
 @login_required
@@ -2368,3 +2631,71 @@ def delay_penalty(request):
 
 # Note: Penalty queue timing and next penalty triggering will be handled
 # by the StopAndGoConsumer when it receives penalty state updates
+
+
+def get_organiser_logo(round_obj):
+    """
+    Retrieve the organiser logo for a given round.
+
+    Priority order:
+    1. Logo with name "organiser logo" for the round's championship
+    2. Logo with name "organiser logo" for NULL championship (global)
+    3. None if no matching logo found
+
+    Args:
+        round_obj: Round instance
+
+    Returns:
+        Logo instance or None
+    """
+    if not round_obj:
+        return None
+
+    try:
+        # First try to get championship-specific organiser logo
+        return Logo.objects.get(
+            name="organiser logo", championship=round_obj.championship
+        )
+    except Logo.DoesNotExist:
+        try:
+            # Fallback to global organiser logo (NULL championship)
+            return Logo.objects.get(name="organiser logo", championship__isnull=True)
+        except Logo.DoesNotExist:
+            # No organiser logo found
+            return None
+
+
+def get_sponsor_logos(round_obj):
+    """
+    Retrieve sponsor logos for a given round.
+
+    Priority order:
+    1. All logos with name "sponsor logo" for the round's championship
+    2. All logos with name "sponsor logo" for NULL championship (global defaults)
+    3. Single gokartrace logo if no sponsor logos found
+
+    Args:
+        round_obj: Round instance
+
+    Returns:
+        QuerySet of Logo instances or list with single gokartrace logo dict
+    """
+    if round_obj:
+        # First try to get championship-specific sponsor logos
+        championship_sponsors = Logo.objects.filter(
+            name="sponsor logo", championship=round_obj.championship
+        )
+        if championship_sponsors.exists():
+            return championship_sponsors
+
+    # Fallback to global sponsor logos (NULL championship)
+    global_sponsors = Logo.objects.filter(
+        name="sponsor logo", championship__isnull=True
+    )
+    if global_sponsors.exists():
+        return global_sponsors
+
+    # If no sponsor logos found, return gokartrace logo as fallback
+    return [
+        {"name": "GoKartRace", "image": {"url": "/static/logos/gokartrace-logo.svg"}}
+    ]

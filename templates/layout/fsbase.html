@@ -6,13 +6,12 @@
     {% include "includes/head.html" %}
     <style>
     {% block extra_style %}{% endblock extra_style %}
-    .footer-logo {
-        width: 100%; /* Fill the container width */
-        height: auto; /* Maintain aspect ratio */
-        max-height: 250px; /* Keep a maximum height */
+    .footer-sponsor-logo {
+        height: 60px; /* Fixed height for all logos */
+        width: auto; /* Maintain aspect ratio */
         display: block;
         object-fit: contain; /* Prevent distortion */
-        max-width: none !important;
+        margin: 0 auto; /* Center the logo in its container */
         }
     .racep-container {
         display: flex;
@@ -34,7 +33,6 @@
     <div class="racep-container">
         <div class="racep-content">
             {% block content %}
-                {% include "layout/content.html" %}
             {% endblock content %}
         </div>
         {% block footer %}

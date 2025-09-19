@@ -87,6 +87,7 @@ urlpatterns = [
         name="get_championship_rounds",
     ),
     path("penalty/manage/", views.penalty_management_view, name="penalty_management"),
+    path("sponsor/manage/", views.sponsor_management_view, name="sponsor_management"),
     path(
         "api/championship/<int:championship_id>/available-penalties/",
         views.get_available_penalties,
