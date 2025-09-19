@@ -7,12 +7,19 @@
     <style>
     {% block extra_style %}{% endblock extra_style %}
     .footer-logo {
-        height: 150px; /* Fixed height for all logos */
-        max-width: 200px; /* Allow wider logos */
+        height: 60px; /* Fixed height for all logos */
         width: auto; /* Maintain aspect ratio */
-        display: block;
+        display: inline-block;
         object-fit: contain; /* Prevent distortion */
-        margin: 0 auto; /* Center the logo in its container */
+        margin: 10px 15px; /* Space between logos */
+        }
+    .sponsor-logos-row {
+        text-align: center;
+        margin-bottom: 20px;
+        width: 100%;
+        }
+    .sponsor-logos-container {
+        width: 100%;
         }
     .racep-container {
         display: flex;
