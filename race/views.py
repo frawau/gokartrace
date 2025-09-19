@@ -95,6 +95,7 @@ def index(request):
             "round": cround,
             "buttons": button_matrix,
             "organiser_logo": get_organiser_logo(cround),
+            "sponsors_logos": get_sponsor_logos(cround),
         },
     )
 
@@ -126,6 +127,7 @@ def team_carousel(request):
             "round": cround,
             "teams_with_limits": teams_with_limits,
             "organiser_logo": get_organiser_logo(cround),
+            "sponsors_logos": get_sponsor_logos(cround),
         },
     )
 
@@ -158,6 +160,7 @@ def team_carousel_with_nav(request):
             "round": cround,
             "teams_with_limits": teams_with_limits,
             "organiser_logo": get_organiser_logo(cround),
+            "sponsors_logos": get_sponsor_logos(cround),
         },
     )
 
@@ -242,7 +245,12 @@ def changedriver_info(request):
         )
     except:
         return render(
-            request, "pages/norace.html", {"organiser_logo": get_organiser_logo(None)}
+            request,
+            "pages/norace.html",
+            {
+                "organiser_logo": get_organiser_logo(None),
+                "sponsors_logos": get_sponsor_logos(None),
+            },
         )
 
 
@@ -309,7 +317,12 @@ def racecontrol(request):
         )
     except:
         return render(
-            request, "pages/norace.html", {"organiser_logo": get_organiser_logo(None)}
+            request,
+            "pages/norace.html",
+            {
+                "organiser_logo": get_organiser_logo(None),
+                "sponsors_logos": get_sponsor_logos(None),
+            },
         )
 
 
@@ -587,6 +600,7 @@ def round_list_update(request):
         "next_round": next_round,
         "championship": championship,
         "organiser_logo": get_organiser_logo(next_round),
+        "sponsors_logos": get_sponsor_logos(next_round),
     }
 
     if request.method == "GET" and "round_id" in request.GET:
@@ -749,6 +763,7 @@ def create_team(request):
                         {
                             "form": form,
                             "organiser_logo": get_organiser_logo(current_round()),
+                            "sponsors_logos": get_sponsor_logos(current_round()),
                         },
                     )
             messages.success(request, "Team added successfully!")
@@ -849,11 +864,17 @@ def singleteam_view(request):
             "teams": teams,
             "selected_team": selected_team,
             "organiser_logo": get_organiser_logo(cround),
+            "sponsors_logos": get_sponsor_logos(cround),
         }
         return render(request, "pages/singleteam.html", context)
     else:
         return render(
-            request, "pages/norace.html", {"organiser_logo": get_organiser_logo(None)}
+            request,
+            "pages/norace.html",
+            {
+                "organiser_logo": get_organiser_logo(None),
+                "sponsors_logos": get_sponsor_logos(None),
+            },
         )
 
 
@@ -869,7 +890,11 @@ def pending_drivers(request):
         return render(
             request,
             "pages/pending_drivers.html",
-            {"round": None, "organiser_logo": None},
+            {
+                "round": None,
+                "organiser_logo": None,
+                "sponsors_logos": get_sponsor_logos(None),
+            },
         )
 
     # Get all sessions that are registered but not started or ended
@@ -916,7 +941,11 @@ def pending_drivers_with_nav(request):
         return render(
             request,
             "pages/pending_drivers_nav.html",
-            {"round": None, "organiser_logo": None},
+            {
+                "round": None,
+                "organiser_logo": None,
+                "sponsors_logos": get_sponsor_logos(None),
+            },
         )
 
     # Get all sessions that are registered but not started or ended
@@ -1005,6 +1034,7 @@ def join_championship_view(request):
             "form": form,
             "success_message": success_message,
             "organiser_logo": get_organiser_logo(current_round()),
+            "sponsors_logos": get_sponsor_logos(current_round()),
         },
     )
 
@@ -1100,6 +1130,7 @@ def round_info(request):
         "selected_round_id": int(selected_round_id) if selected_round_id else None,
         "round_teams": round_teams,
         "organiser_logo": get_organiser_logo(selected_round),
+        "sponsors_logos": get_sponsor_logos(selected_round),
     }
     return render(request, "pages/round_info.html", context)
 
@@ -1159,6 +1190,7 @@ def round_penalties(request):
         "selected_round_id": int(selected_round_id) if selected_round_id else None,
         "round_penalties": round_penalties_list,
         "organiser_logo": get_organiser_logo(selected_round),
+        "sponsors_logos": get_sponsor_logos(selected_round),
     }
     return render(request, "pages/round_penalties.html", context)
 
@@ -1209,8 +1241,10 @@ def all_drivers_view(request):
         # If no current round but we have a selected championship, use latest round from that championship
         latest_round = rounds.last() if rounds else None
         organiser_logo = get_organiser_logo(latest_round)
+        sponsors_logos = get_sponsor_logos(latest_round)
     else:
         organiser_logo = get_organiser_logo(current_round_obj)
+        sponsors_logos = get_sponsor_logos(current_round_obj)
 
     context = {
         "championships": championships,
@@ -1218,6 +1252,7 @@ def all_drivers_view(request):
         "rounds": rounds,
         "persons": persons,
         "organiser_logo": organiser_logo,
+        "sponsors_logos": sponsors_logos,
     }
 
     return render(request, "pages/alldriver.html", context)
@@ -1268,8 +1303,10 @@ def all_teams_view(request):
         # If no current round but we have a selected championship, use latest round from that championship
         latest_round = rounds.last() if rounds else None
         organiser_logo = get_organiser_logo(latest_round)
+        sponsors_logos = get_sponsor_logos(latest_round)
     else:
         organiser_logo = get_organiser_logo(current_round_obj)
+        sponsors_logos = get_sponsor_logos(current_round_obj)
 
     context = {
         "championships": championships,
@@ -1277,6 +1314,7 @@ def all_teams_view(request):
         "rounds": rounds,
         "teams": teams,
         "organiser_logo": organiser_logo,
+        "sponsors_logos": sponsors_logos,
     }
 
     return render(request, "pages/allteams.html", context)
@@ -1316,6 +1354,7 @@ def edit_driver_view(request):
         "drivers": drivers,
         "countries": countries_list,
         "organiser_logo": get_organiser_logo(current_round()),
+        "sponsors_logos": get_sponsor_logos(current_round()),
     }
     return render(request, "pages/edit_driver.html", context)
 
@@ -1346,6 +1385,7 @@ def edit_team_view(request):
     context = {
         "teams": teams,
         "organiser_logo": get_organiser_logo(current_round()),
+        "sponsors_logos": get_sponsor_logos(current_round()),
     }
     return render(request, "pages/edit_team.html", context)
 
@@ -1392,6 +1432,7 @@ def create_championship_view(request):
     context = {
         "current_year": current_year,
         "organiser_logo": get_organiser_logo(current_round()),
+        "sponsors_logos": get_sponsor_logos(current_round()),
     }
     return render(request, "pages/create_championship.html", context)
 
@@ -1652,6 +1693,7 @@ def edit_championship_view(request):
         "sanction_choices": ChampionshipPenalty.PTYPE,
         "option_choices": ChampionshipPenalty.OPTION_CHOICES,
         "organiser_logo": get_organiser_logo(current_round()),
+        "sponsors_logos": get_sponsor_logos(current_round()),
     }
     return render(request, "pages/edit_championship.html", context)
 
@@ -1717,6 +1759,7 @@ def edit_round_view(request):
     context = {
         "championships": championships,
         "organiser_logo": get_organiser_logo(current_round()),
+        "sponsors_logos": get_sponsor_logos(current_round()),
     }
     return render(request, "pages/edit_round.html", context)
 
@@ -1834,6 +1877,7 @@ def penalty_management_view(request):
     context = {
         "penalties": penalties,
         "organiser_logo": get_organiser_logo(current_round()),
+        "sponsors_logos": get_sponsor_logos(current_round()),
     }
     return render(request, "pages/penalty_management.html", context)
 
@@ -2486,3 +2530,39 @@ def get_organiser_logo(round_obj):
         except Logo.DoesNotExist:
             # No organiser logo found
             return None
+
+
+def get_sponsor_logos(round_obj):
+    """
+    Retrieve sponsor logos for a given round.
+
+    Priority order:
+    1. All logos with name "sponsor logo" for the round's championship
+    2. All logos with name "sponsor logo" for NULL championship (global defaults)
+    3. Single gokartrace logo if no sponsor logos found
+
+    Args:
+        round_obj: Round instance
+
+    Returns:
+        QuerySet of Logo instances or list with single gokartrace logo dict
+    """
+    if round_obj:
+        # First try to get championship-specific sponsor logos
+        championship_sponsors = Logo.objects.filter(
+            name="sponsor logo", championship=round_obj.championship
+        )
+        if championship_sponsors.exists():
+            return championship_sponsors
+
+    # Fallback to global sponsor logos (NULL championship)
+    global_sponsors = Logo.objects.filter(
+        name="sponsor logo", championship__isnull=True
+    )
+    if global_sponsors.exists():
+        return global_sponsors
+
+    # If no sponsor logos found, return gokartrace logo as fallback
+    return [
+        {"name": "GoKartRace", "image": {"url": "/static/logos/gokartrace-logo.svg"}}
+    ]
