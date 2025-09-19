@@ -1271,7 +1271,13 @@ class Logo(models.Model):
     class Meta:
         verbose_name = _("Logo")
         verbose_name_plural = _("Logos")
-        unique_together = ("name", "championship")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["name", "championship"],
+                condition=models.Q(name="organiser logo"),
+                name="unique_organiser_logo_per_championship",
+            )
+        ]
 
     def __str__(self):
         return self.name
