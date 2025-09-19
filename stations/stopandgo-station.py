@@ -9,6 +9,7 @@ import argparse
 import hmac
 import hashlib
 import time
+import tomllib
 from datetime import datetime
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
@@ -655,19 +656,37 @@ class StopAndGoStation:
             logging.info("Shutdown complete")
 
 
+def load_config(config_path):
+    """Load configuration from TOML file"""
+    try:
+        with open(config_path, "rb") as f:
+            config = tomllib.load(f)
+        logging.info(f"Loaded configuration from {config_path}")
+        return config
+    except FileNotFoundError:
+        logging.warning(f"Config file {config_path} not found")
+        return {}
+    except Exception as e:
+        logging.error(f"Error loading config file {config_path}: {e}")
+        return {}
+
+
 def parse_arguments():
     parser = argparse.ArgumentParser(
         description="Stop and Go Station for Go-Kart Racing"
     )
     parser.add_argument(
-        "-s",
-        "--server",
-        default="gokart.wautier.eu",
-        help="Server hostname (default: gokart.wautier.eu)",
+        "-c",
+        "--config",
+        type=str,
+        help="Path to TOML configuration file",
     )
     parser.add_argument(
-        "-p", "--port", type=int, default=8000, help="Server port (default: 8000)"
+        "-s",
+        "--server",
+        help="Server hostname (default: gokart.wautier.eu)",
     )
+    parser.add_argument("-p", "--port", type=int, help="Server port (default: 8000)")
     parser.add_argument(
         "-S",
         "--secure",
@@ -678,14 +697,12 @@ def parse_arguments():
         "-b",
         "--button",
         type=int,
-        default=DEFAULT_BUTTON_PIN,
         help=f"Physical button pin number (default: {DEFAULT_BUTTON_PIN})",
     )
     parser.add_argument(
         "-f",
         "--fence",
         type=int,
-        default=DEFAULT_SENSOR_PIN,
         help=f"Physical fence sensor pin number (default: {DEFAULT_SENSOR_PIN})",
     )
     parser.add_argument(
@@ -697,10 +714,40 @@ def parse_arguments():
     parser.add_argument(
         "-H",
         "--hmac-secret",
-        default="race_control_hmac_key_2024",
         help="HMAC secret key for message authentication (default: race_control_hmac_key_2024)",
     )
-    return parser.parse_args()
+
+    args = parser.parse_args()
+
+    # Load config file if specified
+    config = {}
+    if args.config:
+        config = load_config(args.config)
+
+    # Set defaults - command line args override config file values
+    defaults = {
+        "server": "gokart.wautier.eu",
+        "port": 8000,
+        "secure": False,
+        "button": DEFAULT_BUTTON_PIN,
+        "fence": DEFAULT_SENSOR_PIN,
+        "debug": False,
+        "info": False,
+        "hmac_secret": "race_control_hmac_key_2024",
+    }
+
+    # Apply config file values, then command line overrides
+    for key, default_value in defaults.items():
+        # Get value from config file first
+        config_value = config.get(key, default_value)
+        # Use command line argument if provided, otherwise use config/default
+        cmd_value = getattr(args, key)
+        if cmd_value is not None:
+            setattr(args, key, cmd_value)
+        else:
+            setattr(args, key, config_value)
+
+    return args
 
 
 async def main():
