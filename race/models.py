@@ -47,6 +47,20 @@ class Config(models.Model):
         return f"Config {self.name} is {self.value}"
 
 
+def mugshot_path(instance, filename):
+    # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
+    return f"static/person/mug_{instance.surname}_{instance.country}_{round(dt.datetime.now().timestamp())}"
+
+
+def illustration_path(instance, filename):
+    return f"static/illustration/penalty_{instance.name}"
+
+
+def logo_path(instance, filename):
+    # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
+    return f"static/logos/{instance.name}_{round(dt.datetime.now().timestamp())}"
+
+
 class Logo(models.Model):
     name = models.CharField(max_length=128)
     image = models.ImageField(upload_to=logo_path)
@@ -61,20 +75,6 @@ class Logo(models.Model):
 
     def __str__(self):
         return self.name
-
-
-def mugshot_path(instance, filename):
-    # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
-    return f"static/person/mug_{instance.surname}_{instance.country}_{round(dt.datetime.now().timestamp())}"
-
-
-def illustration_path(instance, filename):
-    return f"static/illustration/penalty_{instance.name}"
-
-
-def logo_path(instance, filename):
-    # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
-    return f"static/logos/{instance.name}_{round(dt.datetime.now().timestamp())}"
 
 
 def default_weight_penalty():
