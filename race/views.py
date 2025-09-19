@@ -89,7 +89,13 @@ def index(request):
     ]
     cround = current_round()
     return render(
-        request, "pages/index.html", {"round": cround, "buttons": button_matrix}
+        request,
+        "pages/index.html",
+        {
+            "round": cround,
+            "buttons": button_matrix,
+            "organiser_logo": get_organiser_logo(cround),
+        },
     )
 
 
@@ -144,7 +150,11 @@ def team_carousel_with_nav(request):
     return render(
         request,
         "pages/teamcarousel_nav.html",
-        {"round": cround, "teams_with_limits": teams_with_limits},
+        {
+            "round": cround,
+            "teams_with_limits": teams_with_limits,
+            "organiser_logo": get_organiser_logo(cround),
+        },
     )
 
 
@@ -865,7 +875,11 @@ def pending_drivers_with_nav(request):
 
     # If no round is found
     if not cround:
-        return render(request, "pages/pending_drivers_nav.html", {"round": None})
+        return render(
+            request,
+            "pages/pending_drivers_nav.html",
+            {"round": None, "organiser_logo": None},
+        )
 
     # Get all sessions that are registered but not started or ended
     pending_sessions = (
@@ -893,6 +907,7 @@ def pending_drivers_with_nav(request):
     context = {
         "round": cround,
         "pending_sessions": pending_sessions,
+        "organiser_logo": get_organiser_logo(cround),
     }
 
     return render(request, "pages/pending_drivers_nav.html", context)
