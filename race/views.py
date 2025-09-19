@@ -698,7 +698,11 @@ def create_driver(request):
             return redirect("add_driver")  # Redirect to a page listing persons
     else:
         form = DriverForm()
-    return render(request, "pages/add_driver.html", {"form": form})
+    return render(
+        request,
+        "pages/add_driver.html",
+        {"form": form, "organiser_logo": get_organiser_logo(current_round())},
+    )
 
 
 @login_required
@@ -724,12 +728,23 @@ def create_team(request):
                         "team_number", "This team number is no longer available."
                     )
                     team.delete()  # Clean up the team if registration failed
-                    return render(request, "pages/add_team.html", {"form": form})
+                    return render(
+                        request,
+                        "pages/add_team.html",
+                        {
+                            "form": form,
+                            "organiser_logo": get_organiser_logo(current_round()),
+                        },
+                    )
             messages.success(request, "Team added successfully!")
             return redirect("add_team")  # Redirect to a page listing persons
     else:
         form = TeamForm()
-    return render(request, "pages/add_team.html", {"form": form})
+    return render(
+        request,
+        "pages/add_team.html",
+        {"form": form, "organiser_logo": get_organiser_logo(current_round())},
+    )
 
 
 def get_round_status(request):
@@ -1221,11 +1236,21 @@ def all_teams_view(request):
             .order_by("championship_number")
         )
 
+    # Get organiser logo for current round or selected championship
+    current_round_obj = current_round()
+    if selected_championship and not current_round_obj:
+        # If no current round but we have a selected championship, use latest round from that championship
+        latest_round = rounds.last() if rounds else None
+        organiser_logo = get_organiser_logo(latest_round)
+    else:
+        organiser_logo = get_organiser_logo(current_round_obj)
+
     context = {
         "championships": championships,
         "selected_championship": selected_championship,
         "rounds": rounds,
         "teams": teams,
+        "organiser_logo": organiser_logo,
     }
 
     return render(request, "pages/allteams.html", context)
@@ -1264,6 +1289,7 @@ def edit_driver_view(request):
     context = {
         "drivers": drivers,
         "countries": countries_list,
+        "organiser_logo": get_organiser_logo(current_round()),
     }
     return render(request, "pages/edit_driver.html", context)
 
@@ -1293,6 +1319,7 @@ def edit_team_view(request):
 
     context = {
         "teams": teams,
+        "organiser_logo": get_organiser_logo(current_round()),
     }
     return render(request, "pages/edit_team.html", context)
 
