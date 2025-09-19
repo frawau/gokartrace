@@ -10,8 +10,10 @@
 <br />
 <br />
 <br />
-<div class="d-flex justify-content-between align-items-center" style="height: 80px;">
-    <img src="/static/logos/Easykart-logo.png" class="img-fluid" alt="Easykart.Net" style="height: 80px; width: auto;">
+<div class="d-flex {% if organiser_logo %}justify-content-between{% else %}justify-content-end{% endif %} align-items-center" style="height: 80px;">
+    {% if organiser_logo %}
+    <img src="{{ organiser_logo.image.url }}" class="img-fluid" alt="{{ organiser_logo.name }}" style="height: 80px; width: auto;">
+    {% endif %}
     <img src="{% static 'logos/gokartrace-logo.svg' %}" class="img-fluid" alt="GoKartRace" style="height: 80px; width: auto;">
 </div>
 </div>
