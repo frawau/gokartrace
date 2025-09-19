@@ -66,12 +66,16 @@ def current_round():
 
 
 def active_round():
-    end_date = dt.date.today()
-    start_date = end_date - dt.timedelta(days=1)
+    start_date = dt.date.today() - dt.timedelta(days=1)
     return Round.objects.filter(
         Q(start__date__gte=start_date) & Q(ended__isnull=True)
     ).first()
 
+def editable_round():
+    start_date = dt.date.today() - dt.timedelta(days=1)
+    return Round.objects.filter(
+        Q(start__date__gte=start_date) & Q(ready__isnull=True)
+    ).first()
 
 def index(request):
     # Page from the theme
@@ -583,11 +587,8 @@ def change_kart_driver(request):
 @user_passes_test(is_admin_user)
 def round_list_update(request):
     """View to list all not ready rounds for the championship whose next round is the soonest upcoming (today or after)"""
-    today = dt.datetime.now()
     # Find the next not ready round in any championship
-    next_round = (
-        Round.objects.filter(ready=False, start__gte=today).order_by("start").first()
-    )
+    next_round = editable_round()
     rounds = []
     championship = None
     if next_round:
