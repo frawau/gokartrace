@@ -979,7 +979,11 @@ def join_championship_view(request):
     return render(
         request,
         "pages/join_championship.html",
-        {"form": form, "success_message": success_message},
+        {
+            "form": form,
+            "success_message": success_message,
+            "organiser_logo": get_organiser_logo(current_round()),
+        },
     )
 
 
@@ -1688,6 +1692,7 @@ def edit_round_view(request):
 
     context = {
         "championships": championships,
+        "organiser_logo": get_organiser_logo(current_round()),
     }
     return render(request, "pages/edit_round.html", context)
 
@@ -1804,6 +1809,7 @@ def penalty_management_view(request):
     penalties = Penalty.objects.all().order_by("name")
     context = {
         "penalties": penalties,
+        "organiser_logo": get_organiser_logo(current_round()),
     }
     return render(request, "pages/penalty_management.html", context)
 
