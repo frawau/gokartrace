@@ -71,11 +71,15 @@ def active_round():
         Q(start__date__gte=start_date) & Q(ended__isnull=True)
     ).first()
 
+
 def editable_round():
     start_date = dt.date.today() - dt.timedelta(days=1)
-    return Round.objects.filter(
-        Q(start__date__gte=start_date), ready=False
-    ).order_by("start").first()
+    return (
+        Round.objects.filter(Q(start__date__gte=start_date), ready=False)
+        .order_by("start")
+        .first()
+    )
+
 
 def index(request):
     # Page from the theme
@@ -1886,6 +1890,129 @@ def penalty_management_view(request):
         "sponsors_logos": get_sponsor_logos(current_round()),
     }
     return render(request, "pages/penalty_management.html", context)
+
+
+@login_required
+@user_passes_test(is_admin_user)
+def sponsor_management_view(request):
+    if request.method == "POST":
+        try:
+            action = request.POST.get("action")
+
+            if action == "create_logo":
+                name = request.POST.get("name")
+                championship_id = request.POST.get("championship_id")
+
+                # Validate name
+                if name not in ["organiser logo", "sponsor logo"]:
+                    return JsonResponse(
+                        {
+                            "success": False,
+                            "error": "Logo name must be 'organiser logo' or 'sponsor logo'",
+                        }
+                    )
+
+                # Handle championship
+                championship = None
+                if championship_id:
+                    championship = get_object_or_404(Championship, id=championship_id)
+
+                # Check for organiser logo uniqueness constraint
+                if name == "organiser logo" and championship:
+                    if Logo.objects.filter(
+                        name="organiser logo", championship=championship
+                    ).exists():
+                        return JsonResponse(
+                            {
+                                "success": False,
+                                "error": "Organiser logo already exists for this championship",
+                            }
+                        )
+
+                # Create logo
+                logo = Logo.objects.create(name=name, championship=championship)
+
+                if "image" in request.FILES:
+                    logo.image = request.FILES["image"]
+                    logo.save()
+                else:
+                    return JsonResponse(
+                        {"success": False, "error": "Image file is required"}
+                    )
+
+                return JsonResponse(
+                    {"success": True, "message": "Logo created successfully"}
+                )
+
+            elif action == "edit_logo":
+                logo_id = request.POST.get("logo_id")
+                logo = get_object_or_404(Logo, id=logo_id)
+
+                name = request.POST.get("name")
+                championship_id = request.POST.get("championship_id")
+
+                # Validate name
+                if name not in ["organiser logo", "sponsor logo"]:
+                    return JsonResponse(
+                        {
+                            "success": False,
+                            "error": "Logo name must be 'organiser logo' or 'sponsor logo'",
+                        }
+                    )
+
+                # Handle championship
+                championship = None
+                if championship_id:
+                    championship = get_object_or_404(Championship, id=championship_id)
+
+                # Check for organiser logo uniqueness constraint (exclude current logo)
+                if name == "organiser logo" and championship:
+                    if (
+                        Logo.objects.filter(
+                            name="organiser logo", championship=championship
+                        )
+                        .exclude(id=logo.id)
+                        .exists()
+                    ):
+                        return JsonResponse(
+                            {
+                                "success": False,
+                                "error": "Organiser logo already exists for this championship",
+                            }
+                        )
+
+                logo.name = name
+                logo.championship = championship
+
+                if "image" in request.FILES:
+                    logo.image = request.FILES["image"]
+
+                logo.save()
+                return JsonResponse(
+                    {"success": True, "message": "Logo updated successfully"}
+                )
+
+            elif action == "delete_logo":
+                logo_id = request.POST.get("logo_id")
+                logo = get_object_or_404(Logo, id=logo_id)
+                logo.delete()
+                return JsonResponse(
+                    {"success": True, "message": "Logo deleted successfully"}
+                )
+
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+
+    # GET request - show the logos
+    logos = Logo.objects.all().order_by("name", "championship__name")
+    championships = Championship.objects.all().order_by("name")
+    context = {
+        "logos": logos,
+        "championships": championships,
+        "organiser_logo": get_organiser_logo(current_round()),
+        "sponsors_logos": get_sponsor_logos(current_round()),
+    }
+    return render(request, "pages/sponsor_management.html", context)
 
 
 @login_required
