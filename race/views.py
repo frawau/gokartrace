@@ -74,8 +74,8 @@ def active_round():
 def editable_round():
     start_date = dt.date.today() - dt.timedelta(days=1)
     return Round.objects.filter(
-        Q(start__date__gte=start_date) & Q(ready__isnull=True)
-    ).first()
+        Q(start__date__gte=start_date), ready=False
+    ).order_by("start").first()
 
 def index(request):
     # Page from the theme
