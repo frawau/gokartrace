@@ -47,6 +47,22 @@ class Config(models.Model):
         return f"Config {self.name} is {self.value}"
 
 
+class Logo(models.Model):
+    name = models.CharField(max_length=128)
+    image = models.ImageField(upload_to=logo_path)
+    championship = models.ForeignKey(
+        Championship, on_delete=models.CASCADE, null=True, blank=True
+    )
+
+    class Meta:
+        verbose_name = _("Logo")
+        verbose_name_plural = _("Logos")
+        unique_together = ("name", "championship")
+
+    def __str__(self):
+        return self.name
+
+
 def mugshot_path(instance, filename):
     # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
     return f"static/person/mug_{instance.surname}_{instance.country}_{round(dt.datetime.now().timestamp())}"

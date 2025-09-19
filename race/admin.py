@@ -7,8 +7,17 @@ from django.contrib import admin
 
 from django.apps import apps
 from django.contrib import admin
+from .models import Logo
 
 # Register your models here.
+
+
+@admin.register(Logo)
+class LogoAdmin(admin.ModelAdmin):
+    list_display = ("name", "championship", "image")
+    list_filter = ("championship",)
+    search_fields = ("name",)
+
 
 app_models = apps.get_app_config("race").get_models()
 for model in app_models:
@@ -24,7 +33,7 @@ for model in app_models:
                 admin.site.register(model)
 
         # Register to Admin
-        else:
+        elif model.__name__ != "Logo":
             admin.site.register(model)
 
     except Exception:
