@@ -61,22 +61,6 @@ def logo_path(instance, filename):
     return f"static/logos/{instance.name}_{round(dt.datetime.now().timestamp())}"
 
 
-class Logo(models.Model):
-    name = models.CharField(max_length=128)
-    image = models.ImageField(upload_to=logo_path)
-    championship = models.ForeignKey(
-        Championship, on_delete=models.CASCADE, null=True, blank=True
-    )
-
-    class Meta:
-        verbose_name = _("Logo")
-        verbose_name_plural = _("Logos")
-        unique_together = ("name", "championship")
-
-    def __str__(self):
-        return self.name
-
-
 def default_weight_penalty():
     return [
         ">=",
@@ -1275,3 +1259,19 @@ class PenaltyQueue(models.Model):
     def adelay_penalty(self):
         """Async version of delay_penalty"""
         return self.delay_penalty()
+
+
+class Logo(models.Model):
+    name = models.CharField(max_length=128)
+    image = models.ImageField(upload_to=logo_path)
+    championship = models.ForeignKey(
+        Championship, on_delete=models.CASCADE, null=True, blank=True
+    )
+
+    class Meta:
+        verbose_name = _("Logo")
+        verbose_name_plural = _("Logos")
+        unique_together = ("name", "championship")
+
+    def __str__(self):
+        return self.name
