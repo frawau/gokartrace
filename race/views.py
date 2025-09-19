@@ -730,7 +730,11 @@ def create_driver(request):
     return render(
         request,
         "pages/add_driver.html",
-        {"form": form, "organiser_logo": get_organiser_logo(current_round())},
+        {
+            "form": form,
+            "organiser_logo": get_organiser_logo(current_round()),
+            "sponsors_logos": get_sponsor_logos(current_round()),
+        },
     )
 
 
@@ -975,6 +979,7 @@ def pending_drivers_with_nav(request):
         "round": cround,
         "pending_sessions": pending_sessions,
         "organiser_logo": get_organiser_logo(cround),
+        "sponsors_logos": get_sponsor_logos(cround),
     }
 
     return render(request, "pages/pending_drivers_nav.html", context)
