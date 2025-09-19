@@ -1,13 +1,8 @@
 {% extends "layout/fsbase.html" %}
-{% load static %}
 {% block body %}index-page bg-gray-200{% endblock body %}
 {% block content %}
 <div class="container position-relative">
-  {% if main_logo %}
-  <img src="{{ main_logo.image.url }}" class="img-fluid position-absolute" alt="{{ main_logo.name }}" style="top: 10px; right: 10px; max-width: 400px; z-index: 1;">
-  {% else %}
-  <img src="{% static 'logos/gokartrace-logo.jpg' %}" class="img-fluid position-absolute" alt="GoKartRace" style="top: 10px; right: 10px; max-width: 400px; z-index: 1;">
-  {% endif %}
+  <img src="/static/img/easykart-logo.png" class="img-fluid position-absolute" alt="Easykart.Net" style="top: 10px; right: 10px; max-width: 400px; z-index: 1;">
   {% block main_content %} {% endblock main_content %}
 </div>
 {% endblock content %}

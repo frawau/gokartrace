@@ -3,17 +3,47 @@
 <footer class="footer pt-5 mt-5">
     <div class="container">
         <div class="row" style="margin-left: -5px; margin-right: -5px;">
-            {% for logo in sponsors_logos %}
-            {% if forloop.counter0|divisibleby:7 and not forloop.first %}
-        </div>
-        <div class="row" style="margin-left: -5px; margin-right: -5px;">
-            {% endif %}
             <div class="col-md col-sm-3 col-4 px-1 mb-4">
                 <div>
-                    <img src="{{ logo.image.url }}" class="footer-logo" alt="{{ logo.name }}">
+                    <img src="{% static "logos/b_quick.png" %}" class="footer-logo" alt="B-Quik">
                 </div>
             </div>
-            {% endfor %}
+
+            <div class="col-md col-sm-3 col-4 px-1 mb-4">
+                <div>
+                    <img src="{% static "logos/bf_goodrich.png" %}" class="footer-logo" alt="BF Goodrich">
+                </div>
+            </div>
+
+            <div class="col-md col-sm-3 col-4 px-1 mb-4">
+                <div>
+                    <img src="{% static "logos/honda.png" %}" class="footer-logo" alt="Honda">
+                </div>
+            </div>
+
+            <div class="col-md col-sm-3 col-4 px-1 mb-4">
+                <div>
+                    <img src="{% static "logos/ibis-logo.jpg" %}" class="footer-logo" alt="ibis">
+                </div>
+            </div>
+
+            <div class="col-md col-sm-3 col-4 px-1 mb-4">
+                <div>
+                    <img src="{% static "logos/logo-asa.png" %}" class="footer-logo" alt="action Sport">
+                </div>
+            </div>
+
+            <div class="col-md col-sm-3 col-4 px-1 mb-4">
+                <div>
+                    <img src="{% static "logos/tissot-logo.jpg" %}" class="footer-logo" alt="Tissot">
+                </div>
+            </div>
+
+            <div class="col-md col-sm-3 col-4 px-1 mb-4">
+                <div>
+                    <img src="{% static "logos/shark.png" %}" class="footer-logo" alt="Shark">
+                </div>
+            </div>
         </div>
             <div class="col-12">
             <div class="text-center d-flex align-items-center justify-content-center">

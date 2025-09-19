@@ -1,19 +1,15 @@
 {% extends "layout/base.html" %}
-{% load static %}
 
 {% block body %}index-page bg-gray-200{% endblock body %}
 
 {% block content %}
 
-<div class="container position-relative">
-{% if main_logo %}
-<img src="{{ main_logo.image.url }}" class="img-fluid" alt="{{ main_logo.name }}" style="max-width: 25%; height: auto;">
-{% endif %}
-<img src="{% static 'logos/gokartrace-logo.jpg' %}" class="img-fluid position-absolute" alt="GoKartRace" style="top: 80px; right: 10px; max-width: 25%; height: auto; z-index: 10;">
+<div class="container">
 <br />
 <br />
 <br />
 <br />
+<img src="/static/img/easykart-logo.png" class="img-fluid" alt="Easykart.Net" style="max-width: 25%; height: auto;"> </img>
 </div>
 {% block main_content %} {% endblock main_content %}
 {% endblock content %}
