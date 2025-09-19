@@ -818,6 +818,7 @@ def singleteam_view(request):
             "round": cround,
             "teams": teams,
             "selected_team": selected_team,
+            "organiser_logo": get_organiser_logo(cround),
         }
         return render(request, "pages/singleteam.html", context)
     else:
@@ -1057,6 +1058,7 @@ def round_info(request):
         "selected_round": selected_round,
         "selected_round_id": int(selected_round_id) if selected_round_id else None,
         "round_teams": round_teams,
+        "organiser_logo": get_organiser_logo(selected_round),
     }
     return render(request, "pages/round_info.html", context)
 
@@ -1115,6 +1117,7 @@ def round_penalties(request):
         "selected_round": selected_round,
         "selected_round_id": int(selected_round_id) if selected_round_id else None,
         "round_penalties": round_penalties_list,
+        "organiser_logo": get_organiser_logo(selected_round),
     }
     return render(request, "pages/round_penalties.html", context)
 
@@ -1159,11 +1162,21 @@ def all_drivers_view(request):
                         }
                     )
 
+    # Get organiser logo for current round or selected championship
+    current_round_obj = current_round()
+    if selected_championship and not current_round_obj:
+        # If no current round but we have a selected championship, use latest round from that championship
+        latest_round = rounds.last() if rounds else None
+        organiser_logo = get_organiser_logo(latest_round)
+    else:
+        organiser_logo = get_organiser_logo(current_round_obj)
+
     context = {
         "championships": championships,
         "selected_championship": selected_championship,
         "rounds": rounds,
         "persons": persons,
+        "organiser_logo": organiser_logo,
     }
 
     return render(request, "pages/alldriver.html", context)
