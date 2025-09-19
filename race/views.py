@@ -46,6 +46,7 @@ from .models import (
     ChampionshipPenalty,
     RoundPenalty,
     PenaltyQueue,
+    Logo,
 )
 from .signals import race_end_requested
 from .serializers import ChangeLaneSerializer
@@ -2368,3 +2369,35 @@ def delay_penalty(request):
 
 # Note: Penalty queue timing and next penalty triggering will be handled
 # by the StopAndGoConsumer when it receives penalty state updates
+
+
+def get_organiser_logo(round_obj):
+    """
+    Retrieve the organiser logo for a given round.
+
+    Priority order:
+    1. Logo with name "organiser logo" for the round's championship
+    2. Logo with name "organiser logo" for NULL championship (global)
+    3. None if no matching logo found
+
+    Args:
+        round_obj: Round instance
+
+    Returns:
+        Logo instance or None
+    """
+    if not round_obj:
+        return None
+
+    try:
+        # First try to get championship-specific organiser logo
+        return Logo.objects.get(
+            name="organiser logo", championship=round_obj.championship
+        )
+    except Logo.DoesNotExist:
+        try:
+            # Fallback to global organiser logo (NULL championship)
+            return Logo.objects.get(name="organiser logo", championship__isnull=True)
+        except Logo.DoesNotExist:
+            # No organiser logo found
+            return None
