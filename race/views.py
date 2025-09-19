@@ -1917,8 +1917,8 @@ def sponsor_management_view(request):
                 if championship_id:
                     championship = get_object_or_404(Championship, id=championship_id)
 
-                # Check for organiser logo uniqueness constraint
-                if name == "organiser logo" and championship:
+                # Check for organiser logo uniqueness constraint (only for organiser logos)
+                if name == "organiser logo":
                     if Logo.objects.filter(
                         name="organiser logo", championship=championship
                     ).exists():
@@ -1965,8 +1965,8 @@ def sponsor_management_view(request):
                 if championship_id:
                     championship = get_object_or_404(Championship, id=championship_id)
 
-                # Check for organiser logo uniqueness constraint (exclude current logo)
-                if name == "organiser logo" and championship:
+                # Check for organiser logo uniqueness constraint (exclude current logo, only for organiser logos)
+                if name == "organiser logo":
                     if (
                         Logo.objects.filter(
                             name="organiser logo", championship=championship
