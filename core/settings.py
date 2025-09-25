@@ -48,11 +48,16 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:5085",
     f"http://{APP_DOMAIN}",
     f"https://{APP_DOMAIN}",
+    f"http://{APP_DOMAIN}:8000",
+    f"https://{APP_DOMAIN}:8000",
 ]
 
 RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+
+# Allow iframe embedding from any origin
+X_FRAME_OPTIONS = "ALLOWALL"
 
 # Application definition
 
