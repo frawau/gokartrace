@@ -22,8 +22,16 @@ from pathlib import Path
 from .models import Round, Person, team_member, Config, round_team
 from .utils import dataencode
 
-FLAGDIR = Path("/home/llama/gokartrace/static/flags")
-LOGOIMG = Path("/home/llama/gokartrace/static/logos/gokartrace-logo.jpg")
+FLAGDIR = (
+    Path(settings.STATICFILES_DIRS[0]) / "flags"
+    if hasattr(settings, "STATICFILES_DIRS") and settings.STATICFILES_DIRS
+    else Path("static/flags")
+)
+LOGOIMG = (
+    Path(settings.STATICFILES_DIRS[0]) / "logos" / "gokartrace-logo.jpg"
+    if hasattr(settings, "STATICFILES_DIRS") and settings.STATICFILES_DIRS
+    else Path("static/logos/gokartrace-logo.jpg")
+)
 
 
 class GenerateCardPDF(View):
