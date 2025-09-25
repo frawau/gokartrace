@@ -28,15 +28,31 @@ Source: [Flagpedia.net](https://flagpedia.net) | [API Documentation](https://fla
 
 ### Method 1: Using the Installation Script
 
-Run the provided installation script:
+Run the provided installation script with various options:
 
 ```bash
-# For font installation (requires sudo)
+# Install both fonts and flags (requires sudo for fonts)
 sudo python3 install_assets.py
 
-# For flags only (no sudo needed)
-python3 install_assets.py
+# Install flags only (no sudo needed)
+python3 install_assets.py -n
+
+# Install fonts only
+sudo python3 install_assets.py -N
+
+# Custom directories
+python3 install_assets.py --flags-dir ./assets/flags
+sudo python3 install_assets.py --fonts-dir ./local-fonts
+
+# View all options
+python3 install_assets.py --help
 ```
+
+#### Command Line Options:
+- `-n, --no-fonts`: Skip font installation
+- `-N, --no-flags`: Skip flag installation
+- `--fonts-dir DIR`: Custom font directory (default: /usr/local/share/fonts)
+- `--flags-dir DIR`: Custom flag directory (default: ./static/flags)
 
 ### Method 2: Docker Build
 

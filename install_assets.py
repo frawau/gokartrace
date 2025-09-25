@@ -4,6 +4,7 @@ Asset installation script for Go-Kart Race application.
 Downloads and installs required flags and fonts.
 """
 
+import argparse
 import os
 import sys
 import urllib.request
@@ -30,7 +31,7 @@ def download_file(url, destination):
         return False
 
 
-def download_google_fonts():
+def download_google_fonts(font_dir="/usr/local/share/fonts"):
     """Download Google Noto fonts."""
     fonts = {
         "NotoSans-Regular.ttf": "https://github.com/googlefonts/noto-fonts/raw/main/hinted/ttf/NotoSans/NotoSans-Regular.ttf",
@@ -40,7 +41,7 @@ def download_google_fonts():
         "NotoSansThai-Regular.ttf": "https://github.com/googlefonts/noto-fonts/raw/main/hinted/ttf/NotoSansThai/NotoSansThai-Regular.ttf",
     }
 
-    font_dir = Path("/usr/local/share/fonts")
+    font_dir = Path(font_dir)
     ensure_dir(font_dir)
 
     for font_name, url in fonts.items():
@@ -54,12 +55,11 @@ def download_google_fonts():
             print(f"✓ Font already exists: {font_name}")
 
 
-def download_country_flags():
+def download_country_flags(flag_dir="./static/flags"):
     """Download country flags from Flagpedia.net with fixed height."""
     import pycountry
 
-    static_dir = Path("./static")
-    flag_dir = static_dir / "flags"
+    flag_dir = Path(flag_dir)
     ensure_dir(flag_dir)
 
     # Flagpedia.net CDN URL pattern for fixed height flags (h240 = 240px height, largest under 512px)
@@ -110,9 +110,9 @@ def download_country_flags():
             print(f"  ... and {len(failed_countries) - 10} more")
 
 
-def create_fallback_flags():
+def create_fallback_flags(flag_dir="./static/flags"):
     """Create simple fallback flags if downloads fail."""
-    flag_dir = Path("./static/flags")
+    flag_dir = Path(flag_dir)
     ensure_dir(flag_dir)
 
     # Create a simple UN flag as fallback (solid blue with UN logo placeholder)
@@ -124,42 +124,99 @@ def create_fallback_flags():
         un_flag.touch()
 
 
+def parse_arguments():
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(
+        description="Install assets (fonts and flags) for Go-Kart Race application",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python3 install_assets.py                          # Install both fonts and flags
+  python3 install_assets.py -n                       # Install flags only
+  python3 install_assets.py -N                       # Install fonts only
+  python3 install_assets.py --fonts-dir ./fonts      # Custom font directory
+  python3 install_assets.py --flags-dir ./assets     # Custom flag directory
+        """,
+    )
+
+    parser.add_argument(
+        "-n", "--no-fonts", action="store_true", help="Skip font installation"
+    )
+
+    parser.add_argument(
+        "-N", "--no-flags", action="store_true", help="Skip flag installation"
+    )
+
+    parser.add_argument(
+        "--fonts-dir",
+        default="/usr/local/share/fonts",
+        help="Directory to install fonts (default: /usr/local/share/fonts)",
+    )
+
+    parser.add_argument(
+        "--flags-dir",
+        default="./static/flags",
+        help="Directory to install flags (default: ./static/flags)",
+    )
+
+    return parser.parse_args()
+
+
 def main():
     """Main installation function."""
+    args = parse_arguments()
+
     print("Go-Kart Race Asset Installation")
     print("=" * 40)
 
-    # Check if running as root for font installation
-    if os.geteuid() != 0:
-        print("Warning: Not running as root. Font installation may fail.")
-        print("Consider running: sudo python3 install_assets.py")
+    # Validate arguments
+    if args.no_fonts and args.no_flags:
+        print("Error: Cannot skip both fonts and flags. Nothing to install.")
+        sys.exit(1)
 
-    print("\n1. Installing fonts...")
-    try:
-        download_google_fonts()
-    except Exception as e:
-        print(f"Font installation failed: {e}")
+    # Font installation
+    if not args.no_fonts:
+        # Check if running as root for font installation
+        if os.geteuid() != 0:
+            print("Warning: Not running as root. Font installation may fail.")
+            print("Consider running: sudo python3 install_assets.py")
 
-    print("\n2. Installing country flags...")
-    try:
-        download_country_flags()
-        create_fallback_flags()
-    except Exception as e:
-        print(f"Flag installation failed: {e}")
+        print(f"\n1. Installing fonts to {args.fonts_dir}...")
+        try:
+            download_google_fonts(args.fonts_dir)
+        except Exception as e:
+            print(f"Font installation failed: {e}")
 
-    print("\n3. Setting permissions...")
-    try:
-        # Update font cache
-        os.system("fc-cache -fv")
-        print("✓ Font cache updated")
-    except Exception as e:
-        print(f"Font cache update failed: {e}")
+        print("\n   Updating font cache...")
+        try:
+            # Update font cache
+            os.system("fc-cache -fv")
+            print("✓ Font cache updated")
+        except Exception as e:
+            print(f"Font cache update failed: {e}")
+    else:
+        print("\n1. Skipping font installation (-n/--no-fonts)")
+
+    # Flag installation
+    if not args.no_flags:
+        print(f"\n2. Installing country flags to {args.flags_dir}...")
+        try:
+            download_country_flags(args.flags_dir)
+            create_fallback_flags(args.flags_dir)
+        except Exception as e:
+            print(f"Flag installation failed: {e}")
+    else:
+        print("\n2. Skipping flag installation (-N/--no-flags)")
 
     print("\nInstallation complete!")
-    print("\nNext steps:")
-    print("1. Update FLAGDIR and LOGOIMG paths in race/pdfcardview.py")
-    print("2. Ensure static files are properly configured")
-    print("3. Test flag display in templates")
+
+    if not args.no_fonts or not args.no_flags:
+        print("\nNext steps:")
+        if not args.no_fonts:
+            print("1. Verify fonts are accessible in your application")
+        if not args.no_flags:
+            print("2. Ensure static files are properly configured")
+            print("3. Test flag display in templates")
 
 
 if __name__ == "__main__":
