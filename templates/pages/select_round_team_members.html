@@ -370,6 +370,7 @@ document.addEventListener('DOMContentLoaded', function() {
     $('#championship-select').on('change', function() {
         const championshipId = $(this).val();
         const roundSelect = $('#round-select');
+        const currentRoundId = '{{ current_round.id }}';
 
         if (championshipId) {
             fetch(`/api/championship/${championshipId}/rounds/`)
@@ -378,18 +379,23 @@ document.addEventListener('DOMContentLoaded', function() {
                     const rounds = data.rounds.filter(round => round.ended === null);
                     roundSelect.empty();
                     rounds.forEach(round => {
-                        roundSelect.append(`<option value="${round.id}">${round.name}</option>`);
+                        const isSelected = round.id == currentRoundId ? 'selected' : '';
+                        roundSelect.append(`<option value="${round.id}" ${isSelected}>${round.name}</option>`);
                     });
-                    // Auto-navigate to first round if only one available
-                    if (rounds.length === 1) {
-                        window.location.href = `{{ request.path }}?round_id=${rounds[0].id}`;
-                    }
+                    // Trigger select2 to update
+                    roundSelect.trigger('change.select2');
                 })
                 .catch(error => {
                     console.error('Error:', error);
                 });
         }
     });
+
+    // On page load, populate rounds for the selected championship
+    const selectedChampionshipId = $('#championship-select').val();
+    if (selectedChampionshipId) {
+        $('#championship-select').trigger('change');
+    }
 
     // Handle round change
     $('#round-select').on('change', function() {
