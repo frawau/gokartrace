@@ -343,18 +343,75 @@ class TeamMembersSelectRoundView(View):
     template_name = "pages/select_round_team_members.html"
 
     def get(self, request):
-        championships = Championship.objects.all().order_by("-start")
-        context = {
-            "championships": championships,
-            "organiser_logo": get_organiser_logo(None),
-            "sponsors_logos": get_sponsor_logos(None),
-        }
-        return render(request, self.template_name, context)
+        round_id = request.GET.get("round_id")
+
+        if not round_id:
+            # Show selection interface
+            championships = Championship.objects.all().order_by("-start")
+            context = {
+                "championships": championships,
+                "organiser_logo": get_organiser_logo(None),
+                "sponsors_logos": get_sponsor_logos(None),
+            }
+            return render(request, self.template_name, context)
+
+        try:
+            selected_round = get_object_or_404(Round, id=round_id)
+        except:
+            messages.error(request, "Invalid round selected.")
+            return redirect(request.path)
+
+        # Use the existing TeamMembersView functionality but with selected round
+        team_members_view = TeamMembersView()
+        team_members_view.get_current_round = lambda: selected_round
+
+        # Get the team management context
+        response = team_members_view.get(request)
+
+        # If it's a redirect (e.g., no round found), handle it
+        if hasattr(response, "status_code") and response.status_code == 302:
+            messages.error(
+                request, "Selected round is not accessible for team management."
+            )
+            return redirect(request.path)
+
+        # Add championship and round selection data to the context
+        if hasattr(response, "context_data"):
+            response.context_data.update(
+                {
+                    "championships": Championship.objects.all().order_by("-start"),
+                    "selected_round": selected_round,
+                    "round_id": round_id,
+                }
+            )
+
+        return response
 
     def post(self, request):
         round_id = request.POST.get("round_id")
+
+        # Handle round selection from the form
+        if (
+            round_id
+            and not request.POST.get("select_team")
+            and not request.POST.get("save_members")
+            and not request.POST.get("add_member")
+            and not request.POST.get("remove_member")
+        ):
+            try:
+                selected_round = get_object_or_404(Round, id=round_id)
+                # Redirect to GET with round_id parameter
+                return redirect(f"{request.path}?round_id={round_id}")
+            except:
+                messages.error(request, "Invalid round selected.")
+                return redirect(request.path)
+
+        # Handle team management actions - delegate to existing TeamMembersView
         if not round_id:
-            messages.error(request, "Please select a round.")
+            round_id = request.GET.get("round_id")
+
+        if not round_id:
+            messages.error(request, "Please select a round first.")
             return redirect(request.path)
 
         try:
@@ -363,12 +420,20 @@ class TeamMembersSelectRoundView(View):
             messages.error(request, "Invalid round selected.")
             return redirect(request.path)
 
-        # Instantiate the original TeamMembersView but with the selected round
+        # Use the existing TeamMembersView functionality but with selected round
         team_members_view = TeamMembersView()
         team_members_view.get_current_round = lambda: selected_round
 
-        # Handle the request with the selected round
-        if request.method == "GET":
-            return team_members_view.get(request)
-        else:
-            return team_members_view.post(request)
+        # Handle POST actions (team selection, member management, etc.)
+        response = team_members_view.post(request)
+
+        # If the response is a redirect, preserve the round_id parameter
+        if hasattr(response, "status_code") and response.status_code == 302:
+            redirect_url = response.url
+            if "?" not in redirect_url:
+                redirect_url += f"?round_id={round_id}"
+            else:
+                redirect_url += f"&round_id={round_id}"
+            return redirect(redirect_url)
+
+        return response
