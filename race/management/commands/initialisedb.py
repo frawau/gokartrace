@@ -2,8 +2,6 @@ import datetime as dt
 import random
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from django.contrib.auth.models import Group
-from django.core.validators import MinValueValidator, MaxValueValidator
 from race.models import (
     Person,
     Team,
@@ -12,8 +10,6 @@ from race.models import (
     championship_team,
     round_team,
     team_member,
-    Config,
-    Penalty,
 )
 
 
@@ -141,32 +137,7 @@ class Command(BaseCommand):
                         )
                     )
 
-        # 6. Create User Groups
-        groups = ["Driver Scanner", "Queue Scanner", "Race Director", "Admin"]
-        for group_name in groups:
-            Group.objects.get_or_create(name=group_name)
-            self.stdout.write(self.style.SUCCESS(f'Group "{group_name}" created.'))
-
-        configs = [("page size", "A4"), ("card size", "A6"), ("display timeout", "5")]
-        for key, val in configs:
-            Config.objects.get_or_create(name=key, value=val)
-            self.stdout.write(self.style.SUCCESS(f'Config "{key}" = "{val}" created.'))
-
-        # 7. Create Standard Penalties
-        penalties = [
-            ("time limit min", "Driving less than the minimum time required."),
-            ("time limit", "Driving more than the maximum drive time."),
-            ("required changes", "Too few driver changes."),
-        ]
-        for name, description in penalties:
-            penalty, created = Penalty.objects.get_or_create(
-                name=name, defaults={"description": description}
-            )
-            if created:
-                self.stdout.write(self.style.SUCCESS(f'Penalty "{name}" created.'))
-            else:
-                self.stdout.write(
-                    self.style.WARNING(f'Penalty "{name}" already exists.')
-                )
+        # Note: User Groups, Configs, and Standard Penalties are now created
+        # automatically via data migration 0001_setup_essential_data.py
 
         self.stdout.write(self.style.SUCCESS("All tasks completed successfully."))
