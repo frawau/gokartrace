@@ -7,7 +7,7 @@ from django.urls import path
 from . import consumers
 from . import views
 from .pdfcardview import GenerateCardPDF
-from .teammgt import TeamMembersView
+from .teammgt import TeamMembersView, TeamMembersSelectRoundView
 
 urlpatterns = [
     path("", views.index, name="Home"),
@@ -62,6 +62,11 @@ urlpatterns = [
     path("rounds/form/", views.round_form, name="round_form"),
     path("rounds/update/<int:round_id>/", views.update_round, name="update_round"),
     path("rounds/team/", TeamMembersView.as_view(), name="team_members"),
+    path(
+        "teams/select-round/",
+        TeamMembersSelectRoundView.as_view(),
+        name="select_round_teams",
+    ),
     path("driver/add/", views.create_driver, name="add_driver"),
     path("team/add/", views.create_team, name="add_team"),
     path("get_round_status/", views.get_round_status, name="get_round_status"),

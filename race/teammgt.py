@@ -1,7 +1,14 @@
 import datetime as dt
 from django import forms
-from .models import Round, championship_team, Person, team_member, round_team
-from django.shortcuts import render, redirect
+from .models import (
+    Round,
+    championship_team,
+    Person,
+    team_member,
+    round_team,
+    Championship,
+)
+from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
 from django.contrib import messages
 from django.db.models import Exists, OuterRef, Value, BooleanField
@@ -328,3 +335,40 @@ class TeamMembersView(View):
             messages.error(request, "Invalid selection for new member.")
 
         return self.handle_team_selection(request, current_round, selected_team)
+
+
+@method_decorator(login_required, name="dispatch")
+@method_decorator(user_passes_test(is_admin_user), name="dispatch")
+class TeamMembersSelectRoundView(View):
+    template_name = "pages/select_round_team_members.html"
+
+    def get(self, request):
+        championships = Championship.objects.all().order_by("-start")
+        context = {
+            "championships": championships,
+            "organiser_logo": get_organiser_logo(None),
+            "sponsors_logos": get_sponsor_logos(None),
+        }
+        return render(request, self.template_name, context)
+
+    def post(self, request):
+        round_id = request.POST.get("round_id")
+        if not round_id:
+            messages.error(request, "Please select a round.")
+            return redirect(request.path)
+
+        try:
+            selected_round = get_object_or_404(Round, id=round_id)
+        except:
+            messages.error(request, "Invalid round selected.")
+            return redirect(request.path)
+
+        # Instantiate the original TeamMembersView but with the selected round
+        team_members_view = TeamMembersView()
+        team_members_view.get_current_round = lambda: selected_round
+
+        # Handle the request with the selected round
+        if request.method == "GET":
+            return team_members_view.get(request)
+        else:
+            return team_members_view.post(request)

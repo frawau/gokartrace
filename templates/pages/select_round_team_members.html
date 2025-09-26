@@ -1,0 +1,120 @@
+{% extends 'layout/content.html' %}
+{% load static %}
+
+{% block main_content %}
+<div class="container mt-5">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4>Select Round for Team Management</h4>
+        </div>
+        <div class="card-body">
+            <!-- Championship Selection -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="form-group">
+                        <label for="championship-select">Select Championship:</label>
+                        <select id="championship-select" class="form-control select2">
+                            <option value="">Search for a championship...</option>
+                            {% for championship in championships %}
+                            <option value="{{ championship.id }}"
+                                    data-name="{{ championship.name }}">
+                                {{ championship.name }} ({{ championship.start|date:'Y' }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Round Selection -->
+            <div class="row mb-4" id="round-selection" style="display: none;">
+                <div class="col-md-12">
+                    <div class="form-group">
+                        <label for="round-select">Select Round (non-ended rounds only):</label>
+                        <select id="round-select" class="form-control select2">
+                            <option value="">Search for a round...</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Proceed Button -->
+            <form id="proceed-form" method="post" style="display: none;">
+                {% csrf_token %}
+                <input type="hidden" name="round_id" id="round-id">
+
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">Proceed to Team Management</button>
+                        <button type="button" class="btn btn-secondary" id="cancel-btn">Cancel</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Select2 for both dropdowns
+    $('#championship-select, #round-select').select2({
+        placeholder: 'Search...',
+        allowClear: true
+    });
+
+    // Handle championship selection
+    $('#championship-select').on('change', function() {
+        const championshipId = $(this).val();
+        const roundSelection = $('#round-selection');
+        const roundSelect = $('#round-select');
+        const proceedForm = $('#proceed-form');
+
+        if (championshipId) {
+            // Fetch rounds for selected championship - only non-ended rounds
+            fetch(`/api/championship/${championshipId}/rounds/`)
+                .then(response => response.json())
+                .then(data => {
+                    const rounds = data.rounds.filter(round => !round.ended);
+                    roundSelect.empty().append('<option value="">Search for a round...</option>');
+                    rounds.forEach(round => {
+                        roundSelect.append(`<option value="${round.id}">${round.name}</option>`);
+                    });
+                    roundSelection.show();
+                    proceedForm.hide();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error loading rounds');
+                });
+        } else {
+            roundSelection.hide();
+            proceedForm.hide();
+        }
+    });
+
+    // Handle round selection
+    $('#round-select').on('change', function() {
+        const selectedRoundId = $(this).val();
+        const proceedForm = $('#proceed-form');
+
+        if (selectedRoundId) {
+            $('#round-id').val(selectedRoundId);
+            proceedForm.show();
+        } else {
+            proceedForm.hide();
+        }
+    });
+
+    // Handle cancel button
+    $('#cancel-btn').on('click', function() {
+        $('#championship-select').val('').trigger('change');
+        $('#round-select').val('').trigger('change');
+    });
+});
+</script>
+{% endblock %}
