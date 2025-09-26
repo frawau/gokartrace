@@ -95,7 +95,7 @@
                     <div class="form-group">
                         <label for="round-select">Round:</label>
                         <select id="round-select" class="form-control select2">
-                            <option value="{{ current_round.id }}" selected>{{ current_round.name }}</option>
+                            <option value="">Loading rounds...</option>
                         </select>
                     </div>
                 </div>
@@ -366,35 +366,50 @@ document.addEventListener('DOMContentLoaded', function() {
         allowClear: false
     });
 
-    // Handle championship change to reload rounds
+    // Function to load rounds for a championship
+    function loadRounds(championshipId, currentRoundId = null) {
+        const roundSelect = $('#round-select');
+
+        if (!championshipId) {
+            roundSelect.empty().append('<option value="">Select a championship first</option>');
+            return;
+        }
+
+        fetch(`/api/championship/${championshipId}/rounds/`)
+            .then(response => response.json())
+            .then(data => {
+                const rounds = data.rounds.filter(round => round.ended === null);
+                roundSelect.empty();
+
+                if (rounds.length === 0) {
+                    roundSelect.append('<option value="">No non-ended rounds found</option>');
+                    return;
+                }
+
+                rounds.forEach(round => {
+                    const isSelected = currentRoundId && round.id == currentRoundId ? 'selected' : '';
+                    roundSelect.append(`<option value="${round.id}" ${isSelected}>${round.name}</option>`);
+                });
+
+                // Update Select2
+                roundSelect.trigger('change');
+            })
+            .catch(error => {
+                console.error('Error loading rounds:', error);
+                roundSelect.empty().append('<option value="">Error loading rounds</option>');
+            });
+    }
+
+    // Handle championship change
     $('#championship-select').on('change', function() {
         const championshipId = $(this).val();
-        const roundSelect = $('#round-select');
-        const currentRoundId = '{{ current_round.id }}';
-
-        if (championshipId) {
-            fetch(`/api/championship/${championshipId}/rounds/`)
-                .then(response => response.json())
-                .then(data => {
-                    const rounds = data.rounds.filter(round => round.ended === null);
-                    roundSelect.empty();
-                    rounds.forEach(round => {
-                        const isSelected = round.id == currentRoundId ? 'selected' : '';
-                        roundSelect.append(`<option value="${round.id}" ${isSelected}>${round.name}</option>`);
-                    });
-                    // Trigger select2 to update
-                    roundSelect.trigger('change.select2');
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                });
-        }
+        loadRounds(championshipId, '{{ current_round.id }}');
     });
 
-    // On page load, populate rounds for the selected championship
-    const selectedChampionshipId = $('#championship-select').val();
-    if (selectedChampionshipId) {
-        $('#championship-select').trigger('change');
+    // Load rounds on page load
+    const initialChampionshipId = $('#championship-select').val();
+    if (initialChampionshipId) {
+        loadRounds(initialChampionshipId, '{{ current_round.id }}');
     }
 
     // Handle round change
