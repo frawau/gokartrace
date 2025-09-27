@@ -24,7 +24,7 @@
             {% if selected_championship %}
             <div class="col-md-6 mb-3">
                 <label for="round" class="form-label">Round</label>
-                <select name="round" id="round" class="form-select" onchange="navigateToTeamView()">
+                <select name="round" id="round" class="form-select" onchange="navigateToTeamView(this.value)">
                     <option value="">-- Select Round --</option>
                     {% for round in rounds %}
                         <option value="{{ round.pk }}">{{ round.name }}</option>
