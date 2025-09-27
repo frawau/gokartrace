@@ -107,7 +107,7 @@ def index(request):
         },
     )
 
-
+@xframe_options_exempt
 def team_carousel(request):
     cround = current_round()
 
@@ -261,7 +261,7 @@ def changedriver_info(request):
             },
         )
 
-
+@xframe_options_exempt
 def all_pitlanes(request):
     try:
         cround = current_round()
@@ -886,7 +886,7 @@ def singleteam_view(request):
             },
         )
 
-
+@xframe_options_exempt
 def pending_drivers(request):
     """View to display all pending sessions for the current round"""
     try:
