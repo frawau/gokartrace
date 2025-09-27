@@ -355,6 +355,7 @@ class TeamManagementSelectionView(View):
         selected_championship_id = request.GET.get("championship")
         selected_championship = None
         rounds = None
+        round_for_logo = None
 
         if selected_championship_id:
             try:
@@ -364,6 +365,8 @@ class TeamManagementSelectionView(View):
                 rounds = Round.objects.filter(
                     championship=selected_championship, ended__isnull=True
                 ).order_by("start")
+                if rounds.exists():
+                    round_for_logo = rounds.first()
             except Championship.DoesNotExist:
                 pass  # Will be handled by the template
 
@@ -371,7 +374,7 @@ class TeamManagementSelectionView(View):
             "championships": championships,
             "selected_championship": selected_championship,
             "rounds": rounds,
-            "organiser_logo": get_organiser_logo(),
+            "organiser_logo": get_organiser_logo(round_for_logo),
             "sponsors_logos": [],
         }
         return render(request, self.template_name, context)
