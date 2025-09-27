@@ -225,6 +225,10 @@ document.querySelectorAll('.print-btn').forEach(btn => {
         const memberId = this.getAttribute('data-member');
         const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
         
+        // Open a new window immediately on click
+        const newWindow = window.open('', '_blank');
+        newWindow.document.write('Loading PDF...');
+
         fetch('{% url "generate_cards" %}', {
             method: 'POST',
             headers: {
@@ -238,7 +242,8 @@ document.querySelectorAll('.print-btn').forEach(btn => {
         .then(response => response.blob())
         .then(blob => {
             const url = URL.createObjectURL(blob);
-            window.open(url, '_blank').focus();
+            // Update the location of the new window
+            newWindow.location.href = url;
         });
     });
 });
@@ -249,6 +254,10 @@ document.getElementById('printCardsForm').addEventListener('submit', function(e)
     const data = {
         round_team_id: formData.get('round_team_id')
     };
+
+    // Open a new window immediately on click
+    const newWindow = window.open('', '_blank');
+    newWindow.document.write('Loading PDF...');
 
     fetch(this.action, {
         method: 'POST',
@@ -261,7 +270,8 @@ document.getElementById('printCardsForm').addEventListener('submit', function(e)
     .then(response => response.blob())
     .then(blob => {
         const url = URL.createObjectURL(blob);
-        window.open(url, '_blank').focus();
+        // Update the location of the new window
+        newWindow.location.href = url;
     });
 });
 
