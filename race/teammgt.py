@@ -1,6 +1,13 @@
 import datetime as dt
 from django import forms
-from .models import Round, championship_team, Person, team_member, round_team
+from .models import (
+    Round,
+    championship_team,
+    Person,
+    team_member,
+    round_team,
+    Championship,
+)
 from django.shortcuts import render, redirect
 from django.views import View
 from django.contrib import messages
@@ -103,7 +110,12 @@ class TeamMembersView(View):
     template_name = "pages/team_members.html"
     static_template_name = "pages/static_team_members.html"
 
-    def get_current_round(self):
+    def get_current_round(self, round_id=None):
+        if round_id:
+            try:
+                return Round.objects.get(pk=round_id)
+            except Round.DoesNotExist:
+                return None
         # Get the current round - accessible until end of the next day after scheduled start
         # This allows access even when races are delayed
         now = dt.datetime.now()
@@ -118,8 +130,8 @@ class TeamMembersView(View):
             .first()
         )
 
-    def get(self, request):
-        current_round = self.get_current_round()
+    def get(self, request, round_id=None):
+        current_round = self.get_current_round(round_id)
         if not current_round:
             messages.error(request, "No current championship round found.")
             return redirect("Home")
@@ -142,8 +154,8 @@ class TeamMembersView(View):
         }
         return render(request, template_to_use, context)
 
-    def post(self, request):
-        current_round = self.get_current_round()
+    def post(self, request, round_id=None):
+        current_round = self.get_current_round(round_id)
         if not current_round:
             messages.error(request, "No current championship round found.")
             return redirect("Home")
@@ -328,3 +340,41 @@ class TeamMembersView(View):
             messages.error(request, "Invalid selection for new member.")
 
         return self.handle_team_selection(request, current_round, selected_team)
+
+
+@method_decorator(login_required, name="dispatch")
+@method_decorator(user_passes_test(is_admin_user), name="dispatch")
+class TeamManagementSelectionView(View):
+    template_name = "pages/team_management_selection.html"
+
+    def get(self, request):
+        championships = Championship.objects.filter(end__gte=dt.date.today()).order_by(
+            "name"
+        )
+
+        selected_championship_id = request.GET.get("championship")
+        selected_championship = None
+        rounds = None
+        round_for_logo = None
+
+        if selected_championship_id:
+            try:
+                selected_championship = Championship.objects.get(
+                    pk=selected_championship_id
+                )
+                rounds = Round.objects.filter(
+                    championship=selected_championship, ended__isnull=True
+                ).order_by("start")
+                if rounds.exists():
+                    round_for_logo = rounds.first()
+            except Championship.DoesNotExist:
+                pass  # Will be handled by the template
+
+        context = {
+            "championships": championships,
+            "selected_championship": selected_championship,
+            "rounds": rounds,
+            "organiser_logo": get_organiser_logo(round_for_logo),
+            "sponsors_logos": [],
+        }
+        return render(request, self.template_name, context)
