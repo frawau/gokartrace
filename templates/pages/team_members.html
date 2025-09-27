@@ -6,14 +6,14 @@
     <!-- Hidden fields for JavaScript use -->
     <input type="hidden" id="current-round-id" value="{{ current_round.id }}">
     <input type="hidden" id="has-selected-team" value="{% if selected_team %}true{% else %}false{% endif %}">
-    
+
     <!-- Hidden form for page reload without triggering logout -->
     <form id="reload-form" method="GET" action="{{ request.path }}" style="display:none">
         {% if selected_team %}
         <input type="hidden" name="team_id" value="{{ selected_team.id }}">
         {% endif %}
     </form>
-    
+
     <div class="card">
         <div class="card-header bg-primary text-white">
             <h4>Team Members Management</h4>
@@ -224,10 +224,7 @@ document.querySelectorAll('.print-btn').forEach(btn => {
     btn.addEventListener('click', function() {
         const memberId = this.getAttribute('data-member');
         const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
-        
-        // Open a new window immediately on click
-        const newWindow = window.open('', '_blank');
-        newWindow.document.write('Loading PDF...');
+
 
         fetch('{% url "generate_cards" %}', {
             method: 'POST',
@@ -242,8 +239,7 @@ document.querySelectorAll('.print-btn').forEach(btn => {
         .then(response => response.blob())
         .then(blob => {
             const url = URL.createObjectURL(blob);
-            // Update the location of the new window
-            newWindow.location.href = url;
+            window.open(url, '_blank').focus();
         });
     });
 });
@@ -254,10 +250,6 @@ document.getElementById('printCardsForm').addEventListener('submit', function(e)
     const data = {
         round_team_id: formData.get('round_team_id')
     };
-
-    // Open a new window immediately on click
-    const newWindow = window.open('', '_blank');
-    newWindow.document.write('Loading PDF...');
 
     fetch(this.action, {
         method: 'POST',
@@ -270,8 +262,7 @@ document.getElementById('printCardsForm').addEventListener('submit', function(e)
     .then(response => response.blob())
     .then(blob => {
         const url = URL.createObjectURL(blob);
-        // Update the location of the new window
-        newWindow.location.href = url;
+        window.open(url, '_blank').focus();
     });
 });
 
@@ -305,16 +296,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Make person dropdown searchable
     const personDropdown = document.querySelector('.searchable-select');
     if (personDropdown) {
-        // Create a wrapper div for dropdown 
+        // Create a wrapper div for dropdown
         const wrapper = document.createElement('div');
         wrapper.className = 'dropdown-wrapper';
         personDropdown.parentNode.insertBefore(wrapper, personDropdown);
         wrapper.appendChild(personDropdown);
-        
+
         // Create a datalist element
         const datalist = document.createElement('datalist');
         datalist.id = 'member-options';
-        
+
         // Clone options to datalist
         Array.from(personDropdown.options).forEach(option => {
             if (option.value) {
@@ -324,17 +315,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 datalist.appendChild(clonedOption);
             }
         });
-        
+
         // Add datalist to DOM
         wrapper.appendChild(datalist);
-        
+
         // Create a text input for search
         const searchInput = document.createElement('input');
         searchInput.type = 'text';
         searchInput.className = 'form-control search-input';
         searchInput.placeholder = 'Type to search...';
         searchInput.setAttribute('list', 'member-options');
-        
+
         // Keep the original select (instead of hiding it)
         // Just position it off-screen but keep it focusable
         personDropdown.style.position = 'absolute';
@@ -342,15 +333,15 @@ document.addEventListener('DOMContentLoaded', function() {
         personDropdown.style.height = '1px';
         personDropdown.style.opacity = '0';
         personDropdown.tabIndex = -1;
-        
+
         // Put the search input in place
         wrapper.insertBefore(searchInput, personDropdown);
-        
+
         // Handle input changes
         searchInput.addEventListener('input', function() {
             const selectedText = this.value;
             const options = datalist.querySelectorAll('option');
-            
+
             for (const option of options) {
                 if (option.value === selectedText) {
                     // Find the matching option in the original select
@@ -365,7 +356,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         });
-        
+
         // Handle form submission
         const form = personDropdown.closest('form');
         if (form) {
@@ -373,7 +364,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Ensure the dropdown value is properly set before submission
                 const selectedText = searchInput.value;
                 const options = datalist.querySelectorAll('option');
-                
+
                 for (const option of options) {
                     if (option.value === selectedText) {
                         // Set the original select value
@@ -390,26 +381,26 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
-    
+
     // Setup websocket connection for round updates
     let reloadTimer;
-    
+
     // Get values from hidden inputs
     const currentRoundId = document.getElementById('current-round-id').value;
     const hasSelectedTeam = document.getElementById('has-selected-team').value === 'true';
-    
+
     // Connect to the round WebSocket
     const roundSocket = new WebSocket(
         'ws://' + window.location.host + '/ws/round/' + currentRoundId + '/'
     );
-    
+
     roundSocket.onmessage = function(e) {
         const data = JSON.parse(e.data);
-        
+
         // If the round becomes ready, load the static view
         if (data.ready) {
             console.log('Round is now ready, loading static view');
-            
+
             // Check if we have a selected team
             if (hasSelectedTeam) {
                 // Submit the first form in the page (team selection form)
@@ -426,21 +417,21 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     };
-    
+
     roundSocket.onclose = function(event) {
         console.log('WebSocket connection closed', event);
         if (!event.wasClean) {
             // If the connection was not closed cleanly, reload after a delay
             reloadTimer = setTimeout(() => {
                 console.log('Reloading page due to lost WebSocket connection');
-                
+
                 // Use our special reload form that won't interact with other forms
                 const reloadForm = document.getElementById('reload-form');
                 if (reloadForm) reloadForm.submit();
             }, 3000); // Reload after 3 seconds
         }
     };
-    
+
     roundSocket.onerror = function(error) {
         console.error('WebSocket error:', error);
     };
