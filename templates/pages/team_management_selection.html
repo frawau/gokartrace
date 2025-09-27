@@ -37,14 +37,14 @@
 </div>
 {% endblock %}
 
-{% block javascripts %}
+{% block extra_js %}
 {{ block.super }}
 <script>
-    function navigateToTeamView() {
-        const roundId = document.getElementById('round').value;
+    function navigateToTeamView(roundId) {
+        console.log("Round selected: " + roundId);
         if (roundId) {
             window.location.href = `/rounds/team/${roundId}/`;
         }
     }
 </script>
-{% endblock %}
+{% endblock extra_js %}
